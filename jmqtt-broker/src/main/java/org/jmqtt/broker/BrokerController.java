@@ -2,8 +2,8 @@ package org.jmqtt.broker;
 
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import org.jmqtt.broker.acl.AuthValid;
-import org.jmqtt.broker.client.ClientLifeCycleHookService;
-import org.jmqtt.broker.common.config.*;
+import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.helper.RejectHandler;
 import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
@@ -15,7 +15,6 @@ import org.jmqtt.broker.processor.dispatcher.DefaultDispatcherInnerMessage;
 import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.processor.dispatcher.akka.AkkaClusterEventHandler;
-import org.jmqtt.broker.processor.dispatcher.mem.MemEventHandler;
 import org.jmqtt.broker.processor.dispatcher.rdb.RDBClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.redis.RedisClusterEventHandler;
 import org.jmqtt.broker.processor.protocol.*;
@@ -66,24 +65,19 @@ public class BrokerController {
     private NettyRemotingServer remotingServer;
 
     private InnerMessageDispatcher innerMessageDispatcher;
-    private SubscriptionMatcher    subscriptionMatcher;
-    private AuthValid              authValid;
-    private ReSendMessageService   reSendMessageService;
-    private SessionStore           sessionStore;
-    private MessageStore           messageStore;
+    private SubscriptionMatcher subscriptionMatcher;
+    private AuthValid authValid;
+    private ReSendMessageService reSendMessageService;
+    private SessionStore sessionStore;
+    private MessageStore messageStore;
     private ClusterEventHandler clusterEventHandler;
     private EventConsumeHandler eventConsumeHandler;
     private String currentIp;
 
     // high performance message handle
-    private InflowMessageHandler     inflowMessageHandler;
-    private OutflowMessageHandler    outflowMessageHandler;
+    private InflowMessageHandler inflowMessageHandler;
+    private OutflowMessageHandler outflowMessageHandler;
     private OutflowSecMessageHandler outflowSecMessageHandler;
-
-    public BrokerController(BrokerConfig brokerConfig, NettyConfig nettyConfig,
-                            RDBConfig rdbConfig, RedisConfig redisConfig, AkkaConfig akkaConfig) {
-
-    }
 
     public BrokerController(BrokerConfig brokerConfig, NettyConfig nettyConfig) {
         this.brokerConfig = brokerConfig;
@@ -119,7 +113,7 @@ public class BrokerController {
                 this.sessionStore = MixAll.pluginInit(MemSessionStore.class);
                 this.messageStore = MixAll.pluginInit(MemMessageStore.class);
                 if (this.clusterEventHandler == null) {
-                    this.clusterEventHandler = MixAll.pluginInit(MemEventHandler.class);
+                    this.clusterEventHandler = MixAll.pluginInit(AkkaClusterEventHandler.class);
                 }
             }
             // 设备连接，发布，订阅消息权限控制
@@ -175,7 +169,6 @@ public class BrokerController {
     }
 
 
-
     public void start() {
 
         MixAll.printProperties(log, brokerConfig);
@@ -201,13 +194,14 @@ public class BrokerController {
             // 4. init and register mqtt protocol processor
             // RequestProcessor connectProcessor = new ConnectProcessor(this);
             RequestProcessor connectProcessor = MixAll.pluginInit(brokerConfig.getConnectProcessorClass(),
-                    new Class[]{ this.getClass() }, this);
+                    new Class[]{this.getClass()}, this);
             // RequestProcessor disconnectProcessor = new DisconnectProcessor(this);
             RequestProcessor disconnectProcessor = MixAll.pluginInit(brokerConfig.getDisconnectProcessorClass(),
-                    new Class[]{ this.getClass() }, this);;
+                    new Class[]{this.getClass()}, this);
+            ;
             RequestProcessor pingProcessor = new PingProcessor();
             RequestProcessor publishProcessor = MixAll.pluginInit(brokerConfig.getPublishProcessorClass(),
-                    new Class[]{ this.getClass() }, this);
+                    new Class[]{this.getClass()}, this);
             RequestProcessor pubRelProcessor = new PubRelProcessor(this);
             RequestProcessor subscribeProcessor = new SubscribeProcessor(this);
             RequestProcessor unSubscribeProcessor = new UnSubscribeProcessor(subscriptionMatcher, sessionStore);
@@ -236,7 +230,7 @@ public class BrokerController {
         if (this.remotingServer != null) {
             this.remotingServer.start();
         }
-        LogUtil.info(log,"JMqtt Server start success and version = {}", brokerConfig.getVersion());
+        LogUtil.info(log, "JMqtt Server start success and version = {}", brokerConfig.getVersion());
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
