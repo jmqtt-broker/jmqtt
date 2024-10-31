@@ -1,0 +1,25 @@
+{
+  "akka": {
+    "loglevel": "debug",
+    "actor": {
+      "provider": "cluster",
+      "allow-java-serialization": "on"
+    },
+    "remote": {
+      "artery": {
+        "canonical": {
+          "hostname": "127.0.0.1",
+          "port": "25251"
+        }
+      }
+    },
+    "cluster": {
+      "seed-nodes": [
+        "akka://JMqttDispatcherSystem@127.0.0.1:25251",
+        "akka://JMqttDispatcherSystem@127.0.0.1:25252",
+        "akka://JMqttDispatcherSystem@127.0.0.1:25253"
+      ],
+      "downing-provider-class": "akka.cluster.sbr.SplitBrainResolverProvider"
+    }
+  }
+}

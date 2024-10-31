@@ -1,0 +1,40 @@
+package org.jmqtt.starter.plugins;
+
+import io.netty.channel.Channel;
+import org.apache.commons.lang3.StringUtils;
+import org.jmqtt.broker.client.ClientLifeCycleHookService;
+import org.jmqtt.broker.common.log.JmqttLogger;
+import org.jmqtt.broker.common.log.LogUtil;
+import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
+import org.jmqtt.broker.remoting.util.NettyUtil;
+import org.jmqtt.broker.store.MessageStore;
+import org.slf4j.Logger;
+
+/**
+ * @Description: java类作用描述
+ * @Author: zhengtao
+ * @CreateDate: 2021/8/2 20:25
+ */
+public class ConnectCycleHookService extends ClientLifeCycleHookService {
+
+    private static final Logger log = JmqttLogger.clientTraceLog;
+
+    public ConnectCycleHookService(MessageStore messageStore, InnerMessageDispatcher innerMessageDispatcher) {
+        super(messageStore, innerMessageDispatcher);
+    }
+
+    @Override
+    public void onChannelConnect(String remoteAddr, Channel channel) {
+        // String clientId = NettyUtil.getClientId(channel);
+        // log.info("连接建立client：{}", clientId);
+        super.onChannelConnect(remoteAddr, channel);
+    }
+
+    @Override
+    public void onChannelClose(String remoteAddr, Channel channel) {
+        String clientId = NettyUtil.getClientId(channel);
+        log.info("连接断开client：{}", clientId);
+        super.onChannelClose(remoteAddr, channel);
+    }
+
+}

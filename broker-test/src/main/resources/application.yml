@@ -1,0 +1,60 @@
+server:
+  port: 8084
+
+# log相关配置
+logging:
+  config: classpath:logback-boot.xml
+
+jmqtt:
+  broker:
+    # 连接建立
+#    connectProcessorClass:
+    # 连接断开
+#    disconnectProcessorClass:
+    # mqtt事件校验拦截
+    authValidClass: org.jmqtt.starter.plugins.MyValid
+    # 消息发布拦截
+    publishProcessorClass: org.jmqtt.starter.plugins.MyPublish
+    # 连接状态监听
+    channelEventListener: org.jmqtt.starter.plugins.ConnectCycleHookService
+
+    # 数据存储仓库，默认mem为内存存储，可选redis、mysql，配置redis需要配置redis连接，配置mysql需要mysql连接
+    # 当系统中存在DataSource对象时，优先使用已存在的DataSource
+    # 当系统中存在RedisTemplate对象时，优先使用已存在的RedisTemplate
+    store: mem
+#    rdb:
+#      driver: com.mysql.jdbc.Driver
+#      url: jdbc:mysql://192.168.100.251:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false& useSSL=false&serverTimezone=Asia/Shanghai
+#      username: root
+#      password: zhibo@2020
+#    redis:
+#      redisHost: 192.168.100.26
+#      redisPort: 56379
+#      redisPassword: zhibo2022
+#      maxWaitMills: 60000
+#      minIdle: 20
+#      maxTotal: 200
+#      maxIdle: 50
+    netty:
+      tcpPort: 1883
+      sslTcpPort: 8883
+      websocketPort: 1884
+      sslWebsocketPort: 8884
+      sslKeyStoreType: PKCS12
+      sslKeyFilePath: /conf/server.pfx
+      sslManagerPwd: 654321
+      sslStorePwd: 654321
+    akka:
+      # 是否开启Akka，开启后提高吞吐，集群环境下使用，单机不开启，开启也没关系
+      enable: true
+      # 当前Akka集群系统名称
+      system-name: JMqttDispatcherSystem
+      # 当前节点在集群中的ip和端口
+      host: 127.0.0.1
+      port: 25251
+      # akka集群中所有节点，可以只配置集群中任意非当前节点。
+      cluster-nodes:
+#        - 127.0.0.1:25251
+        - 127.0.0.1:25252
+        - 127.0.0.1:25253
+
