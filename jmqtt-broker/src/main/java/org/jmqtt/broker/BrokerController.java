@@ -2,6 +2,7 @@ package org.jmqtt.broker;
 
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import org.jmqtt.broker.acl.AuthValid;
+import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;
@@ -90,7 +91,8 @@ public class BrokerController {
         this.currentIp = MixAll.getLocalIp();
 
         {
-            if (brokerConfig.getAkka().getEnable()) {
+            AkkaConfig akkaConfig = brokerConfig.getAkka();
+            if (akkaConfig != null && akkaConfig.getEnable()) {
                 this.clusterEventHandler = MixAll.pluginInit(AkkaClusterEventHandler.class);
             }
             String store = brokerConfig.getStore();

@@ -1,5 +1,6 @@
 package org.jmqtt.starter.configuration;
 
+import com.alibaba.fastjson.JSONObject;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
@@ -47,7 +48,9 @@ public class BrokerStartupConfiguration {
     public BrokerConfig brokerConfig(@Qualifier("jmqttConfig") Properties jmqttConfig, JmqttConfiguration autoConfig) {
         BrokerConfig brokerConfig = new BrokerConfig();
         MixAll.properties2POJO(jmqttConfig, brokerConfig);
-        BeanUtils.copyProperties(autoConfig, brokerConfig);
+        // 目的是去除值为null的key
+        JSONObject jsonConfig = JSONObject.parseObject(JSONObject.toJSONString(autoConfig));
+        BeanUtils.copyProperties(jsonConfig, brokerConfig);
         // getProperties(brokerConfig, "jmqtt.broker.");
         return brokerConfig;
     }

@@ -8,6 +8,7 @@ import akka.actor.typed.pubsub.Topic;
 import akka.actor.typed.pubsub.Topic.Command;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
@@ -31,8 +32,17 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
     @Override
     public void start(BrokerConfig brokerConfig) {
         log.info("init akka");
-        // Config config = ConfigFactory.load("akka");
-        Config config = ConfigFactory.parseString(brokerConfig.getAkka().configStr()).withFallback(ConfigFactory.load());
+        Config baseConfig = ConfigFactory.load();
+        AkkaConfig akkaConfig = brokerConfig.getAkka();
+        Config config;
+        String systemName;
+        if (akkaConfig != null) {
+            config = ConfigFactory.parseString(brokerConfig.getAkka().configStr()).withFallback(baseConfig);
+            systemName = akkaConfig.getSystemName();
+        } else {
+            config = baseConfig;
+            systemName = "JMqttDispatcherSystem";
+        }
         // Create an Akka system
         Behavior<Void> initBehavior = Behaviors.setup(
                 context -> {
@@ -43,7 +53,7 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                     topic.tell(Topic.subscribe(subscriber));
                     return Behaviors.empty();
                 });
-        ActorSystem<Void> system = ActorSystem.create(initBehavior, brokerConfig.getAkka().getSystemName(), config);
+        ActorSystem<Void> system = ActorSystem.create(initBehavior, systemName, config);
         log.info("akka system create finished");
     }
 

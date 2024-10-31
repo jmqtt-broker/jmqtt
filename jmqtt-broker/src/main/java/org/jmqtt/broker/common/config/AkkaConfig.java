@@ -21,7 +21,7 @@ public class AkkaConfig {
     private String systemName = "JMqttDispatcherSystem";
     private String host;
     private String port;
-    private List<String> clusterNodes = new ArrayList<>();
+    private List<String> clusterNodes;
 
     public String configStr() {
         JSONObject wrap = new JSONObject();
@@ -35,9 +35,11 @@ public class AkkaConfig {
         canonical.put("hostname", this.host);
         canonical.put("port", this.port);
         JSONObject cluster = new JSONObject();
-        cluster.put("seed-nodes", this.clusterNodes.stream()
-                .map(n -> "akka://" + this.systemName + "@" + n)
-                .collect(Collectors.toList()));
+        if (this.clusterNodes != null) {
+            cluster.put("seed-nodes", this.clusterNodes.stream()
+                    .map(n -> "akka://" + this.systemName + "@" + n)
+                    .collect(Collectors.toList()));
+        }
         akka.put("remote", remote);
         akka.put("cluster", cluster);
         return wrap.toJSONString();
