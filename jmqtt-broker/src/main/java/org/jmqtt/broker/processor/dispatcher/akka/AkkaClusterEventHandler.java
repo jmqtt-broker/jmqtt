@@ -35,21 +35,18 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
         Config baseConfig = ConfigFactory.load();
         AkkaConfig akkaConfig = brokerConfig.getAkka();
         Config config;
-        String systemName;
+        String systemName = "JMqttDispatcherSystem";
         if (akkaConfig != null) {
             config = ConfigFactory.parseString(brokerConfig.getAkka().configStr()).withFallback(baseConfig);
             systemName = akkaConfig.getSystemName();
         } else {
             config = baseConfig;
-            systemName = "JMqttDispatcherSystem";
         }
         // Create an Akka system
         Behavior<Void> initBehavior = Behaviors.setup(
                 context -> {
-                    topic =
-                            context.spawn(Topic.create(Event.class, "jmqtt-event"), "JMqttEvent");
-                    subscriber = context
-                            .spawn(Subscriber.create(this.eventConsumeHandler), "JMqttEventSubscriber");
+                    topic = context.spawn(Topic.create(Event.class, "jmqtt-event"), "JMqttEvent");
+                    subscriber = context.spawn(Subscriber.create(this.eventConsumeHandler), "JMqttEventSubscriber");
                     topic.tell(Topic.subscribe(subscriber));
                     return Behaviors.empty();
                 });

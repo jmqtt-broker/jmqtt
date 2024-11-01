@@ -1,6 +1,8 @@
 package org.jmqtt.broker;
 
 import io.netty.handler.codec.mqtt.MqttMessageType;
+import lombok.Getter;
+import lombok.Setter;
 import org.jmqtt.broker.acl.AuthValid;
 import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
@@ -16,6 +18,7 @@ import org.jmqtt.broker.processor.dispatcher.DefaultDispatcherInnerMessage;
 import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.processor.dispatcher.akka.AkkaClusterEventHandler;
+import org.jmqtt.broker.processor.dispatcher.mem.MemEventHandler;
 import org.jmqtt.broker.processor.dispatcher.rdb.RDBClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.redis.RedisClusterEventHandler;
 import org.jmqtt.broker.processor.protocol.*;
@@ -37,14 +40,15 @@ import org.jmqtt.broker.subscribe.DefaultSubscriptionTreeMatcher;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.*;
 
 /**
  * 具体控制类：负责加载配置文件，初始化环境，启动服务等
  */
+@Getter
+@Setter
 public class BrokerController {
 
     private static final Logger log = JmqttLogger.brokerlog;
@@ -79,6 +83,8 @@ public class BrokerController {
     private InflowMessageHandler inflowMessageHandler;
     private OutflowMessageHandler outflowMessageHandler;
     private OutflowSecMessageHandler outflowSecMessageHandler;
+
+    private Map<Class<? extends RequestProcessor>, RequestProcessor> requestProcessorMap = new ConcurrentHashMap<>();
 
     public BrokerController(BrokerConfig brokerConfig, NettyConfig nettyConfig) {
         this.brokerConfig = brokerConfig;
@@ -115,7 +121,7 @@ public class BrokerController {
                 this.sessionStore = MixAll.pluginInit(MemSessionStore.class);
                 this.messageStore = MixAll.pluginInit(MemMessageStore.class);
                 if (this.clusterEventHandler == null) {
-                    this.clusterEventHandler = MixAll.pluginInit(AkkaClusterEventHandler.class);
+                    this.clusterEventHandler = MixAll.pluginInit(MemEventHandler.class);
                 }
             }
             // 设备连接，发布，订阅消息权限控制
@@ -194,22 +200,19 @@ public class BrokerController {
 
         {
             // 4. init and register mqtt protocol processor
-            // RequestProcessor connectProcessor = new ConnectProcessor(this);
-            RequestProcessor connectProcessor = MixAll.pluginInit(brokerConfig.getConnectProcessorClass(),
-                    new Class[]{this.getClass()}, this);
-            // RequestProcessor disconnectProcessor = new DisconnectProcessor(this);
-            RequestProcessor disconnectProcessor = MixAll.pluginInit(brokerConfig.getDisconnectProcessorClass(),
-                    new Class[]{this.getClass()}, this);
-            ;
-            RequestProcessor pingProcessor = new PingProcessor();
-            RequestProcessor publishProcessor = MixAll.pluginInit(brokerConfig.getPublishProcessorClass(),
-                    new Class[]{this.getClass()}, this);
-            RequestProcessor pubRelProcessor = new PubRelProcessor(this);
-            RequestProcessor subscribeProcessor = new SubscribeProcessor(this);
-            RequestProcessor unSubscribeProcessor = new UnSubscribeProcessor(subscriptionMatcher, sessionStore);
-            RequestProcessor pubRecProcessor = new PubRecProcessor(this);
-            RequestProcessor pubAckProcessor = new PubAckProcessor(this);
-            RequestProcessor pubCompProcessor = new PubCompProcessor(this);
+            RequestProcessor connectProcessor = Optional.ofNullable(getProcessor(ConnectProcessor.class)).orElse(MixAll.pluginInit(brokerConfig.getConnectProcessorClass(),
+                    new Class[]{this.getClass()}, this));
+            RequestProcessor disconnectProcessor = Optional.ofNullable(getProcessor(DisconnectProcessor.class)).orElse(MixAll.pluginInit(brokerConfig.getDisconnectProcessorClass(),
+                    new Class[]{this.getClass()}, this));
+            RequestProcessor pingProcessor = Optional.ofNullable(getProcessor(PingProcessor.class)).orElse(new PingProcessor());
+            RequestProcessor publishProcessor = Optional.ofNullable(getProcessor(PublishProcessor.class)).orElse(MixAll.pluginInit(brokerConfig.getPublishProcessorClass(),
+                    new Class[]{this.getClass()}, this));
+            RequestProcessor pubRelProcessor = Optional.ofNullable(getProcessor(PubRelProcessor.class)).orElse(new PubRelProcessor(this));
+            RequestProcessor subscribeProcessor = Optional.ofNullable(getProcessor(SubscribeProcessor.class)).orElse(new SubscribeProcessor(this));
+            RequestProcessor unSubscribeProcessor = Optional.ofNullable(getProcessor(UnSubscribeProcessor.class)).orElse(new UnSubscribeProcessor(subscriptionMatcher, sessionStore));
+            RequestProcessor pubRecProcessor = Optional.ofNullable(getProcessor(PubRecProcessor.class)).orElse(new PubRecProcessor(this));
+            RequestProcessor pubAckProcessor = Optional.ofNullable(getProcessor(PubAckProcessor.class)).orElse(new PubAckProcessor(this));
+            RequestProcessor pubCompProcessor = Optional.ofNullable(getProcessor(PubCompProcessor.class)).orElse(new PubCompProcessor(this));
 
             this.remotingServer.registerProcessor(MqttMessageType.CONNECT, connectProcessor, connectExecutor);
             this.remotingServer.registerProcessor(MqttMessageType.DISCONNECT, disconnectProcessor, connectExecutor);
@@ -282,108 +285,12 @@ public class BrokerController {
 
     }
 
-    public BrokerConfig getBrokerConfig() {
-        return brokerConfig;
+    public void addRequestProcessor(RequestProcessor processor) {
+        this.requestProcessorMap.put(processor.getClass(), processor);
     }
 
-    public NettyConfig getNettyConfig() {
-        return nettyConfig;
+    public RequestProcessor getProcessor(Class<? extends RequestProcessor> clazz) {
+        return this.requestProcessorMap.get(clazz);
     }
 
-    public ExecutorService getConnectExecutor() {
-        return connectExecutor;
-    }
-
-    public ExecutorService getPubExecutor() {
-        return pubExecutor;
-    }
-
-    public ExecutorService getSubExecutor() {
-        return subExecutor;
-    }
-
-    public ExecutorService getPingExecutor() {
-        return pingExecutor;
-    }
-
-    public LinkedBlockingQueue<Runnable> getConnectQueue() {
-        return connectQueue;
-    }
-
-    public LinkedBlockingQueue<Runnable> getPubQueue() {
-        return pubQueue;
-    }
-
-    public LinkedBlockingQueue<Runnable> getSubQueue() {
-        return subQueue;
-    }
-
-    public LinkedBlockingQueue<Runnable> getPingQueue() {
-        return pingQueue;
-    }
-
-    public NettyRemotingServer getRemotingServer() {
-        return remotingServer;
-    }
-
-    public InnerMessageDispatcher getInnerMessageDispatcher() {
-        return innerMessageDispatcher;
-    }
-
-    public SubscriptionMatcher getSubscriptionMatcher() {
-        return subscriptionMatcher;
-    }
-
-
-    public AuthValid getAuthValid() {
-        return authValid;
-    }
-
-    public void setAuthValid(AuthValid authValid) {
-        this.authValid = authValid;
-    }
-
-    public ReSendMessageService getReSendMessageService() {
-        return reSendMessageService;
-    }
-
-    public SessionStore getSessionStore() {
-        return sessionStore;
-    }
-
-    public MessageStore getMessageStore() {
-        return messageStore;
-    }
-
-    public ChannelEventListener getChannelEventListener() {
-        return channelEventListener;
-    }
-
-    public ClusterEventHandler getClusterEventHandler() {
-        return clusterEventHandler;
-    }
-
-    public void setClusterEventHandler(ClusterEventHandler clusterEventHandler) {
-        this.clusterEventHandler = clusterEventHandler;
-    }
-
-    public String getCurrentIp() {
-        return currentIp;
-    }
-
-    public EventConsumeHandler getEventConsumeHandler() {
-        return eventConsumeHandler;
-    }
-
-    public InflowMessageHandler getInflowMessageHandler() {
-        return inflowMessageHandler;
-    }
-
-    public OutflowMessageHandler getOutflowMessageHandler() {
-        return outflowMessageHandler;
-    }
-
-    public OutflowSecMessageHandler getOutflowSecMessageHandler() {
-        return outflowSecMessageHandler;
-    }
 }

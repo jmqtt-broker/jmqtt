@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 public class JmqttConfiguration {
 
-    private String store;
+    private String store = "mem";
 
     private String authValidClass;
     private String connectProcessorClass;

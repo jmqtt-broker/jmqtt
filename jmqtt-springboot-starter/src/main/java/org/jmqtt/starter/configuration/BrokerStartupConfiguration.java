@@ -51,6 +51,9 @@ public class BrokerStartupConfiguration {
         // 目的是去除值为null的key
         JSONObject jsonConfig = JSONObject.parseObject(JSONObject.toJSONString(autoConfig));
         BeanUtils.copyProperties(jsonConfig, brokerConfig);
+        brokerConfig.setAkka(autoConfig.getAkka());
+        brokerConfig.setRdb(autoConfig.getRdb());
+        brokerConfig.setRedis(autoConfig.getRedis());
         // getProperties(brokerConfig, "jmqtt.broker.");
         return brokerConfig;
     }
@@ -67,10 +70,7 @@ public class BrokerStartupConfiguration {
     @Bean
     public BrokerController brokerController(BrokerConfig brokerConfig,
                                              NettyConfig nettyConfig) {
-        BrokerController brokerController = new BrokerController(brokerConfig, nettyConfig);
-        brokerController.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(brokerController::shutdown));
-        return brokerController;
+        return new BrokerController(brokerConfig, nettyConfig);
     }
 
     private void getProperties(Object object, String prefix) {

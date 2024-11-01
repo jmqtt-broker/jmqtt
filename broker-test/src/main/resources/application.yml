@@ -45,7 +45,8 @@ jmqtt:
       sslManagerPwd: 654321
       sslStorePwd: 654321
     akka:
-      # 是否开启Akka，开启后提高吞吐，集群环境下使用，单机不开启，开启也没关系
+      # 是否开启Akka，开启后提高吞吐，集群环境下建议开启
+      # 集群环境下，store为mem时，Akka必须开启
       enable: true
       # 当前Akka集群系统名称
       system-name: JMqttDispatcherSystem

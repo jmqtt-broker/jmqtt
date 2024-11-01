@@ -21,6 +21,10 @@ import java.util.Set;
  */
 public interface SessionStore {
 
+    String MEM = "mem";
+    String MYSQL = "mysql";
+    String REDIS = "redis";
+
     void start(BrokerConfig brokerConfig);
 
     void shutdown();
