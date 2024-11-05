@@ -1,4 +1,4 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   org.jmqtt.starter.configuration.BrokerStartupConfiguration,\
-  org.jmqtt.starter.configuration.JmqttInterceptorConfiguration,\
-  org.jmqtt.starter.configuration.JmqttStoreConfiguration
+  org.jmqtt.starter.configuration.JmqttProcessorConfiguration,\
+  org.jmqtt.starter.configuration.JmqttStartup

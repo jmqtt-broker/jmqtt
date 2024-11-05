@@ -98,7 +98,7 @@ public class BrokerController {
 
         {
             AkkaConfig akkaConfig = brokerConfig.getAkka();
-            if (akkaConfig != null && akkaConfig.getEnable()) {
+            if (akkaConfig != null && akkaConfig.getEnable() || brokerConfig.isAkkaEnable()) {
                 this.clusterEventHandler = MixAll.pluginInit(AkkaClusterEventHandler.class);
             }
             String store = brokerConfig.getStore();

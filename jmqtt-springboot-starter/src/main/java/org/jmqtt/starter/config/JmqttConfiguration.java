@@ -22,12 +22,6 @@ public class JmqttConfiguration {
 
     private String store = "mem";
 
-    private String authValidClass;
-    private String connectProcessorClass;
-    private String disconnectProcessorClass;
-    private String publishProcessorClass;
-    private String channelEventListener;
-
     private AkkaConfig akka;
     private RDBConfig rdb;
     private RedisConfig redis;

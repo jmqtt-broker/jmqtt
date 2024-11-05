@@ -9,12 +9,14 @@ import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.remoting.util.NettyUtil;
 import org.jmqtt.broker.store.MessageStore;
 import org.slf4j.Logger;
+import org.springframework.stereotype.Service;
 
 /**
  * @Description: java类作用描述
  * @Author: zhengtao
  * @CreateDate: 2021/8/2 20:25
  */
+@Service
 public class ConnectCycleHookService extends ClientLifeCycleHookService {
 
     private static final Logger log = JmqttLogger.clientTraceLog;
@@ -25,8 +27,8 @@ public class ConnectCycleHookService extends ClientLifeCycleHookService {
 
     @Override
     public void onChannelConnect(String remoteAddr, Channel channel) {
-        // String clientId = NettyUtil.getClientId(channel);
-        // log.info("连接建立client：{}", clientId);
+        String clientId = NettyUtil.getClientId(channel);
+        log.info("连接建立client：{}", clientId);
         super.onChannelConnect(remoteAddr, channel);
     }
 

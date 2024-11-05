@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.processor.protocol.PublishProcessor;
 import org.jmqtt.broker.remoting.util.MessageUtil;
+import org.springframework.stereotype.Service;
 
 /**
  * @Description: java类作用描述
@@ -14,6 +15,7 @@ import org.jmqtt.broker.remoting.util.MessageUtil;
  * @CreateDate: 2024/3/27 14:15
  */
 @Slf4j
+@Service
 public class MyPublish extends PublishProcessor {
 
     public MyPublish(BrokerController controller) {

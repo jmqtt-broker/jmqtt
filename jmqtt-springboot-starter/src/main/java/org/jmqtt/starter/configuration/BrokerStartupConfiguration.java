@@ -2,16 +2,32 @@ package org.jmqtt.starter.configuration;
 
 import com.alibaba.fastjson.JSONObject;
 import org.jmqtt.broker.BrokerController;
+import org.jmqtt.broker.acl.AuthValid;
+import org.jmqtt.broker.acl.impl.DefaultAuthValid;
+import org.jmqtt.broker.client.ClientLifeCycleHookService;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.JmqttLogger;
+import org.jmqtt.broker.processor.dispatcher.DefaultDispatcherInnerMessage;
+import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
+import org.jmqtt.broker.remoting.netty.ChannelEventListener;
+import org.jmqtt.broker.remoting.netty.NettyRemotingServer;
 import org.jmqtt.broker.remoting.netty.NettySslHandler;
+import org.jmqtt.broker.store.MessageStore;
+import org.jmqtt.broker.store.SessionStore;
+import org.jmqtt.broker.store.mem.MemMessageStore;
+import org.jmqtt.broker.store.mem.MemSessionStore;
+import org.jmqtt.broker.store.rdb.RDBMessageStore;
+import org.jmqtt.broker.store.rdb.RDBSessionStore;
+import org.jmqtt.broker.store.redis.RedisMessageStore;
+import org.jmqtt.broker.store.redis.RedisSessionStore;
 import org.jmqtt.starter.config.JmqttConfiguration;
 import org.slf4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -68,9 +84,62 @@ public class BrokerStartupConfiguration {
     }
 
     @Bean
+    public SessionStore sessionStore(JmqttConfiguration autoConfig) {
+        String store = autoConfig.getStore();
+        SessionStore sessionStore;
+        if (SessionStore.MYSQL.equals(store)) {
+            sessionStore = new RDBSessionStore();
+        } else if (SessionStore.REDIS.equals(store)) {
+            sessionStore = new RedisSessionStore();
+        } else {
+            sessionStore = new MemSessionStore();
+        }
+        return sessionStore;
+    }
+
+    @Bean
+    public MessageStore messageStore(JmqttConfiguration autoConfig) {
+        String store = autoConfig.getStore();
+        MessageStore messageStore;
+        if (SessionStore.MYSQL.equals(store)) {
+            messageStore = new RDBMessageStore();
+        } else if (SessionStore.REDIS.equals(store)) {
+            messageStore = new RedisMessageStore();
+        } else {
+            messageStore = new MemMessageStore();
+        }
+        return messageStore;
+    }
+
+    @Bean
+    public InnerMessageDispatcher innerMessageDispatcher(BrokerController brokerController) {
+        return new DefaultDispatcherInnerMessage(brokerController);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(AuthValid.class)
+    public AuthValid authValid() {
+        return new DefaultAuthValid();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ChannelEventListener.class)
+    public ChannelEventListener clientLifeCycleHookService(MessageStore messageStore,
+                                                           InnerMessageDispatcher innerMessageDispatcher) {
+        return new ClientLifeCycleHookService(messageStore, innerMessageDispatcher);
+    }
+
+    @Bean
     public BrokerController brokerController(BrokerConfig brokerConfig,
-                                             NettyConfig nettyConfig) {
-        return new BrokerController(brokerConfig, nettyConfig);
+                                             NettyConfig nettyConfig,
+                                             SessionStore sessionStore,
+                                             MessageStore messageStore,
+                                             AuthValid authValid) {
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyConfig);
+        brokerController.setMessageStore(messageStore);
+        brokerController.setSessionStore(sessionStore);
+        brokerController.setAuthValid(authValid);
+        return brokerController;
     }
 
     private void getProperties(Object object, String prefix) {
