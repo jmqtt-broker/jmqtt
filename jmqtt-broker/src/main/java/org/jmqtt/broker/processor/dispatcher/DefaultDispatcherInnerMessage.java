@@ -39,12 +39,14 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
     private ClusterEventHandler clusterEventHandler;
 
 
-    public DefaultDispatcherInnerMessage(BrokerController brokerController) {
-        super(brokerController);
-        this.pollThreadNum = brokerController.getBrokerConfig().getPollThreadNum();
-        this.subscriptionMatcher = brokerController.getSubscriptionMatcher();
-        this.sessionStore = brokerController.getSessionStore();
-        this.clusterEventHandler = brokerController.getClusterEventHandler();
+    public DefaultDispatcherInnerMessage(boolean highPerformance, SessionStore sessionStore,
+                                         int pollThreadNum, SubscriptionMatcher subscriptionMatcher,
+                                         ClusterEventHandler clusterEventHandler) {
+        super(highPerformance, sessionStore);
+        this.pollThreadNum = pollThreadNum;
+        this.subscriptionMatcher = subscriptionMatcher;
+        this.sessionStore = sessionStore;
+        this.clusterEventHandler = clusterEventHandler;
     }
 
     @Override

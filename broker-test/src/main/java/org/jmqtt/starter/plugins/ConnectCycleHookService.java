@@ -1,6 +1,7 @@
 package org.jmqtt.starter.plugins;
 
 import io.netty.channel.Channel;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.client.ClientLifeCycleHookService;
 import org.jmqtt.broker.common.log.JmqttLogger;
@@ -17,9 +18,8 @@ import org.springframework.stereotype.Service;
  * @CreateDate: 2021/8/2 20:25
  */
 @Service
+@Slf4j
 public class ConnectCycleHookService extends ClientLifeCycleHookService {
-
-    private static final Logger log = JmqttLogger.clientTraceLog;
 
     public ConnectCycleHookService(MessageStore messageStore, InnerMessageDispatcher innerMessageDispatcher) {
         super(messageStore, innerMessageDispatcher);
@@ -30,6 +30,11 @@ public class ConnectCycleHookService extends ClientLifeCycleHookService {
         String clientId = NettyUtil.getClientId(channel);
         log.info("连接建立client：{}", clientId);
         super.onChannelConnect(remoteAddr, channel);
+    }
+
+    @Override
+    public void onChannelIdle(String remoteAddr, Channel channel) {
+        log.info("Read超时：{}", NettyUtil.getClientId(channel));
     }
 
     @Override

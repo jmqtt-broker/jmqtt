@@ -21,7 +21,7 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
     private String currentIp;
 
     public AbstractMessageProcessor(BrokerController brokerController) {
-        super(brokerController);
+        super(brokerController.getBrokerConfig().isHighPerformance(), brokerController.getSessionStore());
         this.messageStore = brokerController.getMessageStore();
         this.clusterEventHandler = brokerController.getClusterEventHandler();
         this.currentIp = brokerController.getCurrentIp();

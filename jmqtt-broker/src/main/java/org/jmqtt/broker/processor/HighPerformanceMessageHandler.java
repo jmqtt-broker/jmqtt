@@ -18,12 +18,12 @@ public abstract class HighPerformanceMessageHandler {
     private boolean      highPerformance;
     private SessionStore sessionStore;
 
-    public HighPerformanceMessageHandler(BrokerController brokerController){
-        this.highPerformance = brokerController.getBrokerConfig().isHighPerformance();
-        this.sessionStore = brokerController.getSessionStore();
-        this.inflowMessageHandler = brokerController.getInflowMessageHandler();
-        this.outflowMessageHandler = brokerController.getOutflowMessageHandler();
-        this.outflowSecMessageHandler = brokerController.getOutflowSecMessageHandler();
+    public HighPerformanceMessageHandler(boolean highPerformance, SessionStore sessionStore){
+        this.highPerformance = highPerformance;
+        this.sessionStore = sessionStore;
+        this.inflowMessageHandler = new InflowMessageHandler();
+        this.outflowMessageHandler = new OutflowMessageHandler();
+        this.outflowSecMessageHandler = new OutflowSecMessageHandler();
     }
 
     protected boolean cacheInflowMsg(String clientId, Message message) {
@@ -54,11 +54,11 @@ public abstract class HighPerformanceMessageHandler {
         return this.sessionStore.cacheOutflowMsg(clientId,message);
     }
 
-    protected Message releaseOutflowMsg(String clientId, int msgId){
+    protected void releaseOutflowMsg(String clientId, int msgId){
         if (highPerformance) {
-            return this.outflowMessageHandler.releaseOutflowMsg(clientId,msgId);
+            this.outflowMessageHandler.releaseOutflowMsg(clientId,msgId);
         }
-        return this.sessionStore.releaseOutflowMsg(clientId,msgId);
+        this.sessionStore.releaseOutflowMsg(clientId,msgId);
     }
 
     protected Collection<Message> getAllOutflowMsg(String clientId){

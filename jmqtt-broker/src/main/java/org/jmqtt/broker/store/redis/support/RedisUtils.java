@@ -10,27 +10,35 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class RedisUtils {
     private static final RedisUtils redisUtils = new RedisUtils();
-    private volatile RedisSupportImpl redisSupport;
+    private volatile RedisOperator redisSupport;
 
     private AtomicBoolean start = new AtomicBoolean(false);
 
-    private RedisUtils(){}
+    private RedisUtils() {
+    }
 
-    public static RedisUtils getInstance(){
+    public static RedisUtils getInstance() {
         return redisUtils;
     }
 
-    public RedisSupport createSupport(BrokerConfig brokerConfig) {
-        if (start.compareAndSet(false,true)) {
-            this.redisSupport = new RedisSupportImpl(brokerConfig);
-            this.redisSupport.init();
+    public RedisOperator createSupport(BrokerConfig brokerConfig) {
+        if (start.compareAndSet(false, true)) {
+            if (redisSupport == null) {
+                this.redisSupport = new RedisSupportImpl(brokerConfig);
+                this.redisSupport.init();
+            }
         }
         return redisSupport;
     }
 
+    public void setOperator(RedisOperator operator) {
+        if (start.compareAndSet(false, true)) {
+            this.redisSupport = operator;
+        }
+    }
+
     public void close() {
-        RedisSupportImpl redisSupport = this.redisSupport;
-        if(start.compareAndSet(true,false)&&redisSupport!=null){
+        if (start.compareAndSet(true, false) && redisSupport != null) {
             redisSupport.close();
         }
     }

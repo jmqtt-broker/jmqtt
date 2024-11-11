@@ -4,8 +4,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 -- Table structure for jmqtt_event
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_event`;
-CREATE TABLE `jmqtt_event` (
+CREATE TABLE IF NOT EXISTS `jmqtt_event` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键：也是集群节点批量拉消息的offset',
 `content` text NOT NULL COMMENT '消息体',
 `gmt_create` bigint(20) NOT NULL COMMENT '创建时间',
@@ -17,8 +16,7 @@ PRIMARY KEY (`id`)
 -- ----------------------------
 -- Table structure for jmqtt_inflow_message
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_inflow_message`;
-CREATE TABLE `jmqtt_inflow_message` (
+CREATE TABLE IF NOT EXISTS `jmqtt_inflow_message` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键id',
 `client_id` varchar(64) NOT NULL COMMENT '设备id',
 `msg_id` int(11) NOT NULL COMMENT '消息id',
@@ -32,8 +30,7 @@ KEY `idx_client_id` (`client_id`)
 -- ----------------------------
 -- Table structure for jmqtt_offline_message
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_offline_message`;
-CREATE TABLE `jmqtt_offline_message` (
+CREATE TABLE IF NOT EXISTS `jmqtt_offline_message` (
   `id` bigint(20) AUTO_INCREMENT NOT NULL,
 `client_id` varchar(64) NOT NULL COMMENT '客户端id',
 `content` text NOT NULL COMMENT '消息体',
@@ -46,8 +43,7 @@ KEY `idx_gmt_create` (`gmt_create`)
 -- ----------------------------
 -- Table structure for jmqtt_outflow_message
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_outflow_message`;
-CREATE TABLE `jmqtt_outflow_message` (
+CREATE TABLE IF NOT EXISTS `jmqtt_outflow_message` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
 `client_id` varchar(64) NOT NULL COMMENT '目标客户端id',
 `msg_id` int(11) NOT NULL COMMENT '消息id',
@@ -61,8 +57,7 @@ KEY `idx_client_id` (`client_id`)
 -- ----------------------------
 -- Table structure for jmqtt_outflow_sec_message
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_outflow_sec_message`;
-CREATE TABLE `jmqtt_outflow_sec_message` (
+CREATE TABLE IF NOT EXISTS `jmqtt_outflow_sec_message` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
 `client_id` varchar(64) NOT NULL COMMENT '目标客户端id',
 `msg_id` int(11) NOT NULL COMMENT '消息id',
@@ -75,8 +70,7 @@ KEY `idx_client_id` (`client_id`)
 -- ----------------------------
 -- Table structure for jmqtt_retain_message
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_retain_message`;
-CREATE TABLE `jmqtt_retain_message` (
+CREATE TABLE IF NOT EXISTS `jmqtt_retain_message` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
 `topic` varchar(128) NOT NULL COMMENT '所属topic',
 `content` text NOT NULL COMMENT '消息体',
@@ -87,8 +81,7 @@ UNIQUE KEY `uqe_topic` (`topic`)
 -- ----------------------------
 -- Table structure for jmqtt_session
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_session`;
-CREATE TABLE `jmqtt_session` (
+CREATE TABLE IF NOT EXISTS `jmqtt_session` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
 `client_id` varchar(64) NOT NULL COMMENT '客户端id',
 `state` varchar(12) NOT NULL COMMENT '状态：ONLINE,OFFLINE两种',
@@ -100,8 +93,7 @@ UNIQUE KEY `uqe_client_id` (`client_id`)
 -- ----------------------------
 -- Table structure for jmqtt_subscription
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_subscription`;
-CREATE TABLE `jmqtt_subscription` (
+CREATE TABLE IF NOT EXISTS `jmqtt_subscription` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
 `client_id` varchar(64) NOT NULL COMMENT '客户端id',
 `topic` varchar(128) NOT NULL COMMENT '订阅的topic',
@@ -114,8 +106,7 @@ KEY `idx_topic` (`topic`)
 -- ----------------------------
 -- Table structure for jmqtt_will_message
 -- ----------------------------
-DROP TABLE IF EXISTS `jmqtt_will_message`;
-CREATE TABLE `jmqtt_will_message` (
+CREATE TABLE IF NOT EXISTS `jmqtt_will_message` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
 `client_id` varchar(64) NOT NULL COMMENT '客户端id',
 `content` text NOT NULL COMMENT '消息体',

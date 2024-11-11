@@ -12,9 +12,10 @@ import lombok.Setter;
 @Setter
 public class RDBConfig {
 
-    private String driver;
-    private String url;
-    private String username;
-    private String password;
+    private String driver = "com.mysql.jdbc.Driver";
+    private String url = "jdbc:mysql://localhost:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false"
+            + "&maxReconnects=10&useSSL=false";
+    private String username = "root";
+    private String password = "123456";
 
 }

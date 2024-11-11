@@ -5,38 +5,72 @@ server:
 logging:
   config: classpath:logback-boot.xml
 
+spring:
+  application:
+    name: jmqtt-test
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://192.168.100.26:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:zhibo2022}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    host: ${REDIS_HOST:192.168.100.26}
+    port: ${REDIS_PORT:56379}
+    password: ${REDIS_PASSWORD:zhibo2022}
+    database: 11
+    jedis:
+      pool:
+        max-active: 20
+        max-wait: 1
+        max-idle: 20
+        min-idle: 0
+    timeout: 30000
+
 jmqtt:
   broker:
-    # 数据存储仓库，默认mem为内存存储，可选redis、mysql，配置redis需要配置redis连接，配置mysql需要mysql连接
+    # 是否开启匿名访问、默认登录账号、默认登录密码，可通过重写AuthValid来校验登录
+    anonymous-enable: true
+    user: admin
+    pwd: 123456
+    # 数据存储仓库，默认mem为内存存储，可选redis、rdb，配置redis需要配置redis连接，配置rdb需要数据库连接
     # 当系统中存在DataSource对象时，优先使用已存在的DataSource
     # 当系统中存在RedisTemplate对象时，优先使用已存在的RedisTemplate
-    store: mem
-#    rdb:
-#      driver: com.mysql.jdbc.Driver
-#      url: jdbc:mysql://192.168.100.251:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false& useSSL=false&serverTimezone=Asia/Shanghai
-#      username: root
-#      password: zhibo@2020
-#    redis:
-#      redisHost: 192.168.100.26
-#      redisPort: 56379
-#      redisPassword: zhibo2022
-#      maxWaitMills: 60000
-#      minIdle: 20
-#      maxTotal: 200
-#      maxIdle: 50
+    store: rdb
+    # 默认值true
+    # store = rdb条件下，useDefaultRdb为true时，优先使用依赖方数据源，依赖方没有数据源使用rdb配置的数据源
+    # useDefaultRdb为false时，使用rdb配置的数据源
+    # useDefaultRdb、rdb配置缺省时使用依赖方数据源，依赖方无数据源报错
+    useDefaultRdb: true
+    rdb:
+      driver: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.100.251:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false&useSSL=false&serverTimezone=Asia/Shanghai
+      username: root
+      password: zhibo@2020
+    # redis数据源，逻辑同rdb
+    useDefaultRedis: true
+    redis:
+      redis-host: 192.168.100.251
+      redis-port: 56379
+      redis-password: zhibo@2020
+      database: 11
+      max-wait-mills: 60000
+      max-idle: 50
+      min-idle: 20
+      max-total: 200
     netty:
-      tcpPort: 1883
-      sslTcpPort: 8883
-      websocketPort: 1884
-      sslWebsocketPort: 8884
-      sslKeyStoreType: PKCS12
-      sslKeyFilePath: /conf/server.pfx
-      sslManagerPwd: 654321
-      sslStorePwd: 654321
+      tcp-port: 1883
+      ssl-tcp-port: 1884
+      websocket-port: 8883
+      ssl-websocket-port: 8884
+      ssl-key-store-type: PKCS12
+      ssl-key-file-path: conf/server.pfx
+      ssl-manager-pwd: 654321
+      ssl-store-pwd: 654321
     akka:
       # 是否开启Akka，开启后提高吞吐，集群环境下建议开启
+      # Akka作用是将一个broker节点的消息同步到其他broker节点
       # 集群环境下，store为mem时，Akka必须开启
-      enable: true
+      enable: false
       # 当前Akka集群系统名称
       system-name: JMqttDispatcherSystem
       # 当前节点在集群中的ip和端口
@@ -45,6 +79,6 @@ jmqtt:
       # akka集群中所有节点，可以只配置集群中任意非当前节点。
       cluster-nodes:
         - 127.0.0.1:25251
-        - 127.0.0.1:25252
-        - 127.0.0.1:25253
+#        - 127.0.0.1:25252
+#        - 127.0.0.1:25253
 

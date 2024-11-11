@@ -18,7 +18,6 @@ import org.springframework.context.annotation.Configuration;
  * @Author: zhengtao
  * @CreateDate: 2024/11/1 14:12
  */
-@Configuration
 @Slf4j
 public class JmqttProcessorConfiguration {
 

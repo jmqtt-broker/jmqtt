@@ -113,7 +113,7 @@ public class NettyRemotingServer implements RemotingService {
                                     socketChannel,
                                     nettyConfig.getUseClientCA(),
                                     nettyConfig.getSslKeyStoreType(),
-                                    brokerConfig.getJmqttHome() + nettyConfig.getSslKeyFilePath(),
+                                    nettyConfig.getSslKeyFilePath(),
                                     nettyConfig.getSslManagerPwd(),
                                     nettyConfig.getSslStorePwd()
                             ));
@@ -162,7 +162,7 @@ public class NettyRemotingServer implements RemotingService {
                                     socketChannel,
                                     nettyConfig.getUseClientCA(),
                                     nettyConfig.getSslKeyStoreType(),
-                                    brokerConfig.getJmqttHome() + nettyConfig.getSslKeyFilePath(),
+                                    nettyConfig.getSslKeyFilePath(),
                                     nettyConfig.getSslManagerPwd(),
                                     nettyConfig.getSslStorePwd()
                             ));

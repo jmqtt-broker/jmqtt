@@ -49,6 +49,10 @@ public class ConnectProcessor implements RequestProcessor {
     private MessageStore messageStore;
     private ClusterEventHandler clusterEventHandler;
 
+    private String user;
+    private String pwd;
+    private boolean anonymousEnable = false;
+
     public ConnectProcessor(BrokerController brokerController) {
         this.authValid = brokerController.getAuthValid();
         this.reSendMessageService = brokerController.getReSendMessageService();
@@ -56,6 +60,9 @@ public class ConnectProcessor implements RequestProcessor {
         this.sessionStore = brokerController.getSessionStore();
         this.messageStore = brokerController.getMessageStore();
         this.clusterEventHandler = brokerController.getClusterEventHandler();
+        this.user = brokerController.getBrokerConfig().getUser();
+        this.pwd = brokerController.getBrokerConfig().getPwd();
+        this.anonymousEnable = brokerController.getBrokerConfig().isAnonymousEnable();
     }
 
     @Override
@@ -77,7 +84,7 @@ public class ConnectProcessor implements RequestProcessor {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED;
             } else if (onBlackList(RemotingHelper.getRemoteAddr(ctx.channel()), clientId)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED;
-            } else if (!authentication(clientId, userName, password)) {
+            } else if (!authentication(clientId, userName, password, this.user, this.pwd, this.anonymousEnable)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD;
             } else {
                 // 1. 设置心跳
@@ -207,8 +214,8 @@ public class ConnectProcessor implements RequestProcessor {
         this.reSendMessageService.wakeUp();
     }
 
-    private boolean authentication(String clientId, String username, byte[] password) {
-        return this.authValid.authentication(clientId, username, password);
+    private boolean authentication(String clientId, String username, byte[] password, String defaultUser, String defaultPwd, boolean anonymousEnable) {
+        return this.authValid.authentication(clientId, username, password, defaultUser, defaultPwd, anonymousEnable);
     }
 
     private boolean onBlackList(String remoteAddr, String clientId) {

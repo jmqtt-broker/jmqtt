@@ -1,5 +1,6 @@
 package org.jmqtt.starter.configuration;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
@@ -9,10 +10,14 @@ import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.JmqttLogger;
+import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.DefaultDispatcherInnerMessage;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
+import org.jmqtt.broker.processor.dispatcher.akka.AkkaClusterEventHandler;
+import org.jmqtt.broker.processor.dispatcher.mem.MemEventHandler;
+import org.jmqtt.broker.processor.dispatcher.rdb.RDBClusterEventHandler;
+import org.jmqtt.broker.processor.dispatcher.redis.RedisClusterEventHandler;
 import org.jmqtt.broker.remoting.netty.ChannelEventListener;
-import org.jmqtt.broker.remoting.netty.NettyRemotingServer;
 import org.jmqtt.broker.remoting.netty.NettySslHandler;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
@@ -22,29 +27,24 @@ import org.jmqtt.broker.store.rdb.RDBMessageStore;
 import org.jmqtt.broker.store.rdb.RDBSessionStore;
 import org.jmqtt.broker.store.redis.RedisMessageStore;
 import org.jmqtt.broker.store.redis.RedisSessionStore;
+import org.jmqtt.broker.subscribe.DefaultSubscriptionTreeMatcher;
+import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.jmqtt.starter.config.JmqttConfiguration;
 import org.slf4j.Logger;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
+import java.util.Optional;
 import java.util.Properties;
 
-@Configuration
 public class BrokerStartupConfiguration {
 
     private static final Logger log = JmqttLogger.brokerlog;
-
-    @Autowired
-    private Environment environment;
 
     @Bean
     public Properties jmqttConfig() {
@@ -64,12 +64,10 @@ public class BrokerStartupConfiguration {
     public BrokerConfig brokerConfig(@Qualifier("jmqttConfig") Properties jmqttConfig, JmqttConfiguration autoConfig) {
         BrokerConfig brokerConfig = new BrokerConfig();
         MixAll.properties2POJO(jmqttConfig, brokerConfig);
-        // 目的是去除值为null的key
-        JSONObject jsonConfig = JSONObject.parseObject(JSONObject.toJSONString(autoConfig));
-        BeanUtils.copyProperties(jsonConfig, brokerConfig);
-        brokerConfig.setAkka(autoConfig.getAkka());
-        brokerConfig.setRdb(autoConfig.getRdb());
-        brokerConfig.setRedis(autoConfig.getRedis());
+        JmqttConfiguration filterNull = JSONObject.parseObject(JSON.toJSONString(autoConfig), JmqttConfiguration.class);
+        BeanUtils.copyProperties(filterNull, brokerConfig);
+        Optional.ofNullable(autoConfig.getRdb()).ifPresent(rdb -> BeanUtils.copyProperties(rdb, brokerConfig));
+        Optional.ofNullable(autoConfig.getRedis()).ifPresent(redis -> BeanUtils.copyProperties(redis, brokerConfig));
         // getProperties(brokerConfig, "jmqtt.broker.");
         return brokerConfig;
     }
@@ -87,7 +85,7 @@ public class BrokerStartupConfiguration {
     public SessionStore sessionStore(JmqttConfiguration autoConfig) {
         String store = autoConfig.getStore();
         SessionStore sessionStore;
-        if (SessionStore.MYSQL.equals(store)) {
+        if (SessionStore.RDB.equals(store)) {
             sessionStore = new RDBSessionStore();
         } else if (SessionStore.REDIS.equals(store)) {
             sessionStore = new RedisSessionStore();
@@ -101,7 +99,7 @@ public class BrokerStartupConfiguration {
     public MessageStore messageStore(JmqttConfiguration autoConfig) {
         String store = autoConfig.getStore();
         MessageStore messageStore;
-        if (SessionStore.MYSQL.equals(store)) {
+        if (SessionStore.RDB.equals(store)) {
             messageStore = new RDBMessageStore();
         } else if (SessionStore.REDIS.equals(store)) {
             messageStore = new RedisMessageStore();
@@ -112,8 +110,31 @@ public class BrokerStartupConfiguration {
     }
 
     @Bean
-    public InnerMessageDispatcher innerMessageDispatcher(BrokerController brokerController) {
-        return new DefaultDispatcherInnerMessage(brokerController);
+    public ClusterEventHandler clusterEventHandler(JmqttConfiguration autoConfig) {
+        String store = autoConfig.getStore();
+        ClusterEventHandler clusterEventHandler;
+        if (autoConfig.getAkka().getEnable()) {
+            clusterEventHandler = new AkkaClusterEventHandler();
+        } else if (SessionStore.RDB.equals(store)) {
+            clusterEventHandler = new RDBClusterEventHandler();
+        } else if (SessionStore.REDIS.equals(store)) {
+            clusterEventHandler = new RedisClusterEventHandler();
+        } else {
+            clusterEventHandler = new MemEventHandler();
+        }
+        return clusterEventHandler;
+    }
+
+    @Bean
+    public SubscriptionMatcher subscriptionMatcher() {
+        return new DefaultSubscriptionTreeMatcher();
+    }
+
+    @Bean
+    public InnerMessageDispatcher innerMessageDispatcher(BrokerConfig brokerConfig, SessionStore sessionStore,
+                                                         SubscriptionMatcher subscriptionMatcher, ClusterEventHandler clusterEventHandler) {
+        return new DefaultDispatcherInnerMessage(brokerConfig.isHighPerformance(),
+                sessionStore, brokerConfig.getPollThreadNum(), subscriptionMatcher, clusterEventHandler);
     }
 
     @Bean
@@ -134,30 +155,14 @@ public class BrokerStartupConfiguration {
                                              NettyConfig nettyConfig,
                                              SessionStore sessionStore,
                                              MessageStore messageStore,
+                                             SubscriptionMatcher subscriptionMatcher,
+                                             ClusterEventHandler clusterEventHandler,
+                                             InnerMessageDispatcher innerMessageDispatcher,
+                                             ChannelEventListener channelEventListener,
                                              AuthValid authValid) {
-        BrokerController brokerController = new BrokerController(brokerConfig, nettyConfig);
-        brokerController.setMessageStore(messageStore);
-        brokerController.setSessionStore(sessionStore);
-        brokerController.setAuthValid(authValid);
-        return brokerController;
-    }
-
-    private void getProperties(Object object, String prefix) {
-        Field[] fields = object.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            String key = prefix + field.getName();
-            if (environment.containsProperty(key)) {
-                Field tempField = null;
-                try {
-                    tempField = object.getClass().getDeclaredField(field.getName());
-                    tempField.setAccessible(true);
-                    tempField.set(object, environment.getProperty(key, field.getType()));
-                } catch (NoSuchFieldException | IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }
+        return new BrokerController(brokerConfig, nettyConfig,
+                sessionStore, messageStore, subscriptionMatcher, clusterEventHandler,
+                innerMessageDispatcher, channelEventListener, authValid);
     }
 
 }

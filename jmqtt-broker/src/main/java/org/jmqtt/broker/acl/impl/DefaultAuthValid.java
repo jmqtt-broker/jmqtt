@@ -29,9 +29,10 @@ public class DefaultAuthValid implements AuthValid {
     }
 
     @Override
-    public boolean authentication(String clientId, String userName, byte[] password) {
-        LogUtil.info(log, "这里clientId:{}", clientId);
-        return true;
+    public boolean authentication(String clientId, String userName, byte[] password,
+                                  String defaultUser, String defaultPwd, boolean anonymousEnable) {
+        LogUtil.info(log, "clientId:{}", clientId);
+        return anonymousEnable || defaultUser.equals(userName) && defaultPwd.equals(new String(password));
     }
 
     @Override

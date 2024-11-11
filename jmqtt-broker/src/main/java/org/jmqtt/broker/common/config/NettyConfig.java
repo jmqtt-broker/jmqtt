@@ -45,7 +45,7 @@ public class NettyConfig {
      */
     private boolean useClientCA = false;
     private String sslKeyStoreType = "PKCS12";
-    private String sslKeyFilePath = "/conf/server.pfx";
+    private String sslKeyFilePath = "conf/server.pfx";
     private String sslManagerPwd = "654321";
     private String sslStorePwd = "654321";
     /**

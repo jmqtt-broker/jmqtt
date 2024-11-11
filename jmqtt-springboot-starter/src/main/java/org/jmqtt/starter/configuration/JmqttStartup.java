@@ -1,18 +1,29 @@
 package org.jmqtt.starter.configuration;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.jdbc.ScriptRunner;
 import org.jmqtt.broker.BrokerController;
-import org.jmqtt.broker.acl.AuthValid;
+import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.processor.RequestProcessor;
-import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
-import org.jmqtt.broker.remoting.netty.ChannelEventListener;
-import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jmqtt.broker.store.rdb.DBUtils;
+import org.jmqtt.broker.store.redis.support.RedisUtils;
+import org.jmqtt.starter.config.JmqttConfiguration;
+import org.jmqtt.starter.redis.RedisOperatorImpl;
+import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
 import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.sql.Connection;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -20,24 +31,107 @@ import java.util.Optional;
  * @Author: zhengtao
  * @CreateDate: 2024/11/4 16:23
  */
-@Configuration
 @Slf4j
+@RequiredArgsConstructor
 public class JmqttStartup {
 
-    @Autowired
-    private ApplicationContext ctx;
+    private final ApplicationContext ctx;
+
+    private final BrokerConfig brokerConfig;
+
+    private final JmqttConfiguration jmqttConfiguration;
 
     @PostConstruct
     public void start() {
+        String store = brokerConfig.getStore();
+        if (SessionStore.RDB.equals(store)) {
+            initRdb();
+        } else if (SessionStore.REDIS.equals(store)) {
+            initRedis();
+        }
         BrokerController ctrl = ctx.getBean(BrokerController.class);
-        Optional.of(ctx.getBean(SessionStore.class)).ifPresent(ctrl::setSessionStore);
-        Optional.of(ctx.getBean(MessageStore.class)).ifPresent(ctrl::setMessageStore);
-        Optional.of(ctx.getBean(InnerMessageDispatcher.class)).ifPresent(ctrl::setInnerMessageDispatcher);
-
-        Optional.of(ctx.getBean(ChannelEventListener.class)).ifPresent(ctrl::setChannelEventListener);
         Optional.of(ctx.getBeansOfType(RequestProcessor.class)).ifPresent(ctrlMap ->
-            ctrlMap.values().forEach(ctrl::addRequestProcessor));
+                ctrlMap.values().forEach(ctrl::addRequestProcessor));
         ctrl.start();
+    }
+
+    private void initRdb() {
+        DBUtils dbUtils = DBUtils.getInstance();
+        DataSource dataSource;
+        try {
+            dataSource = ctx.getBean(DataSource.class);
+        } catch (BeansException e) {
+            log.error("can not find datasource!", e);
+            throw new RuntimeException("can not find datasource!");
+        }
+        try {
+            initSqlScript(dataSource);
+        } catch (Exception e) {
+            log.error("init sql error.", e);
+            throw new RuntimeException("init sql error.");
+        }
+        dbUtils.start(brokerConfig, dataSource);
+    }
+
+    private void initSqlScript(DataSource dataSource) throws Exception {
+        Connection conn = dataSource.getConnection();
+        String dbName = conn.getMetaData().getDatabaseProductName();
+        String initSql;
+        if ("MySQL".equalsIgnoreCase(dbName)) {
+            initSql = "conf/jmqtt_mysql.sql";
+        } else if ("PostgreSQL".equalsIgnoreCase(dbName)) {
+            initSql = "conf/jmqtt_pgsql.sql";
+        } else {
+            throw new RuntimeException("unSupport db type: " + dbName);
+        }
+        log.info("数据库类型：{}，初始化数据库脚本：{}", dbName, initSql);
+        InputStream is = this.getClass().getClassLoader().getResourceAsStream(initSql);
+        if (is == null) {
+            throw new RuntimeException("sql script not found!");
+        }
+        ScriptRunner runner = new ScriptRunner(conn);
+        runner.setAutoCommit(true);
+        runner.runScript(new InputStreamReader(is));
+        is.close();
+        conn.close();
+        log.info("sql script init.");
+    }
+
+    private void initRedis() {
+        if (jmqttConfiguration.getUseDefaultRedis()) {
+            try {
+                Map<String, RedisConnectionFactory> factoryMap = ctx.getBeansOfType(RedisConnectionFactory.class);
+                Map<String, RedisMessageListenerContainer> containerMap = ctx.getBeansOfType(RedisMessageListenerContainer.class);
+                if (!factoryMap.isEmpty() && !containerMap.isEmpty()) {
+                    RedisConnectionFactory factory = factoryMap.values().stream().findAny().get();
+                    String hostname = "localhost";
+                    int port = 6379;
+                    int database = 0;
+                    String password = null;
+                    if (factory instanceof JedisConnectionFactory) {
+                        JedisConnectionFactory jf = (JedisConnectionFactory) factory;
+                        hostname = jf.getHostName();
+                        port = jf.getPort();
+                        database = jf.getDatabase();
+                        password = jf.getPassword();
+                    } else if (factory instanceof LettuceConnectionFactory) {
+                        LettuceConnectionFactory lf = (LettuceConnectionFactory) factory;
+                        hostname = lf.getHostName();
+                        port = lf.getPort();
+                        database = lf.getDatabase();
+                        password = lf.getPassword();
+                    }
+                    if (!("localhost".equals(hostname) && port == 6379
+                            && database == 0 && password == null)) {
+                        // 依赖方Springboot环境配置了redis连接信息
+                        RedisMessageListenerContainer container = containerMap.values().stream().findAny().get();
+                        RedisUtils.getInstance().setOperator(new RedisOperatorImpl(factory, container));
+                    }
+                }
+            } catch (BeansException e) {
+                log.warn("redisConnectionFactory not found!");
+            }
+        }
     }
 
 }

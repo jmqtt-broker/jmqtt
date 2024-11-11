@@ -22,7 +22,7 @@ import java.util.Set;
 public interface SessionStore {
 
     String MEM = "mem";
-    String MYSQL = "mysql";
+    String RDB = "rdb";
     String REDIS = "redis";
 
     void start(BrokerConfig brokerConfig);

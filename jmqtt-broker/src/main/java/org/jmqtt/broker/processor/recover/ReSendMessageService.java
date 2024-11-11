@@ -43,7 +43,7 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
             new ThreadFactoryImpl("ReSendMessageThread"));
 
     public ReSendMessageService(BrokerController brokerController) {
-        super(brokerController);
+        super(brokerController.getBrokerConfig().isHighPerformance(), brokerController.getSessionStore());
         this.messageStore = brokerController.getMessageStore();
         this.sessionStore = brokerController.getSessionStore();
         this.thread = new Thread(new PutClient());

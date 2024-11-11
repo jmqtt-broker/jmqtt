@@ -36,14 +36,15 @@ public class MyValid extends DefaultAuthValid {
     }
 
     @Override
-    public boolean authentication(String clientId, String userName, byte[] password) {
-        log.info("登录校验: {}", clientId + " | " + userName + " | " + new String(password));
-        return true;
+    public boolean authentication(String clientId, String userName, byte[] password,
+                                  String defaultUser, String defaultPwd, boolean anonymousEnable) {
+        log.info("登录校验, clientId:{}, userName: {}, password: {}, defaultUser: {}, defaultPwd: {}", clientId, userName, new String(password), defaultUser, defaultPwd);
+        return super.authentication(clientId, userName, password, defaultUser, defaultPwd, anonymousEnable);
     }
 
     @Override
     public boolean verifyHeartbeatTime(String clientId, int time) {
-        log.info("心跳检测: {}", clientId + " | " + time);
+        log.info("心跳校验: {}", clientId + " | " + time);
         return true;
     }
 
@@ -58,4 +59,5 @@ public class MyValid extends DefaultAuthValid {
         log.info("订阅topic校验: {}", clientId + " | " + topic);
         return true;
     }
+
 }

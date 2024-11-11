@@ -40,6 +40,8 @@ import org.jmqtt.broker.subscribe.DefaultSubscriptionTreeMatcher;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
+import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -78,17 +80,34 @@ public class BrokerController {
     private ClusterEventHandler clusterEventHandler;
     private EventConsumeHandler eventConsumeHandler;
     private String currentIp;
+    private boolean akkaEnable = false;
 
-    // high performance message handle
-    private InflowMessageHandler inflowMessageHandler;
-    private OutflowMessageHandler outflowMessageHandler;
-    private OutflowSecMessageHandler outflowSecMessageHandler;
-
-    private Map<Class<? extends RequestProcessor>, RequestProcessor> requestProcessorMap = new ConcurrentHashMap<>();
+    private Map<Class<?>, RequestProcessor> requestProcessorMap = new ConcurrentHashMap<>();
 
     public BrokerController(BrokerConfig brokerConfig, NettyConfig nettyConfig) {
+        this(brokerConfig, nettyConfig, null, null, null,
+                null, null, null, null);
+
+    }
+
+    public BrokerController(BrokerConfig brokerConfig,
+                            NettyConfig nettyConfig,
+                            SessionStore sessionStore,
+                            MessageStore messageStore,
+                            SubscriptionMatcher subscriptionMatcher,
+                            ClusterEventHandler clusterEventHandler,
+                            InnerMessageDispatcher innerMessageDispatcher,
+                            ChannelEventListener channelEventListener,
+                            AuthValid authValid) {
         this.brokerConfig = brokerConfig;
         this.nettyConfig = nettyConfig;
+        this.sessionStore = sessionStore;
+        this.messageStore = messageStore;
+        this.subscriptionMatcher = subscriptionMatcher != null ? subscriptionMatcher : new DefaultSubscriptionTreeMatcher();
+        this.clusterEventHandler = clusterEventHandler;
+        this.innerMessageDispatcher = innerMessageDispatcher != null ? innerMessageDispatcher :new DefaultDispatcherInnerMessage(brokerConfig.isHighPerformance(),
+                sessionStore, brokerConfig.getPollThreadNum(), this.subscriptionMatcher, this.clusterEventHandler);
+        this.authValid = authValid != null ? authValid : MixAll.pluginInit(brokerConfig.getAuthValidClass());
 
         this.connectQueue = new LinkedBlockingQueue<>(100000);
         this.pubQueue = new LinkedBlockingQueue<>(100000);
@@ -96,52 +115,50 @@ public class BrokerController {
         this.pingQueue = new LinkedBlockingQueue<>(10000);
         this.currentIp = MixAll.getLocalIp();
 
+        this.channelEventListener = channelEventListener != null ? channelEventListener : MixAll.pluginInit(brokerConfig.getChannelEventListener(),
+                new Class[]{MessageStore.class, InnerMessageDispatcher.class}, new Object[]{messageStore, innerMessageDispatcher});
+        this.remotingServer = new NettyRemotingServer(brokerConfig, nettyConfig, channelEventListener);
+
         {
             AkkaConfig akkaConfig = brokerConfig.getAkka();
-            if (akkaConfig != null && akkaConfig.getEnable() || brokerConfig.isAkkaEnable()) {
+            if (this.akkaEnable = (akkaConfig != null && akkaConfig.getEnable() || brokerConfig.isAkkaEnable())) {
                 this.clusterEventHandler = MixAll.pluginInit(AkkaClusterEventHandler.class);
             }
             String store = brokerConfig.getStore();
-            if ("mysql".equals(store)) {
-                this.sessionStore = MixAll.pluginInit(RDBSessionStore.class);
-                this.messageStore = MixAll.pluginInit(RDBMessageStore.class);
+            if (SessionStore.RDB.equals(store)) {
+                if (this.sessionStore == null) {
+                    this.sessionStore = MixAll.pluginInit(RDBSessionStore.class);
+                }
+                if (this.messageStore == null) {
+                    this.messageStore = MixAll.pluginInit(RDBMessageStore.class);
+                }
                 if (this.clusterEventHandler == null) {
                     this.clusterEventHandler = MixAll.pluginInit(RDBClusterEventHandler.class);
                 }
-            } else if ("redis".equals(store)) {
-                this.sessionStore = MixAll.pluginInit(RedisSessionStore.class);
-                this.messageStore = MixAll.pluginInit(RedisMessageStore.class);
+            } else if (SessionStore.REDIS.equals(store)) {
+                if (this.sessionStore == null) {
+                    this.sessionStore = MixAll.pluginInit(RedisSessionStore.class);
+                }
+                if (this.messageStore == null) {
+                    this.messageStore = MixAll.pluginInit(RedisMessageStore.class);
+                }
                 if (this.clusterEventHandler == null) {
                     this.clusterEventHandler = MixAll.pluginInit(RedisClusterEventHandler.class);
                 }
             } else {
-                // 会话状态，消息存储加载，可自己实现相关的类
-                // this.sessionStore = MixAll.pluginInit(brokerConfig.getSessionStoreClass());
-                // this.messageStore = MixAll.pluginInit(brokerConfig.getMessageStoreClass());
-                this.sessionStore = MixAll.pluginInit(MemSessionStore.class);
-                this.messageStore = MixAll.pluginInit(MemMessageStore.class);
+                if (this.sessionStore == null) {
+                    this.sessionStore = MixAll.pluginInit(MemSessionStore.class);
+                }
+                if (this.messageStore == null) {
+                    this.messageStore = MixAll.pluginInit(MemMessageStore.class);
+                }
                 if (this.clusterEventHandler == null) {
                     this.clusterEventHandler = MixAll.pluginInit(MemEventHandler.class);
                 }
             }
-            // 设备连接，发布，订阅消息权限控制
-            this.authValid = MixAll.pluginInit(brokerConfig.getAuthValidClass());
         }
-        // high performance message handler
-        this.inflowMessageHandler = new InflowMessageHandler();
-        this.outflowMessageHandler = new OutflowMessageHandler();
-        this.outflowSecMessageHandler = new OutflowSecMessageHandler();
 
-        this.subscriptionMatcher = new DefaultSubscriptionTreeMatcher();
-        this.innerMessageDispatcher = new DefaultDispatcherInnerMessage(this);
         this.eventConsumeHandler = new EventConsumeHandler(this);
-
-        this.channelEventListener = MixAll.pluginInit(brokerConfig.getChannelEventListener(),
-                new Class[]{MessageStore.class, InnerMessageDispatcher.class},
-                new Object[]{messageStore, innerMessageDispatcher});
-
-//        this.channelEventListener = new ClientLifeCycleHookService(messageStore, innerMessageDispatcher);
-        this.remotingServer = new NettyRemotingServer(brokerConfig, nettyConfig, channelEventListener);
         this.reSendMessageService = new ReSendMessageService(this);
 
         int coreThreadNum = Runtime.getRuntime().availableProcessors();
@@ -173,7 +190,6 @@ public class BrokerController {
                 pingQueue,
                 new ThreadFactoryImpl("PingThread"),
                 new RejectHandler("heartbeat", 100000));
-
     }
 
 
@@ -187,7 +203,9 @@ public class BrokerController {
         this.messageStore.start(brokerConfig);
 
         // 2. start cluster
-        this.eventConsumeHandler.start();
+        if (!this.akkaEnable) {
+            this.eventConsumeHandler.start();
+        }
         this.clusterEventHandler.start(brokerConfig);
 
         // 3. start message service
@@ -286,7 +304,12 @@ public class BrokerController {
     }
 
     public void addRequestProcessor(RequestProcessor processor) {
-        this.requestProcessorMap.put(processor.getClass(), processor);
+        Class<? extends RequestProcessor> clazz = processor.getClass();
+        if (Arrays.asList(clazz.getGenericInterfaces()).contains(RequestProcessor.class)) {
+            this.requestProcessorMap.put(processor.getClass(), processor);
+        } else {
+            this.requestProcessorMap.put(clazz.getSuperclass(), processor);
+        }
     }
 
     public RequestProcessor getProcessor(Class<? extends RequestProcessor> clazz) {

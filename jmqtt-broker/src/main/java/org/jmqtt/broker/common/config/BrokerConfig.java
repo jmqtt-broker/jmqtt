@@ -15,7 +15,9 @@ public class BrokerConfig {
     private String logLevel = "INFO";
 
     private String  version         = "3.0.0";
-    private boolean anonymousEnable = true;
+    private boolean anonymousEnable = false;
+    private String user = "admin";
+    private String pwd = "admin";
 
     private int pollThreadNum = Runtime.getRuntime().availableProcessors() * 2;
 
@@ -43,6 +45,7 @@ public class BrokerConfig {
     private String  redisPassword = "";
     private int     maxWaitMills  = 60 * 1000;
     private boolean testOnBorrow  = true;
+    private int     database       = 0;
     private int     minIdle       = 20;
     private int     maxTotal      = 200;
     private int     maxIdle       = 50;

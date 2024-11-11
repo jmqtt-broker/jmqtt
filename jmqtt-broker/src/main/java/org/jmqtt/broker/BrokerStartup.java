@@ -10,7 +10,6 @@ import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;
-import org.jmqtt.broker.remoting.netty.NettySslHandler;
 
 import java.io.*;
 import java.util.Map;
@@ -36,23 +35,23 @@ public class BrokerStartup {
     public static BrokerController start(String[] args) throws Exception {
         Options options = buildOptions();
         CommandLineParser parser = new DefaultParser();
-        CommandLine commandLine = parser.parse(options,args);
+        CommandLine commandLine = parser.parse(options, args);
         String jmqttHome = null;
         String logLevel = null;
         BrokerConfig brokerConfig = new BrokerConfig();
         NettyConfig nettyConfig = new NettyConfig();
-        if(commandLine != null){
+        if (commandLine != null) {
             jmqttHome = commandLine.getOptionValue("h");
             logLevel = commandLine.getOptionValue("l");
         }
-        if(StringUtils.isEmpty(jmqttHome)){
+        if (StringUtils.isEmpty(jmqttHome)) {
             jmqttHome = brokerConfig.getJmqttHome();
         }
-        if(StringUtils.isEmpty(jmqttHome)){
+        if (StringUtils.isEmpty(jmqttHome)) {
             throw new Exception("please set JMQTT_HOME.");
         }
         String jmqttConfigPath = jmqttHome + File.separator + "conf" + File.separator + "jmqtt.properties";
-        initConfig(jmqttConfigPath,brokerConfig,nettyConfig);
+        initConfig(jmqttConfigPath, brokerConfig, nettyConfig);
 
         // 日志配置加载
         try {
@@ -61,7 +60,7 @@ public class BrokerStartup {
             context.setConfigLocation(file.toURI());
             Configuration configuration = context.getConfiguration();
             Map<String, LoggerConfig> loggerConfigMap = configuration.getLoggers();
-            Level newLevel = logLevel == null? null : Level.getLevel(logLevel);
+            Level newLevel = logLevel == null ? null : Level.getLevel(logLevel);
             if (newLevel == null) {
                 newLevel = Level.INFO;
             }
@@ -75,7 +74,7 @@ public class BrokerStartup {
 
 
         // 启动服务，线程等
-        BrokerController brokerController = new BrokerController(brokerConfig,nettyConfig);
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyConfig);
         brokerController.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -88,17 +87,17 @@ public class BrokerStartup {
         return brokerController;
     }
 
-    private static Options buildOptions(){
+    private static Options buildOptions() {
         Options options = new Options();
-        Option opt = new Option("h",true,"jmqttHome,eg: /wls/xxx");
+        Option opt = new Option("h", true, "jmqttHome,eg: /wls/xxx");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c",true,"jmqtt.properties path,eg: /wls/xxx/xxx.properties");
+        opt = new Option("c", true, "jmqtt.properties path,eg: /wls/xxx/xxx.properties");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("l",true,"DEBUG");
+        opt = new Option("l", true, "DEBUG");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -107,26 +106,27 @@ public class BrokerStartup {
 
     /**
      * convert properties to java config class
+     *
      * @param jmqttConfigPath
      * @param brokerConfig
      * @param nettyConfig
      */
-    private static void initConfig(String jmqttConfigPath, BrokerConfig brokerConfig, NettyConfig nettyConfig){
+    private static void initConfig(String jmqttConfigPath, BrokerConfig brokerConfig, NettyConfig nettyConfig) {
         Properties properties = new Properties();
-        BufferedReader  bufferedReader = null;
+        BufferedReader bufferedReader = null;
         try {
-            InputStream is = NettySslHandler.class.getClassLoader().getResourceAsStream("conf/jmqtt.properties");
+            InputStream is = BrokerStartup.class.getClassLoader().getResourceAsStream("conf/jmqtt.properties");
 //            bufferedReader = new BufferedReader(new FileReader(jmqttConfigPath));
             properties.load(is);
-            MixAll.properties2POJO(properties,brokerConfig);
-            MixAll.properties2POJO(properties,nettyConfig);
+            MixAll.properties2POJO(properties, brokerConfig);
+            MixAll.properties2POJO(properties, nettyConfig);
         } catch (FileNotFoundException e) {
-            System.out.println("jmqtt.properties cannot find,cause + " + e + ",path:"+jmqttConfigPath);
+            System.out.println("jmqtt.properties cannot find,cause + " + e + ",path:" + jmqttConfigPath);
         } catch (IOException e) {
             System.out.println("Handle jmqttConfig IO exception,cause = " + e);
         } finally {
             try {
-                if(Objects.nonNull(bufferedReader)){
+                if (Objects.nonNull(bufferedReader)) {
                     bufferedReader.close();
                 }
             } catch (IOException e) {

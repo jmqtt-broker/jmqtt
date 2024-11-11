@@ -12,12 +12,13 @@ import lombok.Setter;
 @Setter
 public class RedisConfig {
 
-    private String redisHost;
-    private Integer redisPort;
+    private String redisHost = "127.0.0.1";
+    private Integer redisPort = 6379;
     private String redisPassword;
-    private Integer maxWaitMills;
-    private Integer minIdle;
-    private Integer maxTotal;
-    private Integer maxIdle;
+    private Integer database = 0;
+    private Integer maxWaitMills = 60 * 1000;
+    private Integer minIdle = 20;
+    private Integer maxIdle = 50;
+    private Integer maxTotal = 200;
 
 }

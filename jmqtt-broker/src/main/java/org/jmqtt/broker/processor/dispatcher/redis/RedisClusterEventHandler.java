@@ -8,10 +8,9 @@ import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
 import org.jmqtt.broker.processor.dispatcher.event.Event;
 import org.jmqtt.broker.store.redis.support.RedisKeySupport;
-import org.jmqtt.broker.store.redis.support.RedisSupport;
+import org.jmqtt.broker.store.redis.support.RedisOperator;
 import org.jmqtt.broker.store.redis.support.RedisUtils;
 import org.slf4j.Logger;
-import redis.clients.jedis.JedisPubSub;
 
 import java.util.List;
 import java.util.Objects;
@@ -24,29 +23,18 @@ public class RedisClusterEventHandler implements ClusterEventHandler {
     private static final String INSTANCE_CHANNEL_ID = RedisKeySupport.PREFIX + "_CLUSTER_CHANNEL_" + UUID.randomUUID();
     private static final String INSTANCE_CHANNEL_PATTERN = RedisKeySupport.PREFIX + "_CLUSTER_CHANNEL_*";
     private EventConsumeHandler eventConsumeHandler;
-    private RedisSupport redisSupport;
+    private RedisOperator redisOperator;
 
     @Override
     public void start(BrokerConfig brokerConfig) {
-        this.redisSupport = RedisUtils.getInstance().createSupport(brokerConfig);
-
+        this.redisOperator = RedisUtils.getInstance().createSupport(brokerConfig);
         new Thread(() -> {
-            this.redisSupport.operate(jedis -> {
-                jedis.psubscribe(new JedisPubSub() {
-                    @Override
-                    public void onPMessage(String pattern, String channel, String message) {
-                        try {
-                            if (!Objects.equals(INSTANCE_CHANNEL_ID, channel)) {
-                                eventConsumeHandler.consumeEvent(JSONObject.parseObject(message, Event.class));
-                            } else {
-                                eventConsumeHandler.consumeEvent(JSONObject.parseObject(message, Event.class));
-                            }
-                        } catch (Exception e) {
-                            LogUtil.error(log,"Receive redis event error,e:{}",e);
-                        }
-                    }
-                }, INSTANCE_CHANNEL_PATTERN);
-                return true;
+            this.redisOperator.subscribe(INSTANCE_CHANNEL_PATTERN, (channel, message) -> {
+                try {
+                    eventConsumeHandler.consumeEvent(JSONObject.parseObject(message, Event.class));
+                } catch (Exception e) {
+                    LogUtil.error(log,"Receive redis event error,e:{}",e);
+                }
             });
         }).start();
     }
@@ -58,8 +46,7 @@ public class RedisClusterEventHandler implements ClusterEventHandler {
 
     @Override
     public boolean sendEvent(Event event) {
-        redisSupport.operate(jedis -> jedis.publish(INSTANCE_CHANNEL_ID, JSONObject.toJSONString(event)));
-        return true;
+        return redisOperator.publish(INSTANCE_CHANNEL_ID, JSONObject.toJSONString(event));
     }
 
     @Override

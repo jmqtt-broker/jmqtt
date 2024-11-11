@@ -36,11 +36,7 @@ public class NettySslHandler {
 
     private static SslContext createSSLContext(boolean useClientCA, String sslKeyStoreType, String sslKeyFilePath, String sslManagerPwd, String sslStorePwd) {
         try {
-            /*URL url = NettySslHandler.class.getClassLoader().getResource("conf/server.pfx");
-            if (url != null) {
-                InputStream ksInputStream = new FileInputStream(url.getFile());
-            }*/
-            InputStream ksInputStream = NettySslHandler.class.getClassLoader().getResourceAsStream("conf/server.pfx");
+            InputStream ksInputStream = NettySslHandler.class.getClassLoader().getResourceAsStream(sslKeyFilePath);
             KeyStore ks = KeyStore.getInstance(sslKeyStoreType);
             ks.load(ksInputStream, sslStorePwd.toCharArray());
             final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());

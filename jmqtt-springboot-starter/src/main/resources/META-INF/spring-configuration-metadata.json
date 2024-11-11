@@ -1,0 +1,193 @@
+{
+  "groups": [
+    {
+      "name": "jmqtt.broker",
+      "type": "org.jmqtt.starter.config.JmqttConfiguration",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration"
+    }
+  ],
+  "properties": [
+    {
+      "name": "jmqtt.broker.akka",
+      "type": "org.jmqtt.broker.common.config.AkkaConfig",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration"
+    },
+    {
+      "name": "jmqtt.broker.akka.enable",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
+    },
+    {
+      "name": "jmqtt.broker.akka.system-name",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
+    },
+    {
+      "name": "jmqtt.broker.akka.host",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
+    },
+    {
+      "name": "jmqtt.broker.akka.port",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
+    },
+    {
+      "name": "jmqtt.broker.akka.cluster-nodes",
+      "type": "java.lang.String[]",
+      "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
+    },
+    {
+      "name": "jmqtt.broker.netty",
+      "type": "org.jmqtt.broker.common.config.NettyConfig",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration"
+    },
+    {
+      "name": "jmqtt.broker.netty.tcp-port",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
+      "name": "jmqtt.broker.netty.ssl-tcp-port",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
+      "name": "jmqtt.broker.netty.websocket-port",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
+      "name": "jmqtt.broker.netty.ssl-websocket-port",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
+      "name": "jmqtt.broker.netty.ssl-key-store-type",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
+      "name": "jmqtt.broker.netty.ssl-key-file-path",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
+      "name": "jmqtt.broker.netty.ssl-manager-pwd",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
+      "name": "jmqtt.broker.netty.ssl-store-pwd",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
+      "name": "jmqtt.broker.rdb",
+      "type": "org.jmqtt.broker.common.config.RDBConfig",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration"
+    },
+    {
+      "name": "jmqtt.broker.rdb.driver",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.RDBConfig"
+    },
+    {
+      "name": "jmqtt.broker.rdb.url",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.RDBConfig"
+    },
+    {
+      "name": "jmqtt.broker.rdb.username",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.RDBConfig"
+    },
+    {
+      "name": "jmqtt.broker.rdb.password",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.RDBConfig"
+    },
+    {
+      "name": "jmqtt.broker.redis",
+      "type": "org.jmqtt.broker.common.config.RedisConfig",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration"
+    },
+    {
+      "name": "jmqtt.broker.redis.redis-host",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.RedisConfig"
+    },
+    {
+      "name": "jmqtt.broker.redis.redis-port",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.RedisConfig"
+    },
+    {
+      "name": "jmqtt.broker.redis.redis-password",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.RedisConfig"
+    },
+    {
+      "name": "jmqtt.broker.redis.database",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.RedisConfig"
+    },
+    {
+      "name": "jmqtt.broker.redis.max-wait-mills",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.RedisConfig"
+    },
+    {
+      "name": "jmqtt.broker.redis.min-idle",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.RedisConfig"
+    },
+    {
+      "name": "jmqtt.broker.redis.max-idle",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.RedisConfig"
+    },
+    {
+      "name": "jmqtt.broker.redis.max-total",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.RedisConfig"
+    },
+    {
+      "name": "jmqtt.broker.store",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
+      "defaultValue": "mem"
+    },
+    {
+      "name": "jmqtt.broker.use-default-rdb",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
+      "defaultValue": true
+    },
+    {
+      "name": "jmqtt.broker.use-default-redis",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
+      "defaultValue": true
+    },
+    {
+      "name": "jmqtt.broker.anonymous-enable",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
+      "defaultValue": false
+    },
+    {
+      "name": "jmqtt.broker.user",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
+      "defaultValue": "admin"
+    },
+    {
+      "name": "jmqtt.broker.pwd",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
+      "defaultValue": "admin"
+    }
+  ],
+  "hints": []
+}

@@ -40,36 +40,41 @@ public class DBUtils {
     }
 
     public void start(BrokerConfig brokerConfig){
+        start(brokerConfig, null);
+    }
+
+    public void start(BrokerConfig brokerConfig, DataSource dataSource){
         if (this.start.compareAndSet(false,true)) {
             LogUtil.info(log,"DB store start...");
-            DataSource dataSource = new DataSourceFactory() {
-                @Override
-                public void setProperties(Properties properties) {
-                }
-
-                @Override
-                public DataSource getDataSource() {
-                    DruidDataSource dds = new DruidDataSource();
-                    dds.setDriverClassName(brokerConfig.getDriver());
-                    dds.setUrl(brokerConfig.getUrl());
-                    dds.setUsername(brokerConfig.getUsername());
-                    dds.setPassword(brokerConfig.getPassword());
-                    // 其他配置可自行补充
-                    dds.setKeepAlive(true);
-                    dds.setMinEvictableIdleTimeMillis(180000);
-                    dds.setMaxWait(60000);
-                    dds.setInitialSize(5);
-                    dds.setMinIdle(5);
-                    try {
-                        dds.init();
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                        System.exit(-1);
+            if (dataSource == null) {
+                dataSource = new DataSourceFactory() {
+                    @Override
+                    public void setProperties(Properties properties) {
                     }
-                    return dds;
-                }
-            }.getDataSource();
 
+                    @Override
+                    public DataSource getDataSource() {
+                        DruidDataSource dds = new DruidDataSource();
+                        dds.setDriverClassName(brokerConfig.getDriver());
+                        dds.setUrl(brokerConfig.getUrl());
+                        dds.setUsername(brokerConfig.getUsername());
+                        dds.setPassword(brokerConfig.getPassword());
+                        // 其他配置可自行补充
+                        dds.setKeepAlive(true);
+                        dds.setMinEvictableIdleTimeMillis(180000);
+                        dds.setMaxWait(60000);
+                        dds.setInitialSize(5);
+                        dds.setMinIdle(5);
+                        try {
+                            dds.init();
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            System.exit(-1);
+                        }
+                        return dds;
+                    }
+                }.getDataSource();
+            }
             TransactionFactory transactionFactory = new JdbcTransactionFactory();
             Environment environment = new Environment("development", transactionFactory, dataSource);
             Configuration configuration = new Configuration(environment);

@@ -37,6 +37,7 @@ public class EventConsumeHandler {
     public EventConsumeHandler(BrokerController brokerController) {
         this.innerMessageDispatcher = brokerController.getInnerMessageDispatcher();
         this.clusterEventHandler = brokerController.getClusterEventHandler();
+        clusterEventHandler.setEventConsumeHandler(this);
         this.maxPollNum = brokerController.getBrokerConfig().getMaxPollEventNum();
         this.pollWaitInterval = brokerController.getBrokerConfig().getPollWaitInterval();
         this.currentIp = brokerController.getCurrentIp();
@@ -67,8 +68,6 @@ public class EventConsumeHandler {
     }
 
     public void start() {
-        clusterEventHandler.setEventConsumeHandler(this);
-
         new Thread(() -> {
             while (!pollStoped.get()) {
                 try {

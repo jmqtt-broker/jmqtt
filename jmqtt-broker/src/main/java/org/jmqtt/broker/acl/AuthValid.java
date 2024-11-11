@@ -22,7 +22,8 @@ public interface AuthValid {
     /**
      * verify the clientId,username,password whether true or not
      */
-    boolean authentication(String clientId,String userName,byte[] password);
+    boolean authentication(String clientId,String userName,byte[] password,
+                           String defaultUser, String defaultPwd, boolean anonymousEnable);
 
     /**
      * verify the client's heartbeat time whether the compliance
