@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface OutflowSecMessageMapper {
 
-    @Insert("INSERT INTO jmqtt_outflow_sec_message(client_id,msg_id,gmt_create) VALUES(#{clientId},#{msgId},#{gmtCreate})"
+    @Insert("INSERT INTO jmqtt_outflow_sec_message(id,client_id,msg_id,gmt_create) VALUES(#{id},#{clientId},#{msgId},#{gmtCreate})"
             + "  on DUPLICATE key update gmt_create = #{gmtCreate}")
     Long cacheOuflowMessage(OutflowSecMessageDO outflowSecMessageDO);
 

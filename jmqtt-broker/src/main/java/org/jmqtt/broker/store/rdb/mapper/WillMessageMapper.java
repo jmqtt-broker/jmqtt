@@ -7,7 +7,7 @@ import org.jmqtt.broker.store.rdb.daoobject.WillMessageDO;
 
 public interface WillMessageMapper {
 
-    @Insert("INSERT INTO jmqtt_will_message(client_id,content,gmt_create) VALUES(#{clientId},#{content},#{gmtCreate})"
+    @Insert("INSERT INTO jmqtt_will_message(id, client_id,content,gmt_create) VALUES(#{id},#{clientId},#{content},#{gmtCreate})"
             + " on DUPLICATE key update content = #{content},gmt_create = #{gmtCreate}")
     Long storeWillMessage(WillMessageDO willMessageDO);
 

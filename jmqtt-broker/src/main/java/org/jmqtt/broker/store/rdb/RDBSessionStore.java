@@ -7,6 +7,7 @@ import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.store.rdb.daoobject.*;
@@ -37,6 +38,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     @Override
     public boolean storeSession(String clientId, SessionState sessionState) {
         SessionDO sessionDO = new SessionDO();
+        sessionDO.setId(IdWorker.getId());
         sessionDO.setClientId(clientId);
         sessionDO.setState(sessionState.getState().getCode());
         sessionDO.setOfflineTime(sessionState.getOfflineTime());
@@ -47,6 +49,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     @Override
     public boolean storeSubscription(String clientId, Subscription subscription) {
         SubscriptionDO subscriptionDO = new SubscriptionDO();
+        subscriptionDO.setId(IdWorker.getId());
         subscriptionDO.setClientId(clientId);
         subscriptionDO.setTopic(subscription.getTopic());
         subscriptionDO.setQos(subscription.getQos());
@@ -88,6 +91,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     @Override
     public boolean cacheInflowMsg(String clientId, Message message) {
         InflowMessageDO inflowMessageDO = new InflowMessageDO();
+        inflowMessageDO.setId(IdWorker.getId());
         inflowMessageDO.setClientId(clientId);
         inflowMessageDO.setMsgId(message.getMsgId());
         inflowMessageDO.setContent(JSONObject.toJSONString(message));
@@ -129,6 +133,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     @Override
     public boolean cacheOutflowMsg(String clientId, Message message) {
         OutflowMessageDO outflowMessageDO = new OutflowMessageDO();
+        outflowMessageDO.setId(IdWorker.getId());
         outflowMessageDO.setClientId(clientId);
         outflowMessageDO.setMsgId(message.getMsgId());
         outflowMessageDO.setContent(JSONObject.toJSONString(message));
@@ -170,6 +175,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     @Override
     public boolean cacheOutflowSecMsgId(String clientId, int msgId) {
         OutflowSecMessageDO outflowSecMessageDO = new OutflowSecMessageDO();
+        outflowSecMessageDO.setId(IdWorker.getId());
         outflowSecMessageDO.setClientId(clientId);
         outflowSecMessageDO.setMsgId(msgId);
         outflowSecMessageDO.setGmtCreate(System.currentTimeMillis());
@@ -200,6 +206,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     @Override
     public boolean storeOfflineMsg(String clientId, Message message) {
         OfflineMessageDO offlineMessageDO = new OfflineMessageDO();
+        offlineMessageDO.setId(IdWorker.getId());
         offlineMessageDO.setClientId(clientId);
         offlineMessageDO.setContent(JSONObject.toJSONString(message));
         offlineMessageDO.setGmtCreate(message.getStoreTime());

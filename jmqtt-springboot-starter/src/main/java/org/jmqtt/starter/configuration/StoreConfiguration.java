@@ -26,7 +26,7 @@ import java.sql.SQLException;
 public class StoreConfiguration {
 
     @Bean("jmqttDataSource")
-    @ConditionalOnMissingBean(DataSource.class)
+    @ConditionalOnProperty(prefix = "jmqtt.broker", value = "useDefaultRdb", havingValue = "false")
     public DataSource jmqttDataSource(BrokerConfig brokerConfig) {
         DruidDataSource dds = new DruidDataSource();
         dds.setDriverClassName(brokerConfig.getDriver());

@@ -10,8 +10,8 @@ public interface SessionMapper {
     @Select("select client_id,state,offline_time from jmqtt_session where client_id = #{clientId}")
     SessionDO getSession( String clientId);
 
-    @Insert("insert into jmqtt_session(client_id,state,offline_time) values "
-            + "(#{clientId},#{state},#{offlineTime}) "
+    @Insert("insert into jmqtt_session(id,client_id,state,offline_time) values "
+            + "(#{id},#{clientId},#{state},#{offlineTime}) "
             + "on DUPLICATE key update state = #{state},offline_time = #{offlineTime}")
     Long storeSession(SessionDO sessionDO);
 

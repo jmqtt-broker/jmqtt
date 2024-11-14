@@ -56,10 +56,14 @@ public class JmqttStartup {
     }
 
     private void initRdb() {
-        DBUtils dbUtils = DBUtils.getInstance();
         DataSource dataSource;
         try {
-            dataSource = ctx.getBean(DataSource.class);
+            if (jmqttConfiguration.getUseDefaultRdb()) {
+                Map<String, DataSource> map = ctx.getBeansOfType(DataSource.class);
+                dataSource = map.values().stream().findAny().orElseThrow(RuntimeException::new);
+            } else {
+                dataSource = (DataSource) ctx.getBean("jmqttDataSource");
+            }
         } catch (BeansException e) {
             log.error("can not find datasource!", e);
             throw new RuntimeException("can not find datasource!");
@@ -70,6 +74,7 @@ public class JmqttStartup {
             log.error("init sql error.", e);
             throw new RuntimeException("init sql error.");
         }
+        DBUtils dbUtils = DBUtils.getInstance();
         dbUtils.start(brokerConfig, dataSource);
     }
 

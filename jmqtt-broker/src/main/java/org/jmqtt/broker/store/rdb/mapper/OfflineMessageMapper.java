@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface OfflineMessageMapper {
 
-    @Insert("INSERT INTO jmqtt_offline_message(client_id,content,gmt_create) VALUES (#{clientId},#{content},#{gmtCreate})")
+    @Insert("INSERT INTO jmqtt_offline_message(id, client_id,content,gmt_create) VALUES (#{id},#{clientId},#{content},#{gmtCreate})")
     Long storeOfflineMessage(OfflineMessageDO offlineMessageDO);
 
     @Delete("DELETE FROM jmqtt_offline_message WHERE client_id = #{clientId}")

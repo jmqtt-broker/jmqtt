@@ -10,8 +10,8 @@ import java.util.List;
 
 public interface SubscriptionMapper {
 
-    @Insert("INSERT INTO jmqtt_subscription (client_id,topic,qos) "
-            + "VALUES (#{clientId},#{topic},#{qos})")
+    @Insert("INSERT INTO jmqtt_subscription (id,client_id,topic,qos) "
+            + "VALUES (#{id},#{clientId},#{topic},#{qos})")
     Long storeSubscription(SubscriptionDO subscriptionDO);
 
     @Delete("DELETE FROM jmqtt_subscription WHERE client_id = #{clientId}")

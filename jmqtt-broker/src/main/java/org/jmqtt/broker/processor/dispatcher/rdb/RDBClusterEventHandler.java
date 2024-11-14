@@ -8,6 +8,7 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
 import org.jmqtt.broker.processor.dispatcher.event.Event;
+import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.rdb.AbstractDBStore;
 import org.jmqtt.broker.store.rdb.DBCallback;
 import org.jmqtt.broker.store.rdb.daoobject.EventDO;
@@ -48,6 +49,7 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
     @Override
     public boolean sendEvent(Event event) {
         EventDO eventDO = new EventDO();
+        eventDO.setId(IdWorker.getId());
         eventDO.setJmqttIp(MixAll.getLocalIp());
         eventDO.setContent(event.getBody());
         eventDO.setEventCode(event.getEventCode());

@@ -5,6 +5,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.model.Message;
+import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.rdb.daoobject.RetainMessageDO;
 import org.jmqtt.broker.store.rdb.daoobject.WillMessageDO;
@@ -29,10 +30,10 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
     @Override
     public boolean storeWillMessage(String clientId, Message message) {
         WillMessageDO willMessageDO = new WillMessageDO();
+        willMessageDO.setId(IdWorker.getId());
         willMessageDO.setClientId(clientId);
         willMessageDO.setContent(JSONObject.toJSONString(message));
         willMessageDO.setGmtCreate(message.getStoreTime());
-
         Long id = (Long) operate(sqlSession -> getMapper(sqlSession,willMessageMapperClass).storeWillMessage(willMessageDO));
         return id != 0;
     }
@@ -55,6 +56,7 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
     @Override
     public boolean storeRetainMessage(String topic, Message message) {
         RetainMessageDO retainMessageDO = new RetainMessageDO();
+        retainMessageDO.setId(IdWorker.getId());
         retainMessageDO.setTopic(topic);
         retainMessageDO.setContent(JSONObject.toJSONString(message));
         Long id = (Long) operate(new DBCallback() {

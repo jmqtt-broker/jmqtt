@@ -2,16 +2,9 @@ package org.jmqtt.starter.configuration;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.BrokerController;
-import org.jmqtt.broker.acl.AuthValid;
-import org.jmqtt.broker.acl.impl.DefaultAuthValid;
-import org.jmqtt.broker.client.ClientLifeCycleHookService;
-import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.processor.protocol.*;
-import org.jmqtt.broker.remoting.netty.ChannelEventListener;
-import org.jmqtt.broker.store.MessageStore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * @Description: java类作用描述
