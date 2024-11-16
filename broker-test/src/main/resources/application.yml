@@ -9,10 +9,14 @@ spring:
   application:
     name: jmqtt-test
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://192.168.100.26:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
-    username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:zhibo2022}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: ${MYSQL_URL:jdbc:mysql://192.168.100.26:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
+#    username: ${MYSQL_USERNAME:root}
+#    password: ${MYSQL_PASSWORD:zhibo2022}
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${POSTGRES_URL:jdbc:postgresql://192.168.100.26:5432/zb_iot}
+    username: ${POSTGRES_USERNAME:postgres}
+    password: ${POSTGRES_PASSWORD:123456}
+    driver-class-name: org.postgresql.Driver
   redis:
     host: ${REDIS_HOST:192.168.100.26}
     port: ${REDIS_PORT:56379}
@@ -40,7 +44,7 @@ jmqtt:
     # store = rdb条件下，useDefaultRdb为true时，优先使用依赖方数据源，依赖方没有数据源使用rdb配置的数据源
     # useDefaultRdb为false时，使用rdb配置的数据源
     # useDefaultRdb、rdb配置缺省时使用依赖方数据源，依赖方无数据源报错
-    useDefaultRdb: false
+    useDefaultRdb: true
     rdb:
       driver: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://192.168.100.251:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false&useSSL=false&serverTimezone=Asia/Shanghai

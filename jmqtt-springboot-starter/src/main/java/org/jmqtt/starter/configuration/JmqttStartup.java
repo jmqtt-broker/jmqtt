@@ -2,7 +2,6 @@ package org.jmqtt.starter.configuration;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.jdbc.ScriptRunner;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.processor.RequestProcessor;
@@ -20,9 +19,6 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.sql.Connection;
 import java.util.Map;
 import java.util.Optional;
 
@@ -68,38 +64,8 @@ public class JmqttStartup {
             log.error("can not find datasource!", e);
             throw new RuntimeException("can not find datasource!");
         }
-        try {
-            initSqlScript(dataSource);
-        } catch (Exception e) {
-            log.error("init sql error.", e);
-            throw new RuntimeException("init sql error.");
-        }
         DBUtils dbUtils = DBUtils.getInstance();
         dbUtils.start(brokerConfig, dataSource);
-    }
-
-    private void initSqlScript(DataSource dataSource) throws Exception {
-        Connection conn = dataSource.getConnection();
-        String dbName = conn.getMetaData().getDatabaseProductName();
-        String initSql;
-        if ("MySQL".equalsIgnoreCase(dbName)) {
-            initSql = "conf/jmqtt_mysql.sql";
-        } else if ("PostgreSQL".equalsIgnoreCase(dbName)) {
-            initSql = "conf/jmqtt_pgsql.sql";
-        } else {
-            throw new RuntimeException("unSupport db type: " + dbName);
-        }
-        log.info("数据库类型：{}，初始化数据库脚本：{}", dbName, initSql);
-        InputStream is = this.getClass().getClassLoader().getResourceAsStream(initSql);
-        if (is == null) {
-            throw new RuntimeException("sql script not found!");
-        }
-        ScriptRunner runner = new ScriptRunner(conn);
-        runner.setAutoCommit(true);
-        runner.runScript(new InputStreamReader(is));
-        is.close();
-        conn.close();
-        log.info("sql script init.");
     }
 
     private void initRedis() {

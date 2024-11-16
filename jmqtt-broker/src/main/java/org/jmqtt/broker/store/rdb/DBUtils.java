@@ -2,6 +2,7 @@ package org.jmqtt.broker.store.rdb;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import org.apache.ibatis.datasource.DataSourceFactory;
+import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
@@ -16,6 +17,9 @@ import org.jmqtt.broker.store.rdb.mapper.*;
 import org.slf4j.Logger;
 
 import javax.sql.DataSource;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,23 +33,26 @@ public class DBUtils {
 
     private static final DBUtils dbUtils = new DBUtils();
 
-    private DBUtils(){}
+    private DataSource dataSource;
+
+    private DBUtils() {
+    }
 
     private SqlSessionFactory sqlSessionFactory;
 
-    private  AtomicBoolean start = new AtomicBoolean(false);
+    private AtomicBoolean start = new AtomicBoolean(false);
 
-    public static DBUtils getInstance(){
+    public static DBUtils getInstance() {
         return dbUtils;
     }
 
-    public void start(BrokerConfig brokerConfig){
+    public void start(BrokerConfig brokerConfig) {
         start(brokerConfig, null);
     }
 
-    public void start(BrokerConfig brokerConfig, DataSource dataSource){
-        if (this.start.compareAndSet(false,true)) {
-            LogUtil.info(log,"DB store start...");
+    public void start(BrokerConfig brokerConfig, DataSource dataSource) {
+        if (this.start.compareAndSet(false, true)) {
+            LogUtil.info(log, "DB store start...");
             if (dataSource == null) {
                 dataSource = new DataSourceFactory() {
                     @Override
@@ -75,10 +82,14 @@ public class DBUtils {
                     }
                 }.getDataSource();
             }
+            this.dataSource = dataSource;
             TransactionFactory transactionFactory = new JdbcTransactionFactory();
             Environment environment = new Environment("development", transactionFactory, dataSource);
             Configuration configuration = new Configuration(environment);
-
+            // 全局变量需要写在addMapper之前，否则不生效
+            Properties props = new Properties();
+            props.setProperty("dbType", getDbType(dataSource));
+            configuration.setVariables(props);
             // 初始化所有mapper
             configuration.addMapper(SessionMapper.class);
             configuration.addMapper(SubscriptionMapper.class);
@@ -89,18 +100,57 @@ public class DBUtils {
             configuration.addMapper(RetainMessageMapper.class);
             configuration.addMapper(OutflowMessageMapper.class);
             configuration.addMapper(WillMessageMapper.class);
-
             configuration.setMapUnderscoreToCamelCase(true);
             this.sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
-            LogUtil.info(log,"DB store start success...");
+            LogUtil.info(log, "DB store start success...");
+            try {
+                initSqlScript(dataSource);
+            } catch (Exception e) {
+                log.error("init sql error.", e);
+                throw new RuntimeException("init sql error.");
+            }
         }
     }
 
-    public void shutdown(){}
+    private String getDbType(DataSource dataSource) {
+        try (Connection conn = dataSource.getConnection()) {
+            return conn.getMetaData().getDatabaseProductName().toLowerCase();
+        } catch (Exception e) {
+            LogUtil.error(log, "get dbType faild", e);
+            throw new RuntimeException("get dbType faild");
+        }
+    }
+
+    private void initSqlScript(DataSource dataSource) throws Exception {
+        try (Connection conn = dataSource.getConnection()) {
+            String dbName = conn.getMetaData().getDatabaseProductName();
+            String initSql;
+            if ("MySQL".equalsIgnoreCase(dbName)) {
+                initSql = "conf/jmqtt_mysql.sql";
+            } else if ("PostgreSQL".equalsIgnoreCase(dbName)) {
+                initSql = "conf/jmqtt_pgsql.sql";
+            } else {
+                throw new RuntimeException("unsupport db type: " + dbName);
+            }
+            log.info("数据库类型：{}，初始化数据库脚本：{}", dbName, initSql);
+            InputStream is = this.getClass().getClassLoader().getResourceAsStream(initSql);
+            if (is == null) {
+                throw new RuntimeException("sql script not found!");
+            }
+            ScriptRunner runner = new ScriptRunner(conn);
+            runner.setAutoCommit(true);
+            runner.runScript(new InputStreamReader(is));
+            is.close();
+            log.info("sql script init.");
+        }
+    }
+
+    public void shutdown() {
+    }
 
 
     public Object operate(DBCallback dbCallback) {
-        try (SqlSession sqlSession = this.sqlSessionFactory.openSession(true)){
+        try (SqlSession sqlSession = this.sqlSessionFactory.openSession(true)) {
             return dbCallback.operate(sqlSession);
         }
     }
@@ -109,8 +159,7 @@ public class DBUtils {
      * 获取关闭事物的session，需要手动提交事物
      */
     public SqlSession getSqlSessionWithTrans() {
-        SqlSession sqlSession = this.sqlSessionFactory.openSession(false);
-        return sqlSession;
+        return this.sqlSessionFactory.openSession(false);
     }
 
 }

@@ -9,8 +9,16 @@ import java.util.List;
 
 public interface RetainMessageMapper {
 
-    @Insert("INSERT INTO jmqtt_retain_message(id,topic,content) VALUES(#{id},#{topic},#{content})"
-            + " on DUPLICATE key update content = #{content}")
+    @Insert("<script>" +
+            "INSERT INTO jmqtt_retain_message(id,topic,content) VALUES(#{id},#{topic},#{content})"
+            + "<if test=\"'${dbType}' == 'mysql'\">"
+            + " on DUPLICATE key update content = #{content}"
+            + "</if>"
+            + "<if test=\"'${dbType}' == 'postgresql'\">"
+            + "on conflict(topic) do update set content = #{content}"
+            + "</if>"
+            + "</script>"
+    )
     Long storeRetainMessage(RetainMessageDO retainMessageDO);
 
     @Select("SELECT id,topic,content FROM jmqtt_retain_message")
