@@ -9,14 +9,21 @@ spring:
   application:
     name: jmqtt-test
   datasource:
+    # mysql
 #    url: ${MYSQL_URL:jdbc:mysql://192.168.100.26:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
 #    username: ${MYSQL_USERNAME:root}
 #    password: ${MYSQL_PASSWORD:zhibo2022}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${POSTGRES_URL:jdbc:postgresql://192.168.100.26:5432/zb_iot}
-    username: ${POSTGRES_USERNAME:postgres}
-    password: ${POSTGRES_PASSWORD:123456}
-    driver-class-name: org.postgresql.Driver
+    # postgres
+#    url: ${POSTGRES_URL:jdbc:postgresql://192.168.100.26:5432/zb_iot}
+#    username: ${POSTGRES_USERNAME:postgres}
+#    password: ${POSTGRES_PASSWORD:123456}
+#    driver-class-name: org.postgresql.Driver
+    # oracle
+    url: ${HUIZHI_URL:jdbc:oracle:thin:@192.168.100.102:1521:helowin}
+    username: ${HUIZHI_USERNAME:zhibo}
+    password: ${HUIZHI_PASSWORD:zhibo2023}
+    driverClassName: oracle.jdbc.driver.OracleDriver
   redis:
     host: ${REDIS_HOST:192.168.100.26}
     port: ${REDIS_PORT:56379}
@@ -36,6 +43,8 @@ jmqtt:
     anonymous-enable: true
     user: admin
     pwd: 123456
+    # 是否开启高性能模式
+    high-performance: false
     # 数据存储仓库，默认mem为内存存储，可选redis、rdb，配置redis需要配置redis连接，配置rdb需要数据库连接
     # 当系统中存在DataSource对象时，优先使用已存在的DataSource
     # 当系统中存在RedisTemplate对象时，优先使用已存在的RedisTemplate

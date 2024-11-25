@@ -21,6 +21,7 @@ public class JmqttConfiguration {
     private Boolean anonymousEnable = false;
     private String user = "admin";
     private String pwd = "admin";
+    private Boolean highPerformance = false;
 
     private String store = "mem";
     private Boolean useDefaultRdb = true;

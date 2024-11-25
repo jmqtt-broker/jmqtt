@@ -129,6 +129,8 @@ public class DBUtils {
                 initSql = "conf/jmqtt_mysql.sql";
             } else if ("PostgreSQL".equalsIgnoreCase(dbName)) {
                 initSql = "conf/jmqtt_pgsql.sql";
+            } else if ("Oracle".equalsIgnoreCase(dbName)) {
+                initSql = "conf/jmqtt_oracle.sql";
             } else {
                 throw new RuntimeException("unsupport db type: " + dbName);
             }

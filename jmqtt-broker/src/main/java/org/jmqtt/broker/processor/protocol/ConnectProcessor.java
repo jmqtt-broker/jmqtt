@@ -185,6 +185,9 @@ public class ConnectProcessor implements RequestProcessor {
         Message message = new Message(Message.Type.WILL, headers, willPayload);
         message.setClientId(clientId);
         messageStore.storeWillMessage(clientId, message);
+        if (willRetain) {
+            messageStore.storeRetainMessage(willTopic, message);
+        }
         LogUtil.info(log, "[WillMessageStore] : {} store will message:{}", clientId, message);
     }
 

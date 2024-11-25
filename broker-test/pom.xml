@@ -25,7 +25,13 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc6</artifactId>
+            <version>11.2.0.4</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/lib/ojdbc6-11.2.0.4.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

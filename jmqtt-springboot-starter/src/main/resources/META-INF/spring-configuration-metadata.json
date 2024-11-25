@@ -187,6 +187,12 @@
       "type": "java.lang.String",
       "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
       "defaultValue": "admin"
+    },
+    {
+      "name": "jmqtt.broker.high-performance",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
+      "defaultValue": false
     }
   ],
   "hints": []
