@@ -230,7 +230,7 @@ public class ConnectProcessor implements RequestProcessor {
     }
 
     private boolean versionValid(int mqttVersion) {
-        if (mqttVersion == 3 || mqttVersion == 4) {
+        if (mqttVersion == 3 || mqttVersion == 4 || mqttVersion == 5) {
             return true;
         }
         return false;

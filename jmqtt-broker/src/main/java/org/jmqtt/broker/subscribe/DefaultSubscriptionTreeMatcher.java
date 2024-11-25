@@ -116,7 +116,10 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
         //按策略从不同订阅组选取订阅者
         Collection<Set<Subscription>> groups = groupSharedSubs.values();
         for (Set<Subscription> group : groups) {
-            filteredSubs.add(selectOneByStrategy(group, clientId));
+            Subscription sub = selectOneByStrategy(group, clientId, "random");
+            if (sub != null) {
+                filteredSubs.add(sub);
+            }
         }
         return filteredSubs;
     }
@@ -129,8 +132,24 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
      * hash	按照发布者 ClientID 的哈希值;
      * </pre>
      */
-    private Subscription selectOneByStrategy(Set<Subscription> group, String clientId) {
-        return group.iterator().next();
+    private Subscription selectOneByStrategy(Set<Subscription> group, String clientId, String strategy) {
+        if ("random".equals(strategy)) {
+            Iterator<Subscription> it = group.iterator();
+            int t = (int) Math.round(Math.random() * group.size());
+            int i = 0;
+            Subscription sub = null;
+            while (it.hasNext()) {
+                sub = it.next();
+                if (t <= i) {
+                    break;
+                }
+                i ++;
+            }
+            return sub;
+        } else {
+            // TODO hash
+            return group.iterator().next();
+        }
     }
 
     @Override
