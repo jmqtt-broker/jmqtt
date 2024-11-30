@@ -1,10 +1,7 @@
 package org.jmqtt.broker.processor.protocol;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.mqtt.MqttConnAckMessage;
-import io.netty.handler.codec.mqtt.MqttConnectMessage;
-import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
-import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.*;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
@@ -139,8 +136,15 @@ public class ConnectProcessor implements RequestProcessor {
                 NettyUtil.setClientId(ctx.channel(), clientId);
                 ConnectManager.getInstance().putClient(clientId, clientSession);
             }
-
-            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent);
+            Integer maxAlisa = null;
+            if (mqttVersion == 5) {
+                MqttProperties.MqttProperty maxAlisaProperty = connectMessage.variableHeader().properties()
+                        .getProperty(MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value());
+                if (maxAlisaProperty != null) {
+                    maxAlisa = (Integer) maxAlisaProperty.value();
+                }
+            }
+            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, maxAlisa);
             ctx.writeAndFlush(ackMessage);
             if (returnCode != MqttConnectReturnCode.CONNECTION_ACCEPTED) {
                 ctx.close();
@@ -154,7 +158,7 @@ public class ConnectProcessor implements RequestProcessor {
         } catch (Exception ex) {
             LogUtil.warn(log, "[CONNECT remote:{}] -> Service Unavailable: cause={}", remoteAddress, ex);
             returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE;
-            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent);
+            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
             ctx.writeAndFlush(ackMessage);
             ctx.close();
         }

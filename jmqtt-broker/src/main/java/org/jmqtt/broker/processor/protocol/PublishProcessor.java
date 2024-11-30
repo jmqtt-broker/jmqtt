@@ -1,10 +1,8 @@
 package org.jmqtt.broker.processor.protocol;
 
+import com.alibaba.fastjson.JSON;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.mqtt.MqttMessage;
-import io.netty.handler.codec.mqtt.MqttPubAckMessage;
-import io.netty.handler.codec.mqtt.MqttPublishMessage;
-import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.*;
 import io.netty.util.ReferenceCountUtil;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
@@ -18,10 +16,8 @@ import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
 import org.jmqtt.broker.remoting.util.NettyUtil;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 客户端publish消息到jmqtt broker
@@ -59,6 +55,21 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
             headers.put(MessageHeader.QOS,publishMessage.fixedHeader().qosLevel().value());
             headers.put(MessageHeader.RETAIN,publishMessage.fixedHeader().isRetain());
             headers.put(MessageHeader.DUP,publishMessage.fixedHeader().isDup());
+            headers.put(MessageHeader.REMAINING_LENGTH,publishMessage.fixedHeader().remainingLength());
+            MqttProperties properties = publishMessage.variableHeader().properties();
+            if (properties != null && !properties.isEmpty()) {
+                Map<Integer, Object> propertyMap = new HashMap<>();
+                Arrays.stream(MqttProperties.MqttPropertyType.values()).forEach(type -> {
+                    Optional.ofNullable(properties.getProperty(type.value())).ifPresent(p -> {
+                        if (p instanceof MqttProperties.BinaryProperty) {
+                            propertyMap.put(p.propertyId(), new String((byte[]) p.value()));
+                        } else {
+                            propertyMap.put(p.propertyId(), p.value());
+                        }
+                    });
+                });
+                innerMsg.setProperties(propertyMap);
+            }
             innerMsg.setHeaders(headers);
             innerMsg.setMsgId(publishMessage.variableHeader().packetId());
             switch (qos){

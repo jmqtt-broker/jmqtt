@@ -1,12 +1,17 @@
 package org.jmqtt.broker.remoting.util;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.mqtt.*;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * transfer message from Message and MqttMessage
@@ -38,10 +43,7 @@ public class MessageUtil {
     }
 
     public static int getMinQos(int qos1,int qos2){
-        if(qos1 < qos2){
-            return qos1;
-        }
-        return qos2;
+        return Math.min(qos1, qos2);
     }
 
     public static MqttMessage getPubRelMessage(int messageId){
@@ -51,8 +53,11 @@ public class MessageUtil {
     }
 
     public static MqttPublishMessage getPubMessage(Message message, boolean dup){
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBLISH,dup,MqttQoS.valueOf((int)message.getHeader(MessageHeader.QOS)),false,0);
-        MqttPublishVariableHeader publishVariableHeader = new MqttPublishVariableHeader((String) message.getHeader(MessageHeader.TOPIC),message.getMsgId());
+        boolean retain = (boolean) Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).orElse(false);
+        int remainingLength = (int) Optional.ofNullable(message.getHeader(MessageHeader.REMAINING_LENGTH)).orElse(0);
+        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBLISH,dup,MqttQoS.valueOf((int)message.getHeader(MessageHeader.QOS)),retain,remainingLength);
+        MqttProperties properties = getProperties(message.getProperties());
+        MqttPublishVariableHeader publishVariableHeader = new MqttPublishVariableHeader((String) message.getHeader(MessageHeader.TOPIC),message.getMsgId(), properties);
         ByteBuf heapBuf;
         if(message.getPayload() == null){
             heapBuf = Unpooled.EMPTY_BUFFER;
@@ -60,6 +65,31 @@ public class MessageUtil {
             heapBuf = Unpooled.wrappedBuffer((byte[])message.getPayload());
         }
         return new MqttPublishMessage(fixedHeader,publishVariableHeader,heapBuf);
+    }
+
+    private static MqttProperties getProperties(Map<Integer, Object> propertyMap) {
+        if (propertyMap != null && !propertyMap.isEmpty()) {
+            MqttProperties properties = new MqttProperties();
+            propertyMap.forEach((k, v) -> {
+                if (k == MqttProperties.MqttPropertyType.USER_PROPERTY.value()) {
+                    ((JSONArray) v).forEach(pair -> {
+                        ((JSONObject) pair).forEach((key, val) -> {
+                            properties.add(new MqttProperties.UserProperty(key, val.toString()));
+                        });
+                    });
+                } else if (k == MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value()) {
+                    properties.add(new MqttProperties.IntegerProperty(k, (int) v));
+                } else if (k == MqttProperties.MqttPropertyType.CORRELATION_DATA.value()) {
+                    properties.add(new MqttProperties.BinaryProperty(k, ((String) v).getBytes()));
+                } else if (v instanceof String) {
+                    properties.add(new MqttProperties.StringProperty(k, (String) v));
+                } else if (v instanceof Integer) {
+                    properties.add(new MqttProperties.IntegerProperty(k, (int) v));
+                }
+            });
+            return properties;
+        }
+        return null;
     }
 
     public static MqttMessage getSubAckMessage(int messageId, List<Integer> qos){
@@ -99,9 +129,18 @@ public class MessageUtil {
         return new MqttPubAckMessage(fixedHeader,idVariableHeader);
     }
 
-    public static MqttConnAckMessage getConnectAckMessage(MqttConnectReturnCode returnCode,boolean sessionPresent){
+    public static MqttConnAckMessage getConnectAckMessage(MqttConnectReturnCode returnCode,boolean sessionPresent, Integer maxAlisa){
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.CONNACK, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        MqttConnAckVariableHeader variableHeader = new MqttConnAckVariableHeader(returnCode,sessionPresent);
+        MqttConnAckVariableHeader variableHeader;
+        MqttProperties properties = new MqttProperties();
+        if (maxAlisa != null) {
+            properties.add(new MqttProperties.IntegerProperty(MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value(), maxAlisa));
+        }
+        if (properties.isEmpty()) {
+            variableHeader = new MqttConnAckVariableHeader(returnCode,sessionPresent);
+        } else {
+            variableHeader = new MqttConnAckVariableHeader(returnCode,sessionPresent, properties);
+        }
         return new MqttConnAckMessage(fixedHeader,variableHeader);
     }
 }

@@ -14,6 +14,8 @@ public class Message {
 
     private Map<String,Object> headers;
 
+    private Map<Integer,Object> properties;
+
     private String clientId;
 
     private Type type;
@@ -37,7 +39,6 @@ public class Message {
         return headers.put(key,value);
     }
 
-
     public Object removeHeader(String key){
         return headers.remove(key);
     }
@@ -48,6 +49,14 @@ public class Message {
 
     public int getMsgId() {
         return msgId;
+    }
+
+    public Map<Integer, Object> getProperties() {
+        return properties;
+    }
+
+    public void setProperties(Map<Integer, Object> properties) {
+        this.properties = properties;
     }
 
     public void setMsgId(int msgId) {

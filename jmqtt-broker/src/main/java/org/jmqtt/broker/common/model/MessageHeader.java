@@ -12,4 +12,6 @@ public class MessageHeader {
 
     public static final String DUP = "dup";
 
+    public static final String REMAINING_LENGTH = "remainingLength";
+
 }

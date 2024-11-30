@@ -187,7 +187,7 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
                     long cost = System.currentTimeMillis() - start;
                     LogUtil.debug(log,"ReSend message clientId:{} cost time:{}", clientId, cost);
                 } catch (Exception e) {
-                    LogUtil.warn(log,"ReSend message failure,clientId:{}", clientId);
+                    LogUtil.error(log,"ReSend message failure,clientId:{}", e);
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e1) {
