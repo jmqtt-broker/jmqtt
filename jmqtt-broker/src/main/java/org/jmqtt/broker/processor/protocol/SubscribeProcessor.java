@@ -9,6 +9,7 @@ import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.processor.RequestProcessor;
+import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
@@ -91,8 +92,14 @@ public class SubscribeProcessor implements RequestProcessor {
             }
             if (!MixAll.isEmpty(retainMessages)) {
                 for (Message retainMsg : retainMessages) {
-                    String pubTopic = (String) retainMsg.getHeader(MessageHeader.TOPIC);
-                    if (subscriptionMatcher.isMatch(pubTopic, subscription.getTopic())) {
+                    String pubTopic = TopicAliasManager.getRealTopic(retainMsg);
+                    String subTopic = subscription.getTopic();
+                    // TODO 共享订阅是否可以收到保留消息？
+                    if (subTopic.startsWith("$share")) {
+                        String[] arr = subTopic.split("/");
+                        subTopic = subTopic.substring(arr[0].length() + arr[1].length() + 2);
+                    }
+                    if (subscriptionMatcher.isMatch(pubTopic, subTopic)) {
                         int minQos = MessageUtil.getMinQos((int) retainMsg.getHeader(MessageHeader.QOS), topic.getQos());
                         retainMsg.putHeader(MessageHeader.QOS, minQos);
                         if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||

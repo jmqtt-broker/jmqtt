@@ -66,9 +66,12 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
                         propertyMap.put(p.propertyId(), new String((byte[]) p.value()));
                     } else {
                         propertyMap.put(p.propertyId(), p.value());
-                        if (p.propertyId() == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value() &&
-                                StringUtils.isNotBlank(topic)) {
-                            TopicAliasManager.put(clientId, (Integer) p.value(), topic);
+                        if (p.propertyId() == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value()) {
+                            if (StringUtils.isNotBlank(topic)) {
+                                TopicAliasManager.put(clientId, (Integer) p.value(), topic);
+                            } else {
+                                headers.put(MessageHeader.TOPIC, TopicAliasManager.get(clientId, (Integer) p.value()));
+                            }
                         }
                     }
                 });

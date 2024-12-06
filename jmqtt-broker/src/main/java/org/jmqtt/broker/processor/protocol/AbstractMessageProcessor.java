@@ -1,6 +1,7 @@
 package org.jmqtt.broker.processor.protocol;
 
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
@@ -8,6 +9,7 @@ import org.jmqtt.broker.processor.HighPerformanceMessageHandler;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.event.Event;
 import org.jmqtt.broker.processor.dispatcher.event.EventCode;
+import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.store.MessageStore;
 
 /**
@@ -35,6 +37,10 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
             int qos = (int) message.getHeader(MessageHeader.QOS);
             byte[] payload = message.getPayload();
             String topic = (String) message.getHeader(MessageHeader.TOPIC);
+            if (StringUtils.isBlank(topic)) {
+                topic = TopicAliasManager.getRealTopic(message);
+                message.putHeader(MessageHeader.TOPIC, topic);
+            }
             //qos == 0 or payload is none,then clear previous retain message
             if (qos == 0 || payload == null || payload.length == 0) {
                 this.messageStore.clearRetainMessage(topic);
@@ -50,7 +56,7 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
      * 向集群分发消息:第一阶段
      */
     private void sendMessage2Cluster(Message message) {
-        Event event = new Event(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), JSONObject.toJSONString(message),System.currentTimeMillis(),currentIp);
+        Event event = new Event(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), JSONObject.toJSONString(message), System.currentTimeMillis(), currentIp);
         this.clusterEventHandler.sendEvent(event);
     }
 

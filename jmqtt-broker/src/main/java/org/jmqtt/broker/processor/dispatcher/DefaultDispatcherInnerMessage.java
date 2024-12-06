@@ -1,9 +1,6 @@
 package org.jmqtt.broker.processor.dispatcher;
 
-import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
-import org.apache.commons.lang3.StringUtils;
-import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.RejectHandler;
 import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
 import org.jmqtt.broker.common.log.JmqttLogger;
@@ -20,7 +17,6 @@ import org.jmqtt.broker.remoting.util.MessageUtil;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,9 +82,9 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                         pollThread.submit(dispatcher).get();
                     }
                 } catch (InterruptedException e) {
-                    LogUtil.warn(log,"poll message wrong.");
+                    LogUtil.warn(log, "poll message wrong.");
                 } catch (ExecutionException e) {
-                    LogUtil.warn(log,"AsyncDispatcher get() wrong.");
+                    LogUtil.warn(log, "AsyncDispatcher get() wrong.");
                 }
             }
         }).start();
@@ -98,7 +94,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
     public boolean appendMessage(Message message) {
         boolean isNotFull = messageQueue.offer(message);
         if (!isNotFull) {
-            LogUtil.warn(log,"[PubMessage] -> the buffer queue is full");
+            LogUtil.warn(log, "[PubMessage] -> the buffer queue is full");
         }
         return isNotFull;
     }
@@ -123,11 +119,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                 try {
                     for (Message message : messages) {
                         String pubClientId = message.getClientId();
-                        String topic = (String) message.getHeader(MessageHeader.TOPIC);
-                        if (StringUtils.isBlank(topic)) {
-                            Integer topicAlias = (Integer) MessageUtil.getProperty(message, MqttProperties.MqttPropertyType.TOPIC_ALIAS.value());
-                            topic = TopicAliasManager.get(pubClientId, topicAlias);
-                        }
+                        String topic = TopicAliasManager.getRealTopic(message);
                         Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
                         for (Subscription subscription : subscriptions) {
                             String subClientId = subscription.getClientId();
@@ -154,7 +146,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                         }
                     }
                 } catch (Exception ex) {
-                    LogUtil.warn(log,"Dispatcher message failure,cause={}", ex);
+                    LogUtil.warn(log, "Dispatcher message failure,cause={}", ex);
                 }
             }
         }

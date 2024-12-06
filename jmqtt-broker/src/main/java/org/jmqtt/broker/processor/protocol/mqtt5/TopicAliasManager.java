@@ -1,8 +1,12 @@
 package org.jmqtt.broker.processor.protocol.mqtt5;
 
+import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.jmqtt.broker.common.model.Message;
+import org.jmqtt.broker.common.model.MessageHeader;
+import org.jmqtt.broker.remoting.util.MessageUtil;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -35,6 +39,15 @@ public class TopicAliasManager {
             return aliasMap.get(alias);
         }
         return null;
+    }
+
+    public static String getRealTopic(Message message) {
+        String topic = (String) message.getHeader(MessageHeader.TOPIC);
+        if (StringUtils.isBlank(topic)) {
+            Integer topicAlias = (Integer) MessageUtil.getProperty(message, MqttProperties.MqttPropertyType.TOPIC_ALIAS.value());
+            topic = get(message.getClientId(), topicAlias);
+        }
+        return topic;
     }
 
     public static void remove(String clientId, Integer alias) {
