@@ -44,7 +44,7 @@ jmqtt:
     user: admin
     pwd: 123456
     # 是否开启高性能模式
-    high-performance: false
+    high-performance: true
     # 数据存储仓库，默认mem为内存存储，可选redis、rdb，配置redis需要配置redis连接，配置rdb需要数据库连接
     # 当系统中存在DataSource对象时，优先使用已存在的DataSource
     # 当系统中存在RedisTemplate对象时，优先使用已存在的RedisTemplate

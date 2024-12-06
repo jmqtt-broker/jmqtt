@@ -1,9 +1,9 @@
 package org.jmqtt.broker.processor.protocol;
 
-import com.alibaba.fastjson.JSON;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
 import io.netty.util.ReferenceCountUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
 import org.jmqtt.broker.common.log.JmqttLogger;
@@ -11,13 +11,15 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.processor.RequestProcessor;
+import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
 import org.jmqtt.broker.remoting.util.NettyUtil;
 import org.slf4j.Logger;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 客户端publish消息到jmqtt broker
@@ -28,65 +30,67 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
 
     private AuthValid authValid;
 
-    public PublishProcessor(BrokerController controller){
+    public PublishProcessor(BrokerController controller) {
         super(controller);
         this.authValid = controller.getAuthValid();
     }
 
     @Override
     public void processRequest(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
-        try{
+        try {
             MqttPublishMessage publishMessage = (MqttPublishMessage) mqttMessage;
             MqttQoS qos = publishMessage.fixedHeader().qosLevel();
             Message innerMsg = new Message();
             String clientId = NettyUtil.getClientId(ctx.channel());
             ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
             String topic = publishMessage.variableHeader().topicName();
-            if(!this.authValid.publishVerify(clientId,topic)){
-                LogUtil.warn(log,"[PubMessage] permission is not allowed");
+            if (!this.authValid.publishVerify(clientId, topic)) {
+                LogUtil.warn(log, "[PubMessage] permission is not allowed");
                 clientSession.getCtx().close();
                 return;
             }
             innerMsg.setPayload(MessageUtil.readBytesFromByteBuf(((MqttPublishMessage) mqttMessage).payload()));
             innerMsg.setClientId(clientId);
             innerMsg.setType(Message.Type.valueOf(mqttMessage.fixedHeader().messageType().value()));
-            Map<String,Object> headers = new HashMap<>();
-            headers.put(MessageHeader.TOPIC,publishMessage.variableHeader().topicName());
-            headers.put(MessageHeader.QOS,publishMessage.fixedHeader().qosLevel().value());
-            headers.put(MessageHeader.RETAIN,publishMessage.fixedHeader().isRetain());
-            headers.put(MessageHeader.DUP,publishMessage.fixedHeader().isDup());
-            headers.put(MessageHeader.REMAINING_LENGTH,publishMessage.fixedHeader().remainingLength());
+            Map<String, Object> headers = new HashMap<>();
+            headers.put(MessageHeader.TOPIC, topic);
+            headers.put(MessageHeader.QOS, publishMessage.fixedHeader().qosLevel().value());
+            headers.put(MessageHeader.RETAIN, publishMessage.fixedHeader().isRetain());
+            headers.put(MessageHeader.DUP, publishMessage.fixedHeader().isDup());
+            headers.put(MessageHeader.REMAINING_LENGTH, publishMessage.fixedHeader().remainingLength());
             MqttProperties properties = publishMessage.variableHeader().properties();
             if (properties != null && !properties.isEmpty()) {
                 Map<Integer, Object> propertyMap = new HashMap<>();
-                Arrays.stream(MqttProperties.MqttPropertyType.values()).forEach(type -> {
-                    Optional.ofNullable(properties.getProperty(type.value())).ifPresent(p -> {
-                        if (p instanceof MqttProperties.BinaryProperty) {
-                            propertyMap.put(p.propertyId(), new String((byte[]) p.value()));
-                        } else {
-                            propertyMap.put(p.propertyId(), p.value());
+                properties.listAll().forEach(p -> {
+                    if (p instanceof MqttProperties.BinaryProperty) {
+                        propertyMap.put(p.propertyId(), new String((byte[]) p.value()));
+                    } else {
+                        propertyMap.put(p.propertyId(), p.value());
+                        if (p.propertyId() == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value() &&
+                                StringUtils.isNotBlank(topic)) {
+                            TopicAliasManager.put(clientId, (Integer) p.value(), topic);
                         }
-                    });
+                    }
                 });
                 innerMsg.setProperties(propertyMap);
             }
             innerMsg.setHeaders(headers);
             innerMsg.setMsgId(publishMessage.variableHeader().packetId());
-            switch (qos){
+            switch (qos) {
                 case AT_MOST_ONCE:
                     processMessage(innerMsg);
                     break;
                 case AT_LEAST_ONCE:
-                    processQos1(ctx,innerMsg);
+                    processQos1(ctx, innerMsg);
                     break;
                 case EXACTLY_ONCE:
-                    processQos2(ctx,innerMsg);
+                    processQos2(ctx, innerMsg);
                     break;
                 default:
-                    LogUtil.warn(log,"[PubMessage] -> Wrong mqtt message,clientId={}", clientId);
+                    LogUtil.warn(log, "[PubMessage] -> Wrong mqtt message,clientId={}", clientId);
             }
         } catch (Throwable tr) {
-            LogUtil.error(log,"[PubMessage] -> Solve mqtt pub message exception:{}", tr.getMessage());
+            LogUtil.error(log, "[PubMessage] -> Solve mqtt pub message exception:{}", tr.getMessage());
         } finally {
             ReferenceCountUtil.release(mqttMessage.payload());
         }
@@ -94,10 +98,10 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
 
     private void processQos2(ChannelHandlerContext ctx, Message innerMsg) {
         int originMessageId = innerMsg.getMsgId();
-        LogUtil.debug(log,"[PubMessage] -> Process qos2 message,clientId={}", innerMsg.getClientId());
+        LogUtil.debug(log, "[PubMessage] -> Process qos2 message,clientId={}", innerMsg.getClientId());
         boolean flag = cacheInflowMsg(innerMsg.getClientId(), innerMsg);
         if (!flag) {
-            LogUtil.warn(log,"[PubMessage] -> cache qos2 pub message failure,clientId={}", innerMsg.getClientId());
+            LogUtil.warn(log, "[PubMessage] -> cache qos2 pub message failure,clientId={}", innerMsg.getClientId());
         }
         MqttMessage pubRecMessage = MessageUtil.getPubRecMessage(originMessageId);
         ctx.writeAndFlush(pubRecMessage);
@@ -106,7 +110,7 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
     private void processQos1(ChannelHandlerContext ctx, Message innerMsg) {
         int originMessageId = innerMsg.getMsgId();
         processMessage(innerMsg);
-        LogUtil.info(log,"[PubMessage] -> Process qos1 message,clientId={}", innerMsg.getClientId());
+        LogUtil.info(log, "[PubMessage] -> Process qos1 message,clientId={}", innerMsg.getClientId());
         MqttPubAckMessage pubAckMessage = MessageUtil.getPubAckMessage(originMessageId);
         ctx.writeAndFlush(pubAckMessage);
     }

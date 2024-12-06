@@ -1,6 +1,8 @@
 package org.jmqtt.broker.processor.dispatcher;
 
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.RejectHandler;
 import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
@@ -9,7 +11,9 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.common.model.SubscriptionOption;
 import org.jmqtt.broker.processor.HighPerformanceMessageHandler;
+import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
@@ -118,22 +122,34 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
             if (Objects.nonNull(messages)) {
                 try {
                     for (Message message : messages) {
-                        Set<Subscription> subscriptions = subscriptionMatcher.match((String) message.getHeader(MessageHeader.TOPIC),message.getClientId());
+                        String pubClientId = message.getClientId();
+                        String topic = (String) message.getHeader(MessageHeader.TOPIC);
+                        if (StringUtils.isBlank(topic)) {
+                            Integer topicAlias = (Integer) MessageUtil.getProperty(message, MqttProperties.MqttPropertyType.TOPIC_ALIAS.value());
+                            topic = TopicAliasManager.get(pubClientId, topicAlias);
+                        }
+                        Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
                         for (Subscription subscription : subscriptions) {
-                            String clientId = subscription.getClientId();
-                            if (ConnectManager.getInstance().containClient(clientId)) {
-                                ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
+                            String subClientId = subscription.getClientId();
+                            if (ConnectManager.getInstance().containClient(subClientId)) {
+                                SubscriptionOption option = subscription.getOption();
+                                if (option != null) {
+                                    if (option.isNoLocal() && pubClientId.equals(subClientId)) {
+                                        continue;
+                                    }
+                                }
+                                ClientSession clientSession = ConnectManager.getInstance().getClient(subClientId);
                                 int qos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
                                 int messageId = clientSession.generateMessageId();
                                 message.putHeader(MessageHeader.QOS, qos);
                                 message.setMsgId(messageId);
                                 if (qos > 0) {
-                                    cacheOutflowMsg(clientId, message);
+                                    cacheOutflowMsg(subClientId, message);
                                 }
-                                MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false);
+                                MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
                                 clientSession.getCtx().writeAndFlush(publishMessage);
                             } else {
-                                sessionStore.storeOfflineMsg(clientId, message);
+                                sessionStore.storeOfflineMsg(subClientId, message);
                             }
                         }
                     }

@@ -11,11 +11,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class OutflowMessageHandler {
 
-    private Map<String /* clientId */, Map<Integer /* msgId */, Message>> outflowMsgCache = new ConcurrentHashMap<>();
+    private static Map<String /* clientId */, Map<Integer /* msgId */, Message>> outflowMsgCache = new ConcurrentHashMap<>();
 
-    private final Object lock = new Object();
+    private static final Object lock = new Object();
 
-    public boolean cacheOutflowMsg(String clientId, Message message) {
+    public static boolean cacheOutflowMsg(String clientId, Message message) {
         Map<Integer,Message> msgCache = outflowMsgCache.get(clientId);
         if (msgCache == null) {
             synchronized (lock) {
@@ -30,7 +30,7 @@ public class OutflowMessageHandler {
         return true;
     }
 
-    public Collection<Message> getAllOutflowMsg(String clientId) {
+    public static Collection<Message> getAllOutflowMsg(String clientId) {
         Map<Integer,Message> msgCache = outflowMsgCache.get(clientId);
         if (msgCache == null || msgCache.size() == 0) {
             return Collections.EMPTY_LIST;
@@ -54,7 +54,7 @@ public class OutflowMessageHandler {
         return queue;
     }
 
-    public Message releaseOutflowMsg(String clientId, int msgId) {
+    public static Message releaseOutflowMsg(String clientId, int msgId) {
         Map<Integer,Message> msgCache = outflowMsgCache.get(clientId);
         if (msgCache == null) {
             return null;

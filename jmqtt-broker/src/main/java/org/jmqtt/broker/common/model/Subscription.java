@@ -1,58 +1,28 @@
 package org.jmqtt.broker.common.model;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Objects;
 import java.util.StringJoiner;
 
 /**
  * 订阅关系
  */
+@Getter
+@Setter
+@EqualsAndHashCode(of = {"clientId", "topic"})
 public class Subscription {
     private String clientId;
     private int qos;
     private String topic;
+    private SubscriptionOption option;
 
     public Subscription(String clientId,String topic,int qos){
         this.clientId = clientId;
         this.topic = topic;
         this.qos = qos;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public int getQos() {
-        return qos;
-    }
-
-    public void setQos(int qos) {
-        this.qos = qos;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Subscription that = (Subscription) o;
-        return Objects.equals(clientId, that.clientId) &&
-                Objects.equals(topic, that.topic);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(clientId, topic);
     }
 
     @Override

@@ -1,6 +1,5 @@
 package org.jmqtt.broker.processor;
 
-import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.store.highperformance.InflowMessageHandler;
@@ -11,80 +10,73 @@ import java.util.Collection;
 
 public abstract class HighPerformanceMessageHandler {
 
-    // high performance message handle
-    private InflowMessageHandler     inflowMessageHandler;
-    private OutflowMessageHandler    outflowMessageHandler;
-    private OutflowSecMessageHandler outflowSecMessageHandler;
-    private boolean      highPerformance;
+    private boolean highPerformance;
     private SessionStore sessionStore;
 
-    public HighPerformanceMessageHandler(boolean highPerformance, SessionStore sessionStore){
+    public HighPerformanceMessageHandler(boolean highPerformance, SessionStore sessionStore) {
         this.highPerformance = highPerformance;
         this.sessionStore = sessionStore;
-        this.inflowMessageHandler = new InflowMessageHandler();
-        this.outflowMessageHandler = new OutflowMessageHandler();
-        this.outflowSecMessageHandler = new OutflowSecMessageHandler();
     }
 
     protected boolean cacheInflowMsg(String clientId, Message message) {
         if (highPerformance) {
-            return this.inflowMessageHandler.cacheInflowMsg(clientId,message);
+            return InflowMessageHandler.cacheInflowMsg(clientId, message);
         }
-        return this.sessionStore.cacheInflowMsg(clientId,message);
+        return this.sessionStore.cacheInflowMsg(clientId, message);
     }
 
-    protected Message releaseInflowMsg(String clientId,int msgId){
+    protected Message releaseInflowMsg(String clientId, int msgId) {
         if (highPerformance) {
-            return this.inflowMessageHandler.releaseInflowMsg(clientId,msgId);
+            return InflowMessageHandler.releaseInflowMsg(clientId, msgId);
         }
-        return sessionStore.releaseInflowMsg(clientId,msgId);
+        return sessionStore.releaseInflowMsg(clientId, msgId);
     }
 
-    protected Collection<Message> getAllInflowMsg(String clientId){
+    protected Collection<Message> getAllInflowMsg(String clientId) {
         if (highPerformance) {
-            return this.inflowMessageHandler.getAllInflowMsg(clientId);
+            return InflowMessageHandler.getAllInflowMsg(clientId);
         }
         return sessionStore.getAllInflowMsg(clientId);
     }
 
-    protected boolean cacheOutflowMsg(String clientId,Message message) {
+    protected boolean cacheOutflowMsg(String clientId, Message message) {
         if (highPerformance) {
-            return this.outflowMessageHandler.cacheOutflowMsg(clientId,message);
+            return OutflowMessageHandler.cacheOutflowMsg(clientId, message);
         }
-        return this.sessionStore.cacheOutflowMsg(clientId,message);
+        return this.sessionStore.cacheOutflowMsg(clientId, message);
     }
 
-    protected void releaseOutflowMsg(String clientId, int msgId){
+    protected void releaseOutflowMsg(String clientId, int msgId) {
         if (highPerformance) {
-            this.outflowMessageHandler.releaseOutflowMsg(clientId,msgId);
+            OutflowMessageHandler.releaseOutflowMsg(clientId, msgId);
         }
-        this.sessionStore.releaseOutflowMsg(clientId,msgId);
+        this.sessionStore.releaseOutflowMsg(clientId, msgId);
     }
 
-    protected Collection<Message> getAllOutflowMsg(String clientId){
+    protected Collection<Message> getAllOutflowMsg(String clientId) {
         if (highPerformance) {
-            return this.outflowMessageHandler.getAllOutflowMsg(clientId);
+            return OutflowMessageHandler.getAllOutflowMsg(clientId);
         }
         return this.sessionStore.getAllOutflowMsg(clientId);
     }
 
     protected boolean cacheOutflowSecMsgId(String clientId, int msgId) {
         if (highPerformance) {
-            return this.outflowSecMessageHandler.cacheOutflowSecMsgId(clientId,msgId);
+            return OutflowSecMessageHandler.cacheOutflowSecMsgId(clientId, msgId);
         }
-        return this.sessionStore.cacheOutflowSecMsgId(clientId,msgId);
+        return this.sessionStore.cacheOutflowSecMsgId(clientId, msgId);
     }
 
     protected boolean releaseOutflowSecMsgId(String clientId, int msgId) {
         if (highPerformance) {
-            return this.outflowSecMessageHandler.releaseOutflowSecMsgId(clientId,msgId);
+            return OutflowSecMessageHandler.releaseOutflowSecMsgId(clientId, msgId);
         }
-        return this.sessionStore.releaseOutflowSecMsgId(clientId,msgId);
+        return this.sessionStore.releaseOutflowSecMsgId(clientId, msgId);
     }
 
     protected Collection<Integer> getAllOutflowSecMsgId(String clientId) {
         if (highPerformance) {
-            return this.outflowSecMessageHandler.getAllOutflowSecMsgId(clientId);
+            return OutflowSecMessageHandler.getAllOutflowSecMsgId(clientId);
         }
         return this.sessionStore.getAllOutflowSecMsgId(clientId);
     }

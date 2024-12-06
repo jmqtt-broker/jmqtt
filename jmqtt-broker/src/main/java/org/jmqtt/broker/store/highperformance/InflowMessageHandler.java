@@ -11,15 +11,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class InflowMessageHandler {
 
-    private Map<String /* clientId */, Map<Integer /* msgId */,Message>> infowMsgMap = new ConcurrentHashMap<>();
+    private static Map<String /* clientId */, Map<Integer /* msgId */,Message>> infowMsgMap = new ConcurrentHashMap<>();
 
-    private final Object lock = new Object();
+    private static final Object lock = new Object();
 
     /**
      * 缓存qos2 publish报文消息-入栈消息
      * @return true:缓存成功   false:缓存失败
      */
-    public boolean cacheInflowMsg(String clientId, Message message){
+    public static boolean cacheInflowMsg(String clientId, Message message){
         Map<Integer,Message> msgCache = infowMsgMap.get(clientId);
         if (msgCache == null) {
             synchronized (lock) {
@@ -37,7 +37,7 @@ public class InflowMessageHandler {
     /**
      * 获取并删除接收到的qos2消息-入栈消息
      */
-    public Message releaseInflowMsg(String clientId,int msgId){
+    public static Message releaseInflowMsg(String clientId,int msgId){
         Map<Integer,Message> msgCache = infowMsgMap.get(clientId);
         if (msgCache == null) {
             return null;
@@ -48,7 +48,7 @@ public class InflowMessageHandler {
     /**
      * 获取所有的入栈消息
      */
-    public Collection<Message> getAllInflowMsg(String clientId){
+    public static Collection<Message> getAllInflowMsg(String clientId){
         Map<Integer,Message> msgCache = infowMsgMap.get(clientId);
         if (msgCache == null || msgCache.size() == 0) {
             return Collections.EMPTY_LIST;

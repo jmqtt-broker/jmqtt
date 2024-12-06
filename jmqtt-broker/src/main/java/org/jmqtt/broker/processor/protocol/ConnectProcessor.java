@@ -103,16 +103,16 @@ public class ConnectProcessor implements RequestProcessor {
                     }
                 }
                 if (sessionState.getState() == SessionState.StateEnum.NULL) {
-                    clientSession = new ClientSession(clientId, false, ctx);
+                    clientSession = new ClientSession(clientId, false, mqttVersion, ctx);
                     sessionPresent = false;
                     notifyClearOtherSession = false;
                 } else {
                     if (cleanSession) {
-                        clientSession = createNewClientSession(clientId, ctx);
+                        clientSession = createNewClientSession(clientId, mqttVersion, ctx);
                         sessionPresent = false;
                         notifyClearOtherSession = false;
                     } else {
-                        clientSession = reloadClientSession(ctx, clientId);
+                        clientSession = reloadClientSession(ctx, clientId, mqttVersion);
                         sessionPresent = true;
                     }
                 }
@@ -195,9 +195,8 @@ public class ConnectProcessor implements RequestProcessor {
         LogUtil.info(log, "[WillMessageStore] : {} store will message:{}", clientId, message);
     }
 
-    private ClientSession createNewClientSession(String clientId, ChannelHandlerContext ctx) {
-        ClientSession clientSession = new ClientSession(clientId, true);
-        clientSession.setCtx(ctx);
+    private ClientSession createNewClientSession(String clientId, int version, ChannelHandlerContext ctx) {
+        ClientSession clientSession = new ClientSession(clientId, true, version, ctx);
         //clear previous sessions
         this.sessionStore.clearSession(clientId, true);
         return clientSession;
@@ -206,9 +205,8 @@ public class ConnectProcessor implements RequestProcessor {
     /**
      * cleanStart is false, reload client session
      */
-    private ClientSession reloadClientSession(ChannelHandlerContext ctx, String clientId) {
-        ClientSession clientSession = new ClientSession(clientId, false);
-        clientSession.setCtx(ctx);
+    private ClientSession reloadClientSession(ChannelHandlerContext ctx, String clientId, int version) {
+        ClientSession clientSession = new ClientSession(clientId, false, version, ctx);
         Set<Subscription> subscriptions = sessionStore.getSubscriptions(clientId);
         for (Subscription subscription : subscriptions) {
             this.subscriptionMatcher.subscribe(subscription);

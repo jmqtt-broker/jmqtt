@@ -5,6 +5,7 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Subscription;
 import org.slf4j.Logger;
 
+import javax.swing.tree.TreeNode;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -48,8 +49,9 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
                         }
                     }
                 }
+            } else {
+                currentNode.addSubscriber(subscription);
             }
-            currentNode.addSubscriber(subscription);
         } catch (Exception ex) {
             LogUtil.warn(log,"[Subscription] -> Subscribe failed,clientId={},topic={},qos={}",
                 subscription.getClientId(), subscription.getTopic(), subscription.getQos());
@@ -197,6 +199,9 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
 
     private void recursionMatch(String topic, TreeNode node, boolean isGroupToken,
         Set<Subscription> subscriptions) {
+        if (topic == null) {
+            return;
+        }
         String[] topics = topic.split("/");
         Token token = new Token(topics[0]);
         List<TreeNode> childNodes = node.getChildren();

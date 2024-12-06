@@ -9,11 +9,11 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class OutflowSecMessageHandler {
 
-    private Map<String, Queue<Integer>> outflowSecCache = new HashMap<>();
+    private static Map<String, Queue<Integer>> outflowSecCache = new HashMap<>();
 
-    private final Object lock = new Object();
+    private static final Object lock = new Object();
 
-    public boolean cacheOutflowSecMsgId(String clientId, int msgId) {
+    public static boolean cacheOutflowSecMsgId(String clientId, int msgId) {
         Queue<Integer> msgCache = outflowSecCache.get(clientId);
         if (msgCache == null) {
             synchronized (lock) {
@@ -28,7 +28,7 @@ public class OutflowSecMessageHandler {
         return true;
     }
 
-    public boolean releaseOutflowSecMsgId(String clientId, int msgId) {
+    public static boolean releaseOutflowSecMsgId(String clientId, int msgId) {
         Queue<Integer> msgCache = outflowSecCache.get(clientId);
         if (msgCache == null) {
             return false;
@@ -36,7 +36,7 @@ public class OutflowSecMessageHandler {
         return msgCache.remove(msgId);
     }
 
-    public Collection<Integer> getAllOutflowSecMsgId(String clientId) {
+    public static Collection<Integer> getAllOutflowSecMsgId(String clientId) {
         Queue<Integer> msgCache = outflowSecCache.get(clientId);
         if (msgCache == null) {
             return Collections.EMPTY_LIST;
