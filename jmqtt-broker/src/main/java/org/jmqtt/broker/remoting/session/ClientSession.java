@@ -1,11 +1,13 @@
 package org.jmqtt.broker.remoting.session;
 
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -25,6 +27,7 @@ public class ClientSession {
     private boolean cleanStart;
     private transient ChannelHandlerContext ctx;
     private String userName;
+    private Map<Integer, Object> propertyMap;
 
     private transient AtomicInteger messageIdCounter = new AtomicInteger(1);
 
@@ -46,5 +49,12 @@ public class ClientSession {
 
     public boolean isMqtt5() {
         return this.version == 5;
+    }
+
+    public int timeoutSecond() {
+        if (isMqtt5() && propertyMap != null) {
+            return (int) propertyMap.get(MqttProperties.MqttPropertyType.SESSION_EXPIRY_INTERVAL.value());
+        }
+        return 0;
     }
 }

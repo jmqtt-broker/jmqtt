@@ -55,7 +55,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     @Override
     public SessionState getSession(String clientId) {
         SessionState s = sessionTable.get(clientId);
-        if(s==null){
+        if (s == null) {
             // 从未连接过
             return new SessionState(SessionState.StateEnum.NULL);
         }
@@ -64,19 +64,19 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public boolean storeSession(String clientId, SessionState sessionState) {
-        sessionTable.put(clientId,sessionState);
+        sessionTable.put(clientId, sessionState);
         return true;
     }
 
     @Override
     public boolean storeSubscription(String clientId, Subscription subscription) {
         ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
-        if(v == null){
-            synchronized (subscriptionCache){
+        if (v == null) {
+            synchronized (subscriptionCache) {
                 v = subscriptionCache.get(clientId);
-                if(v == null){
+                if (v == null) {
                     v = new ConcurrentHashMap<>();
-                    subscriptionCache.put(clientId,v);
+                    subscriptionCache.put(clientId, v);
                 }
             }
         }
@@ -87,10 +87,10 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     @Override
     public boolean delSubscription(String clientId, String topic) {
         ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
-        if(v != null){
+        if (v != null) {
             v.remove(topic);
-        }else{
-            LogUtil.warn(log,"[MemStore] -> Client:{} does not have a subscription for this topic:{}",clientId,topic);
+        } else {
+            LogUtil.warn(log, "[MemStore] -> Client:{} does not have a subscription for this topic:{}", clientId, topic);
         }
         return true;
     }
@@ -104,121 +104,142 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     @Override
     public Set<Subscription> getSubscriptions(String clientId) {
         ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
-        if(v == null){
-            return new HashSet<Subscription>();
+        if (v == null) {
+            return new HashSet<>();
         }
-        Collection<Subscription> sub  = v.values();
+        Collection<Subscription> sub = v.values();
         return new HashSet<>(sub);
     }
 
     @Override
     public boolean cacheInflowMsg(String clientId, Message message) {
-        ConcurrentHashMap<Integer, Message> v =  recCache.get(clientId);
-        if(v == null){
-            synchronized (recCache){
+        ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
+        if (v == null) {
+            synchronized (recCache) {
                 v = recCache.get(clientId);
-                if(v==null){
+                if (v == null) {
                     v = new ConcurrentHashMap<>();
-                    recCache.put(clientId,v);
+                    recCache.put(clientId, v);
                 }
             }
         }
-        v.put(message.getMsgId(),message);
+        v.put(message.getMsgId(), message);
         return true;
     }
 
     @Override
-    public Message releaseInflowMsg(String clientId, int msgId) {
-        ConcurrentHashMap<Integer, Message> v =  recCache.get(clientId);
-        if(v == null){
-            LogUtil.warn(log,"[MemStore] -> The inflow message:{} does not exist",msgId);
+    public Message releaseInflowMsg(String clientId, Integer msgId) {
+        ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
+        if (msgId == null) {
+            if (v != null) {
+                v.clear();
+            }
             return null;
+        } else {
+            if (v == null) {
+                LogUtil.warn(log, "[MemStore] -> The inflow message:{} does not exist", msgId);
+                return null;
+            }
+            return v.remove(msgId);
         }
-        return v.remove(msgId);
     }
 
     @Override
     public Collection<Message> getAllInflowMsg(String clientId) {
-        ConcurrentHashMap<Integer, Message> v =  recCache.get(clientId);
-        if(v == null || v.isEmpty()){
-            return new ArrayList<Message>();
+        ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
+        if (v == null || v.isEmpty()) {
+            return new ArrayList<>();
         }
         return v.values();
     }
 
     @Override
     public boolean cacheOutflowMsg(String clientId, Message message) {
-        ConcurrentHashMap<Integer, Message> v =  sendCache.get(clientId);
-        if(v == null){
-            synchronized (sendCache){
+        ConcurrentHashMap<Integer, Message> v = sendCache.get(clientId);
+        if (v == null) {
+            synchronized (sendCache) {
                 v = sendCache.get(clientId);
-                if(v == null){
+                if (v == null) {
                     v = new ConcurrentHashMap<>();
-                    sendCache.put(clientId,v);
+                    sendCache.put(clientId, v);
                 }
             }
         }
-        v.put(message.getMsgId(),message);
+        v.put(message.getMsgId(), message);
         return true;
     }
 
     @Override
     public Collection<Message> getAllOutflowMsg(String clientId) {
-        ConcurrentHashMap<Integer, Message> v =  sendCache.get(clientId);
-        if(v == null || v.isEmpty()){
-            return new ArrayList<Message>();
+        ConcurrentHashMap<Integer, Message> v = sendCache.get(clientId);
+        if (v == null || v.isEmpty()) {
+            return new ArrayList<>();
         }
         return v.values();
     }
 
     @Override
-    public Message releaseOutflowMsg(String clientId, int msgId) {
-        ConcurrentHashMap<Integer, Message> v =  sendCache.get(clientId);
-        if(v == null){
-            LogUtil.warn(log,"[MemStore] -> The out of the stack message:{} does not exist",msgId);
+    public Message releaseOutflowMsg(String clientId, Integer msgId) {
+        ConcurrentHashMap<Integer, Message> v = sendCache.get(clientId);
+        if (msgId == null) {
+            if (v != null) {
+                v.clear();
+            }
             return null;
+        } else {
+            if (v == null) {
+                LogUtil.warn(log, "[MemStore] -> The out of the stack message:{} does not exist", msgId);
+                return null;
+            }
+            return v.remove(msgId);
         }
-        return v.remove(msgId);
     }
 
     @Override
     public boolean cacheOutflowSecMsgId(String clientId, int msgId) {
-        ConcurrentHashMap<Integer,Object> v =  secTwoCache.get(clientId);
-        if(v == null){
-            synchronized (secTwoCache){
+        ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
+        if (v == null) {
+            synchronized (secTwoCache) {
                 v = secTwoCache.get(clientId);
-                if(v == null){
+                if (v == null) {
                     v = new ConcurrentHashMap<>();
-                    secTwoCache.put(clientId,v);
+                    secTwoCache.put(clientId, v);
                 }
             }
         }
-        v.put(msgId,OBJECT);
+        v.put(msgId, OBJECT);
         return true;
     }
 
     @Override
-    public boolean releaseOutflowSecMsgId(String clientId, int msgId) {
-        ConcurrentHashMap<Integer,Object> v =  secTwoCache.get(clientId);
-        if(v == null){
-            LogUtil.warn(log,"[MemStore] -> The out flow QOS2 phase 2, client:{} outflow cache does not exist",clientId);
-            return false;
+    public boolean releaseOutflowSecMsgId(String clientId, Integer msgId) {
+        ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
+        if (msgId == null) {
+            if (v != null) {
+                v.clear();
+            }
+            return true;
+        } else {
+            if (v == null) {
+                LogUtil.warn(log, "[MemStore] -> The out flow QOS2 phase 2, client:{} outflow cache does not exist", clientId);
+                return false;
+            }
+            Object os = v.remove(msgId);
+            if (os == null) {
+                LogUtil.warn(log, "[MemStore] -> The out flow QOS2 phase 2, msg:{} for client:{} does not exist", clientId, msgId);
+            }
+            return os != null;
         }
-        Object os =  v.remove(msgId);
-        if(os == null){
-            LogUtil.warn(log,"[MemStore] -> The out flow QOS2 phase 2, msg:{} for client:{} does not exist",clientId,msgId);
-        }
-        return os != null;
     }
 
     @Override
     public List<Integer> getAllOutflowSecMsgId(String clientId) {
-        ConcurrentHashMap<Integer,Object> v =  secTwoCache.get(clientId);
-        if(v == null){
+        ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
+        if (v == null) {
             return new ArrayList<Integer>();
         }
         ArrayList<Integer> ret = new ArrayList<>(v.size());
-        v.forEach((k,v2)->{
+        v.forEach((k, v2) -> {
             ret.add(k);
         });
         return ret;
@@ -227,27 +248,24 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     @Override
     public boolean storeOfflineMsg(String clientId, Message message) {
         BlockingQueue<Message> off = offlineTable.get(clientId);
-        if(off == null){
-            synchronized (offlineTable){
+        if (off == null) {
+            synchronized (offlineTable) {
                 off = offlineTable.get(clientId);
-                if(off == null){
+                if (off == null) {
                     off = new LinkedBlockingQueue<>();
-                    offlineTable.put(clientId,off);
+                    offlineTable.put(clientId, off);
                 }
             }
         }
         off.add(message);
-//        if(off.size() > msgMaxNum){ //影响性能
-//            LogUtil.warn(log,"[MemStore] -> Client {} has more than {} offline messages",clientId,msgMaxNum);
-//        }
         return true;
     }
 
     @Override
     public Collection<Message> getAllOfflineMsg(String clientId) {
         BlockingQueue<Message> off = offlineTable.get(clientId);
-        if(off == null){
-            return new ArrayList<Message>();
+        if (off == null) {
+            return new ArrayList<>();
         }
         return off;
     }

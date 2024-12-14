@@ -37,12 +37,17 @@ public class InflowMessageHandler {
     /**
      * 获取并删除接收到的qos2消息-入栈消息
      */
-    public static Message releaseInflowMsg(String clientId,int msgId){
+    public static Message releaseInflowMsg(String clientId,Integer msgId){
         Map<Integer,Message> msgCache = infowMsgMap.get(clientId);
-        if (msgCache == null) {
+        if (msgId == null && msgCache != null) {
+            msgCache.clear();
             return null;
+        } else {
+            if (msgCache == null) {
+                return null;
+            }
+            return msgCache.remove(msgId);
         }
-        return msgCache.remove(msgId);
     }
 
     /**

@@ -11,6 +11,7 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.processor.RequestProcessor;
+import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
@@ -60,22 +61,15 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
             headers.put(MessageHeader.REMAINING_LENGTH, publishMessage.fixedHeader().remainingLength());
             MqttProperties properties = publishMessage.variableHeader().properties();
             if (properties != null && !properties.isEmpty()) {
-                Map<Integer, Object> propertyMap = new HashMap<>();
-                properties.listAll().forEach(p -> {
-                    if (p instanceof MqttProperties.BinaryProperty) {
-                        propertyMap.put(p.propertyId(), new String((byte[]) p.value()));
+                MqttProperties.MqttProperty topicAlias = properties.getProperty(MqttProperties.MqttPropertyType.TOPIC_ALIAS.value());
+                if (topicAlias != null) {
+                    if (StringUtils.isNotBlank(topic)) {
+                        TopicAliasManager.put(clientId, (Integer) topicAlias.value(), topic);
                     } else {
-                        propertyMap.put(p.propertyId(), p.value());
-                        if (p.propertyId() == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value()) {
-                            if (StringUtils.isNotBlank(topic)) {
-                                TopicAliasManager.put(clientId, (Integer) p.value(), topic);
-                            } else {
-                                headers.put(MessageHeader.TOPIC, TopicAliasManager.get(clientId, (Integer) p.value()));
-                            }
-                        }
+                        headers.put(MessageHeader.TOPIC, TopicAliasManager.get(clientId, (Integer) topicAlias.value()));
                     }
-                });
-                innerMsg.setProperties(propertyMap);
+                }
+                innerMsg.setProperties(Mqtt5Utils.propertyMap(properties));
             }
             innerMsg.setHeaders(headers);
             innerMsg.setMsgId(publishMessage.variableHeader().packetId());

@@ -1,15 +1,26 @@
 
 package org.jmqtt.broker.store;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.Map;
+
 /**
  * 会话状态
  */
+@Getter
+@Setter
+@AllArgsConstructor
 public class SessionState {
 
 
     private StateEnum state;
 
     private long offlineTime;
+
+    private Map<Integer, Object> propertyMap;
 
     public SessionState(StateEnum state) {
         this.state = state;
@@ -20,14 +31,7 @@ public class SessionState {
         this.offlineTime = offlineTime;
     }
 
-    public StateEnum getState() {
-        return state;
-    }
-
-    public long getOfflineTime() {
-        return offlineTime;
-    }
-
+    @Getter
     public enum StateEnum {
         /**
          * 从未连接过（之前 cleanStart为1 的也为为NULL）
@@ -49,8 +53,5 @@ public class SessionState {
             this.code = code;
         }
 
-        public String getCode() {
-            return code;
-        }
     }
 }

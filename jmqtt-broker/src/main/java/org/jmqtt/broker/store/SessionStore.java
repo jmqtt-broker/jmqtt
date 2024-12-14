@@ -50,6 +50,9 @@ public interface SessionStore {
     default void clearSession(String clientId,boolean clearOfflineMsg){
         storeSession(clientId,new SessionState(SessionState.StateEnum.NULL));
         clearSubscription(clientId);
+        releaseInflowMsg(clientId, null);
+        releaseOutflowMsg(clientId, null);
+        releaseOutflowSecMsgId(clientId, null);
         if (clearOfflineMsg) {
             clearOfflineMsg(clientId);
         }
@@ -84,7 +87,7 @@ public interface SessionStore {
     /**
      * 获取并删除接收到的qos2消息-入栈消息
      */
-    Message releaseInflowMsg(String clientId,int msgId);
+    Message releaseInflowMsg(String clientId,Integer msgId);
 
     /**
      * 获取所有的入栈消息
@@ -104,7 +107,7 @@ public interface SessionStore {
     /**
      * 获取并删除发送的出栈消息
      */
-    Message releaseOutflowMsg(String clientId,int msgId);
+    Message releaseOutflowMsg(String clientId,Integer msgId);
 
     /**
      * 出栈qos2第二阶段，缓存msgId
@@ -115,7 +118,7 @@ public interface SessionStore {
      * 出栈qos2第二阶段，释放msgId
      * 若为false，说明msgId不存在（异常情况）
      */
-    boolean releaseOutflowSecMsgId(String clientId,int msgId);
+    boolean releaseOutflowSecMsgId(String clientId,Integer msgId);
 
     /**
      * 获取所有的信息，进行发送

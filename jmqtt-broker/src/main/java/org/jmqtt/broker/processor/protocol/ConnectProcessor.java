@@ -6,6 +6,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
 import org.jmqtt.broker.common.helper.MixAll;
+import org.jmqtt.broker.common.helper.TimerManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
@@ -15,6 +16,7 @@ import org.jmqtt.broker.processor.RequestProcessor;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.event.Event;
 import org.jmqtt.broker.processor.dispatcher.event.EventCode;
+import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.processor.recover.ReSendMessageService;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
@@ -65,15 +67,17 @@ public class ConnectProcessor implements RequestProcessor {
     @Override
     public void processRequest(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         MqttConnectMessage connectMessage = (MqttConnectMessage) mqttMessage;
-        MqttConnectReturnCode returnCode = null;
-        int mqttVersion = connectMessage.variableHeader().version();
+        MqttConnectReturnCode returnCode;
+        MqttConnectVariableHeader variableHeader = connectMessage.variableHeader();
+        int mqttVersion = variableHeader.version();
         String clientId = connectMessage.payload().clientIdentifier();
-        boolean cleanSession = connectMessage.variableHeader().isCleanSession();
+        boolean cleanSession = variableHeader.isCleanSession();
         String userName = connectMessage.payload().userName();
         byte[] password = connectMessage.payload().passwordInBytes();
         ClientSession clientSession = null;
         boolean sessionPresent = false;
         SocketAddress remoteAddress = ctx.channel().remoteAddress();
+        Integer maxAlisa = null;
         try {
             if (!versionValid(mqttVersion)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
@@ -85,12 +89,11 @@ public class ConnectProcessor implements RequestProcessor {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD;
             } else {
                 // 1. 设置心跳
-                int heartbeatSec = connectMessage.variableHeader().keepAliveTimeSeconds();
+                int heartbeatSec = variableHeader.keepAliveTimeSeconds();
                 if (!keepAlive(clientId, ctx, heartbeatSec)) {
                     LogUtil.warn(log, "[CONNECT] -> set heartbeat failure,clientId:{},heartbeatSec:{}", clientId, heartbeatSec);
                     throw new Exception("set heartbeat failure");
                 }
-
                 // 2. 从集群/本服务器中查询是否存在该clientId的设备消息
                 SessionState sessionState = sessionStore.getSession(clientId);
                 boolean notifyClearOtherSession = true;
@@ -103,7 +106,7 @@ public class ConnectProcessor implements RequestProcessor {
                     }
                 }
                 if (sessionState.getState() == SessionState.StateEnum.NULL) {
-                    clientSession = new ClientSession(clientId, false, mqttVersion, ctx);
+                    clientSession = new ClientSession(clientId, cleanSession, mqttVersion, ctx);
                     sessionPresent = false;
                     notifyClearOtherSession = false;
                 } else {
@@ -115,19 +118,36 @@ public class ConnectProcessor implements RequestProcessor {
                         clientSession = reloadClientSession(ctx, clientId, mqttVersion);
                         sessionPresent = true;
                     }
+                    if (clientSession.isMqtt5()) {
+                        TimerManager.stopSessionTimeout(clientId);
+                    }
+                }
+                SessionState ss = new SessionState(SessionState.StateEnum.ONLINE);
+                if (clientSession.isMqtt5()) {
+                    MqttProperties properties = variableHeader.properties();
+                    MqttProperties.MqttProperty maxAlisaProperty = properties.getProperty(
+                            MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value());
+                    if (maxAlisaProperty != null) {
+                        maxAlisa = (Integer) maxAlisaProperty.value();
+                    }
+                    Map<Integer, Object> propertyMap = Mqtt5Utils.propertyMap(properties);
+                    if (!propertyMap.isEmpty()) {
+                        ss.setPropertyMap(propertyMap);
+                        clientSession.setPropertyMap(propertyMap);
+                    }
                 }
                 // 3. 存储 session 会话
-                sessionStore.storeSession(clientId, new SessionState(SessionState.StateEnum.ONLINE));
+                sessionStore.storeSession(clientId, ss);
                 if (notifyClearOtherSession) {
                     Event event = new Event(EventCode.CLEAR_SESSION.getCode(), clientId, System.currentTimeMillis(), MixAll.getLocalIp());
                     clusterEventHandler.sendEvent(event);
                 }
 
                 // 4. 处理will 消息
-                boolean willFlag = connectMessage.variableHeader().isWillFlag();
+                boolean willFlag = variableHeader.isWillFlag();
                 if (willFlag) {
-                    boolean willRetain = connectMessage.variableHeader().isWillRetain();
-                    int willQos = connectMessage.variableHeader().willQos();
+                    boolean willRetain = variableHeader.isWillRetain();
+                    int willQos = variableHeader.willQos();
                     String willTopic = connectMessage.payload().willTopic();
                     byte[] willPayload = connectMessage.payload().willMessageInBytes();
                     storeWillMsg(clientId, willRetain, willQos, willTopic, willPayload);
@@ -136,21 +156,13 @@ public class ConnectProcessor implements RequestProcessor {
                 NettyUtil.setClientId(ctx.channel(), clientId);
                 ConnectManager.getInstance().putClient(clientId, clientSession);
             }
-            Integer maxAlisa = null;
-            if (mqttVersion == 5) {
-                MqttProperties.MqttProperty maxAlisaProperty = connectMessage.variableHeader().properties()
-                        .getProperty(MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value());
-                if (maxAlisaProperty != null) {
-                    maxAlisa = (Integer) maxAlisaProperty.value();
-                }
-            }
-            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, maxAlisa);
-            ctx.writeAndFlush(ackMessage);
             if (returnCode != MqttConnectReturnCode.CONNECTION_ACCEPTED) {
                 ctx.close();
                 LogUtil.warn(log, "[CONNECT remote:{}] -> {} connect failure,returnCode={}", remoteAddress, clientId, returnCode);
                 return;
             }
+            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, maxAlisa);
+            ctx.writeAndFlush(ackMessage);
             LogUtil.info(log, "1234[CONNECT remote:{}] -> {} connect to this mqtt server", remoteAddress, clientId);
             reConnect2SendMessage(clientId);
             clientSession.setUserName(userName);

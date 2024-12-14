@@ -42,6 +42,9 @@ public interface InflowMessageMapper {
     @Delete("DELETE FROM jmqtt_inflow_message WHERE id = #{id}")
     Integer delInflowMessage(Long id);
 
+    @Delete("DELETE FROM jmqtt_inflow_message WHERE client_id = #{clientId}")
+    Integer delInflowMessageByClientId(String clientId);
+
     @Select("SELECT id,client_id,msg_id,content,gmt_create FROM jmqtt_inflow_message WHERE client_id = #{clientId} order by gmt_create asc")
     List<InflowMessageDO> getAllInflowMessage(String clientId);
 }

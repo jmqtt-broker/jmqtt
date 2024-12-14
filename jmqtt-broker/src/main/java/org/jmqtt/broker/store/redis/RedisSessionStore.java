@@ -74,12 +74,17 @@ public class RedisSessionStore implements SessionStore {
     }
 
     @Override
-    public Message releaseInflowMsg(String clientId, int msgId) {
-        String res = redisOperator.hget(RedisKeySupport.REC_FLOW_MESSAGE, String.valueOf(msgId));
+    public Message releaseInflowMsg(String clientId, Integer msgId) {
+        String table = RedisKeySupport.REC_FLOW_MESSAGE + clientId;
+        if (msgId != null) {
+            redisOperator.del(table);
+            return null;
+        }
+        String res = redisOperator.hget(table, String.valueOf(msgId));
         Message message = null;
         if (res != null) {
             message = JSONObject.parseObject(res, Message.class);
-            redisOperator.hdel(RedisKeySupport.REC_FLOW_MESSAGE, String.valueOf(msgId));
+            redisOperator.hdel(table, String.valueOf(msgId));
         }
         return message;
     }
@@ -102,8 +107,12 @@ public class RedisSessionStore implements SessionStore {
     }
 
     @Override
-    public Message releaseOutflowMsg(String clientId, int msgId) {
+    public Message releaseOutflowMsg(String clientId, Integer msgId) {
         String table = RedisKeySupport.SEND_FLOW_MESSAGE + clientId;
+        if (msgId == null) {
+            redisOperator.del(table);
+            return null;
+        }
         String key = String.valueOf(msgId);
         Message message = JSONObject.parseObject(redisOperator.hget(table, key), Message.class);
         redisOperator.hdel(table, key);
@@ -117,8 +126,13 @@ public class RedisSessionStore implements SessionStore {
     }
 
     @Override
-    public boolean releaseOutflowSecMsgId(String clientId, int msgId) {
-        return redisOperator.hdel(RedisKeySupport.SEND_FLOW_SEC_MESSAGE + clientId, String.valueOf(msgId));
+    public boolean releaseOutflowSecMsgId(String clientId, Integer msgId) {
+        String table = RedisKeySupport.SEND_FLOW_SEC_MESSAGE + clientId;
+        if (msgId == null) {
+            redisOperator.del(table);
+            return true;
+        }
+        return redisOperator.hdel(table, String.valueOf(msgId));
     }
 
     @Override

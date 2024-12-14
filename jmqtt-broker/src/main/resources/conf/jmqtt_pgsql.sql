@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS "jmqtt_session"
     "client_id" varchar(64) COLLATE "pg_catalog"."default" NOT NULL,
     "state"     varchar(12) COLLATE "pg_catalog"."default" NOT NULL,
     "offline_time" int8,
+    "property" varchar(500) COLLATE "pg_catalog"."default",
     CONSTRAINT "jmqtt_session_pkey" PRIMARY KEY ("id")
 )
 ;
@@ -125,6 +126,7 @@ COMMENT ON COLUMN "jmqtt_session"."id" IS '主键';
 COMMENT ON COLUMN "jmqtt_session"."client_id" IS '客户端id';
 COMMENT ON COLUMN "jmqtt_session"."state" IS '状态：ONLINE,OFFLINE两种';
 COMMENT ON COLUMN "jmqtt_session"."offline_time" IS 'OFFLINE状态时对应的离线时间戳（只有cleanStart为0时候离线才有该数据）';
+COMMENT ON COLUMN "jmqtt_session"."property" IS 'mqtt5 client连接属性';
 COMMENT ON TABLE "jmqtt_session" IS '客户端会话状态';
 
 -- ----------------------------

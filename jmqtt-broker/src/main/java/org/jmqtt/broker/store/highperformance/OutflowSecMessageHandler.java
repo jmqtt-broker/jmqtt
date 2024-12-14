@@ -28,12 +28,17 @@ public class OutflowSecMessageHandler {
         return true;
     }
 
-    public static boolean releaseOutflowSecMsgId(String clientId, int msgId) {
+    public static boolean releaseOutflowSecMsgId(String clientId, Integer msgId) {
         Queue<Integer> msgCache = outflowSecCache.get(clientId);
-        if (msgCache == null) {
-            return false;
+        if (msgId == null && msgCache != null) {
+            msgCache.clear();
+            return true;
+        } else {
+            if (msgCache == null) {
+                return false;
+            }
+            return msgCache.remove(msgId);
         }
-        return msgCache.remove(msgId);
     }
 
     public static Collection<Integer> getAllOutflowSecMsgId(String clientId) {

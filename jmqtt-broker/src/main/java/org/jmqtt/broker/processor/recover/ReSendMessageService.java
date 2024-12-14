@@ -164,7 +164,6 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
                 }
             }
             sessionStore.clearOfflineMsg(clientId);
-
             return true;
         }
     }

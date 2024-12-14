@@ -3,6 +3,7 @@ package org.jmqtt.starter.configuration;
 import com.alibaba.druid.pool.DruidDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -25,8 +26,8 @@ import java.sql.SQLException;
 @Slf4j
 public class StoreConfiguration {
 
-    @Bean("jmqttDataSource")
-    @ConditionalOnProperty(prefix = "jmqtt.broker", value = "useDefaultRdb", havingValue = "false")
+    @Bean("wrapDataSource")
+    @ConditionalOnProperty(prefix = "jmqtt.broker", value = "store", havingValue = "rdb")
     public DataSource jmqttDataSource(BrokerConfig brokerConfig) {
         DruidDataSource dds = new DruidDataSource();
         dds.setDriverClassName(brokerConfig.getDriver());
@@ -45,6 +46,13 @@ public class StoreConfiguration {
             log.error("init dataSource error.", e);
             throw new RuntimeException("init dataSource error.");
         }
+    }
+
+    @Bean("jmqttDataSource")
+    @ConditionalOnBean(name = "wrapDataSource")
+    @ConditionalOnProperty(prefix = "jmqtt.broker", value = "useDefaultRdb", havingValue = "false")
+    public DataSource jmqttDataSource(@Qualifier("wrapDataSource") DataSource dataSource) {
+        return dataSource;
     }
 
     @Bean("jmqttRedisMessageListenerContainer")
