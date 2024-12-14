@@ -42,6 +42,7 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
             MqttPublishMessage publishMessage = (MqttPublishMessage) mqttMessage;
             MqttQoS qos = publishMessage.fixedHeader().qosLevel();
             Message innerMsg = new Message();
+            innerMsg.setStoreTime(System.currentTimeMillis());
             String clientId = NettyUtil.getClientId(ctx.channel());
             ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
             String topic = publishMessage.variableHeader().topicName();

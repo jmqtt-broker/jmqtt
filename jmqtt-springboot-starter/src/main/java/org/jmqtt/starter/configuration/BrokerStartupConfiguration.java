@@ -131,10 +131,10 @@ public class BrokerStartupConfiguration {
     }
 
     @Bean
-    public InnerMessageDispatcher innerMessageDispatcher(BrokerConfig brokerConfig, SessionStore sessionStore,
+    public InnerMessageDispatcher innerMessageDispatcher(BrokerConfig brokerConfig, SessionStore sessionStore, MessageStore messageStore,
                                                          SubscriptionMatcher subscriptionMatcher, ClusterEventHandler clusterEventHandler) {
         return new DefaultDispatcherInnerMessage(brokerConfig.isHighPerformance(),
-                sessionStore, brokerConfig.getPollThreadNum(), subscriptionMatcher, clusterEventHandler);
+                sessionStore, messageStore, brokerConfig.getPollThreadNum(), subscriptionMatcher, clusterEventHandler);
     }
 
     @Bean
