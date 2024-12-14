@@ -102,7 +102,7 @@ public class BrokerController {
         this.subscriptionMatcher = subscriptionMatcher != null ? subscriptionMatcher : new DefaultSubscriptionTreeMatcher();
         this.clusterEventHandler = clusterEventHandler;
         this.innerMessageDispatcher = innerMessageDispatcher != null ? innerMessageDispatcher :new DefaultDispatcherInnerMessage(brokerConfig.isHighPerformance(),
-                sessionStore, brokerConfig.getPollThreadNum(), this.subscriptionMatcher, this.clusterEventHandler);
+                sessionStore, messageStore, brokerConfig.getPollThreadNum(), this.subscriptionMatcher, this.clusterEventHandler);
         this.authValid = authValid != null ? authValid : MixAll.pluginInit(brokerConfig.getAuthValidClass());
 
         this.connectQueue = new LinkedBlockingQueue<>(100000);

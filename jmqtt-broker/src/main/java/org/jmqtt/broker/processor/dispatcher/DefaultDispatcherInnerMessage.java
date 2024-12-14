@@ -1,5 +1,6 @@
 package org.jmqtt.broker.processor.dispatcher;
 
+import com.alibaba.fastjson.JSON;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import org.jmqtt.broker.common.helper.RejectHandler;
 import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
@@ -14,14 +15,12 @@ import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
+import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -36,16 +35,18 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
     private int pollThreadNum;
     private SubscriptionMatcher subscriptionMatcher;
     private SessionStore sessionStore;
+    private MessageStore messageStore;
     private ClusterEventHandler clusterEventHandler;
 
 
-    public DefaultDispatcherInnerMessage(boolean highPerformance, SessionStore sessionStore,
+    public DefaultDispatcherInnerMessage(boolean highPerformance, SessionStore sessionStore, MessageStore messageStore,
                                          int pollThreadNum, SubscriptionMatcher subscriptionMatcher,
                                          ClusterEventHandler clusterEventHandler) {
         super(highPerformance, sessionStore);
         this.pollThreadNum = pollThreadNum;
         this.subscriptionMatcher = subscriptionMatcher;
         this.sessionStore = sessionStore;
+        this.messageStore = messageStore;
         this.clusterEventHandler = clusterEventHandler;
     }
 
@@ -138,11 +139,21 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                 if (qos > 0) {
                                     cacheOutflowMsg(subClientId, message);
                                 }
-                                MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
-                                if (clientSession.getCtx().channel().isWritable()) {
-                                    clientSession.getCtx().writeAndFlush(publishMessage);
+                                if (message.alive() > 0) {
+                                    MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
+                                    if (clientSession.getCtx().channel().isWritable()) {
+                                        clientSession.getCtx().writeAndFlush(publishMessage);
+                                    } else {
+                                        sessionStore.storeOfflineMsg(subClientId, message);
+                                    }
                                 } else {
-                                    sessionStore.storeOfflineMsg(subClientId, message);
+                                    LogUtil.warn(log, "message expired. {}", JSON.toJSONString(message));
+                                    // 如果是保留消息则删除
+                                    Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).ifPresent(r -> {
+                                        if ((boolean) r) {
+                                            messageStore.clearRetainMessage(topic);
+                                        }
+                                    });
                                 }
                             } else {
                                 subscriptionMatcher.unSubscribe(subscription.getTopic(), subClientId);

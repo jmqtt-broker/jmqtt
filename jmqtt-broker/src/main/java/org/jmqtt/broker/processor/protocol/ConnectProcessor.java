@@ -199,6 +199,7 @@ public class ConnectProcessor implements RequestProcessor {
         headers.put(MessageHeader.TOPIC, willTopic);
         headers.put(MessageHeader.WILL, true);
         Message message = new Message(Message.Type.WILL, headers, willPayload);
+        message.setStoreTime(System.currentTimeMillis());
         message.setClientId(clientId);
         messageStore.storeWillMessage(clientId, message);
         if (willRetain) {

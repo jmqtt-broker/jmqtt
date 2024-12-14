@@ -30,7 +30,7 @@ public class Message {
 
     private byte[] payload;
 
-    private long storeTime = System.currentTimeMillis();
+    private long storeTime;
 
     public Message(Type type,Map<String,Object> headers,byte[] payload){
         this.type = type;
@@ -53,14 +53,16 @@ public class Message {
         return headers.get(key);
     }
 
-    public boolean expired() {
+    public int alive() {
         if (properties != null && !properties.isEmpty()) {
             Integer exipre = (Integer) properties.get(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value());
             if (exipre != null) {
-                return System.currentTimeMillis() / 1000 < (storeTime / 1000 + exipre);
+                int aliveSeconds = (int) ((storeTime / 1000 + exipre) - System.currentTimeMillis() / 1000);
+                properties.put(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value(), aliveSeconds);
+                return aliveSeconds;
             }
         }
-        return false;
+        return 0;
     }
 
     /**
