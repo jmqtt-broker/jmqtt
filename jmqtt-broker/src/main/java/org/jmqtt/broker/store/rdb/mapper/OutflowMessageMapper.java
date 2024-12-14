@@ -41,6 +41,9 @@ public interface OutflowMessageMapper {
     @Delete("DELETE FROM jmqtt_outflow_message WHERE id = #{id}")
     Integer delOutflowMessage(Long id);
 
+    @Delete("DELETE FROM jmqtt_outflow_message WHERE client_id = #{clientId}")
+    Integer delOutflowMessageByClientId(String clientId);
+
     @Select("SELECT id,client_id,msg_id,content,gmt_create FROM jmqtt_outflow_message WHERE client_id = #{clientId} order by gmt_create asc")
     List<OutflowMessageDO> getAllOutflowMessage(String clientId);
 }

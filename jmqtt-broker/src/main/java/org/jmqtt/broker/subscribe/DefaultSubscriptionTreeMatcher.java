@@ -5,7 +5,6 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Subscription;
 import org.slf4j.Logger;
 
-import javax.swing.tree.TreeNode;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -18,6 +17,7 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
     private static final Logger log = JmqttLogger.messageTraceLog;
 
     private static final String GROUP_STR = "$share";
+    private static final Pattern SHARE_PATTERN = Pattern.compile("(\\" + GROUP_STR + ")(/\\w+)/(\\S+)");
     private final Object lock = new Object();
     private TreeNode root = new TreeNode(new Token("root"));
     private Token EMPTY = new Token("");
@@ -53,8 +53,8 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
                 currentNode.addSubscriber(subscription);
             }
         } catch (Exception ex) {
-            LogUtil.warn(log,"[Subscription] -> Subscribe failed,clientId={},topic={},qos={}",
-                subscription.getClientId(), subscription.getTopic(), subscription.getQos());
+            LogUtil.warn(log, "[Subscription] -> Subscribe failed,clientId={},topic={},qos={}",
+                    subscription.getClientId(), subscription.getTopic(), subscription.getQos());
             return true;
         }
         return true;
@@ -145,7 +145,7 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
                 if (t <= i) {
                     break;
                 }
-                i ++;
+                i++;
             }
             return sub;
         } else {
@@ -159,12 +159,12 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
         if (pubTopic.equals(subTopic)) {
             return true;
         }
-        Pattern pattern = Pattern.compile("(" + GROUP + "/\\S/)(\\S+)");
-        Matcher m = pattern.matcher(subTopic);
-        if (m.find()) {
-            return innerIsMatch(pubTopic, m.group(2));
+        if (subTopic.startsWith(GROUP_STR)) {
+            Matcher m = SHARE_PATTERN.matcher(subTopic);
+            if (m.find()) {
+                return innerIsMatch(pubTopic, m.group(3));
+            }
         }
-
         return innerIsMatch(pubTopic, subTopic);
     }
 
@@ -198,7 +198,7 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
     }
 
     private void recursionMatch(String topic, TreeNode node, boolean isGroupToken,
-        Set<Subscription> subscriptions) {
+                                Set<Subscription> subscriptions) {
         if (topic == null) {
             return;
         }
@@ -225,7 +225,7 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
         } else {
             for (TreeNode itemNode : childNodes) {
                 if (itemNode.getToken().equals(token) || itemNode.getToken().equals(SINGLE)
-                    || itemNode.getToken().equals(MULTY)) {
+                        || itemNode.getToken().equals(MULTY)) {
                     subscriptions.addAll(itemNode.getSubscribers());
                 }
             }

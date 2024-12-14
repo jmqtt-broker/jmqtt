@@ -9,6 +9,8 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.remoting.util.NettyUtil;
 import org.jmqtt.broker.store.MessageStore;
+import org.jmqtt.broker.store.SessionStore;
+import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +23,11 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ConnectCycleHookService extends ClientLifeCycleHookService {
 
-    public ConnectCycleHookService(MessageStore messageStore, InnerMessageDispatcher innerMessageDispatcher) {
-        super(messageStore, innerMessageDispatcher);
+    public ConnectCycleHookService(SubscriptionMatcher subscriptionMatcher,
+                                   SessionStore sessionStore,
+                                   MessageStore messageStore,
+                                   InnerMessageDispatcher innerMessageDispatcher) {
+        super(sessionStore, messageStore, subscriptionMatcher, innerMessageDispatcher);
     }
 
     @Override

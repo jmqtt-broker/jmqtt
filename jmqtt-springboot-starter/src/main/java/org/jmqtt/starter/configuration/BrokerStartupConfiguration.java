@@ -145,9 +145,11 @@ public class BrokerStartupConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(ChannelEventListener.class)
-    public ChannelEventListener clientLifeCycleHookService(MessageStore messageStore,
+    public ChannelEventListener clientLifeCycleHookService(SessionStore sessionStore,
+                                                           MessageStore messageStore,
+                                                           SubscriptionMatcher subscriptionMatcher,
                                                            InnerMessageDispatcher innerMessageDispatcher) {
-        return new ClientLifeCycleHookService(messageStore, innerMessageDispatcher);
+        return new ClientLifeCycleHookService(sessionStore, messageStore, subscriptionMatcher, innerMessageDispatcher);
     }
 
     @Bean

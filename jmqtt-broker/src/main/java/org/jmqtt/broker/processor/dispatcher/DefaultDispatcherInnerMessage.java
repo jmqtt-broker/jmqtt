@@ -139,9 +139,13 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                     cacheOutflowMsg(subClientId, message);
                                 }
                                 MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
-                                clientSession.getCtx().writeAndFlush(publishMessage);
+                                if (clientSession.getCtx().channel().isWritable()) {
+                                    clientSession.getCtx().writeAndFlush(publishMessage);
+                                } else {
+                                    sessionStore.storeOfflineMsg(subClientId, message);
+                                }
                             } else {
-                                sessionStore.storeOfflineMsg(subClientId, message);
+                                subscriptionMatcher.unSubscribe(subscription.getTopic(), subClientId);
                             }
                         }
                     }

@@ -54,12 +54,17 @@ public class OutflowMessageHandler {
         return queue;
     }
 
-    public static Message releaseOutflowMsg(String clientId, int msgId) {
+    public static Message releaseOutflowMsg(String clientId, Integer msgId) {
         Map<Integer,Message> msgCache = outflowMsgCache.get(clientId);
-        if (msgCache == null) {
+        if (msgId == null && msgCache != null) {
+            msgCache.clear();
             return null;
+        } else {
+            if (msgCache == null) {
+                return null;
+            }
+            return msgCache.remove(msgId);
         }
-        return msgCache.remove(msgId);
     }
 
 }

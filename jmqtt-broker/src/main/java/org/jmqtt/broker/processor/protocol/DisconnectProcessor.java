@@ -16,7 +16,7 @@ import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
-import java.net.SocketAddress;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -64,15 +64,20 @@ public class DisconnectProcessor implements RequestProcessor {
     }
 
     private void clearSession(ClientSession clientSession) {
+        String clientId = clientSession.getClientId();
         if (clientSession.isCleanStart()) {
-            Set<Subscription> subscriptions = sessionStore.getSubscriptions(clientSession.getClientId());
+            Set<Subscription> subscriptions = sessionStore.getSubscriptions(clientId);
             for (Subscription subscription : subscriptions) {
-                this.subscriptionMatcher.unSubscribe(subscription.getTopic(), clientSession.getClientId());
+                this.subscriptionMatcher.unSubscribe(subscription.getTopic(), clientId);
             }
-            sessionStore.clearSession(clientSession.getClientId(), false);
+            sessionStore.clearSession(clientId, false);
         } else {
             SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis());
-            this.sessionStore.storeSession(clientSession.getClientId(), sessionState);
+            Map<Integer, Object> propertyMap = clientSession.getPropertyMap();
+            if (propertyMap != null && !propertyMap.isEmpty()) {
+                sessionState.setPropertyMap(propertyMap);
+            }
+            sessionStore.storeSession(clientId, sessionState);
         }
     }
 

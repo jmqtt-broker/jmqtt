@@ -60,7 +60,7 @@ jmqtt:
       username: root
       password: zhibo@2020
     # redis数据源，逻辑同rdb
-    useDefaultRedis: true
+    useDefaultRedis: false
     redis:
       redis-host: 192.168.100.251
       redis-port: 56379

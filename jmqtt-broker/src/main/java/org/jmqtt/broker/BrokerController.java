@@ -112,7 +112,8 @@ public class BrokerController {
         this.currentIp = MixAll.getLocalIp();
 
         this.channelEventListener = channelEventListener != null ? channelEventListener : MixAll.pluginInit(brokerConfig.getChannelEventListener(),
-                new Class[]{MessageStore.class, InnerMessageDispatcher.class}, new Object[]{messageStore, innerMessageDispatcher});
+                new Class[]{SessionStore.class, MessageStore.class, SubscriptionMatcher.class, InnerMessageDispatcher.class},
+                new Object[]{sessionStore, messageStore, subscriptionMatcher, innerMessageDispatcher});
         this.remotingServer = new NettyRemotingServer(brokerConfig, nettyConfig, channelEventListener);
 
         {

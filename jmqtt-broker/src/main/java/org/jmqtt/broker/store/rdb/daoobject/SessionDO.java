@@ -1,8 +1,13 @@
 
 package org.jmqtt.broker.store.rdb.daoobject;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 
+@Getter
+@Setter
 public class SessionDO implements Serializable {
 
     private static final long serialVersionUID = 12213131231231L;
@@ -15,35 +20,6 @@ public class SessionDO implements Serializable {
 
     private Long offlineTime;
 
-    public Long getId() {
-        return id;
-    }
+    private String property;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public Long getOfflineTime() {
-        return offlineTime;
-    }
-
-    public void setOfflineTime(Long offlineTime) {
-        this.offlineTime = offlineTime;
-    }
 }

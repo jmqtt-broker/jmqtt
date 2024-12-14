@@ -25,7 +25,7 @@ public abstract class HighPerformanceMessageHandler {
         return this.sessionStore.cacheInflowMsg(clientId, message);
     }
 
-    protected Message releaseInflowMsg(String clientId, int msgId) {
+    protected Message releaseInflowMsg(String clientId, Integer msgId) {
         if (highPerformance) {
             return InflowMessageHandler.releaseInflowMsg(clientId, msgId);
         }
@@ -46,11 +46,12 @@ public abstract class HighPerformanceMessageHandler {
         return this.sessionStore.cacheOutflowMsg(clientId, message);
     }
 
-    protected void releaseOutflowMsg(String clientId, int msgId) {
+    protected void releaseOutflowMsg(String clientId, Integer msgId) {
         if (highPerformance) {
             OutflowMessageHandler.releaseOutflowMsg(clientId, msgId);
+        } else {
+            this.sessionStore.releaseOutflowMsg(clientId, msgId);
         }
-        this.sessionStore.releaseOutflowMsg(clientId, msgId);
     }
 
     protected Collection<Message> getAllOutflowMsg(String clientId) {
@@ -67,7 +68,7 @@ public abstract class HighPerformanceMessageHandler {
         return this.sessionStore.cacheOutflowSecMsgId(clientId, msgId);
     }
 
-    protected boolean releaseOutflowSecMsgId(String clientId, int msgId) {
+    protected boolean releaseOutflowSecMsgId(String clientId, Integer msgId) {
         if (highPerformance) {
             return OutflowSecMessageHandler.releaseOutflowSecMsgId(clientId, msgId);
         }

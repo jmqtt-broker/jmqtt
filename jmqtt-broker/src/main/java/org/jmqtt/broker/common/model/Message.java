@@ -1,5 +1,10 @@
 package org.jmqtt.broker.common.model;
 
+import io.netty.handler.codec.mqtt.MqttProperties;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -8,6 +13,9 @@ import java.util.Objects;
  * inner message transfer from MqttMessage
  * jmqtt 内部消息处理
  */
+@Getter
+@Setter
+@NoArgsConstructor
 public class Message {
 
     private int msgId;
@@ -22,9 +30,7 @@ public class Message {
 
     private byte[] payload;
 
-    private long storeTime;
-
-    public Message(){}
+    private long storeTime = System.currentTimeMillis();
 
     public Message(Type type,Map<String,Object> headers,byte[] payload){
         this.type = type;
@@ -47,60 +53,14 @@ public class Message {
         return headers.get(key);
     }
 
-    public int getMsgId() {
-        return msgId;
-    }
-
-    public Map<Integer, Object> getProperties() {
-        return properties;
-    }
-
-    public void setProperties(Map<Integer, Object> properties) {
-        this.properties = properties;
-    }
-
-    public void setMsgId(int msgId) {
-        this.msgId = msgId;
-    }
-
-    public Map<String, Object> getHeaders() {
-        return headers;
-    }
-
-    public void setHeaders(Map<String, Object> headers) {
-        this.headers = headers;
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public void setType(Type type) {
-        this.type = type;
-    }
-
-    public byte[] getPayload() {
-        return payload;
-    }
-
-    public void setPayload(byte[] payload) {
-        this.payload = payload;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public long getStoreTime() {
-        return storeTime;
-    }
-
-    public void setStoreTime(long storeTime) {
-        this.storeTime = storeTime;
+    public boolean expired() {
+        if (properties != null && !properties.isEmpty()) {
+            Integer exipre = (Integer) properties.get(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value());
+            if (exipre != null) {
+                return System.currentTimeMillis() / 1000 < (storeTime / 1000 + exipre);
+            }
+        }
+        return false;
     }
 
     /**

@@ -99,12 +99,14 @@ CREATE TABLE "JMQTT_SESSION" (
                                  "ID" NUMBER(20,0) NOT NULL,
                                  "CLIENT_ID" NVARCHAR2(64) NOT NULL,
                                  "STATE" NVARCHAR2(12) NOT NULL,
-                                 "OFFLINE_TIME" NUMBER(20,0)
+                                 "OFFLINE_TIME" NUMBER(20,0),
+                                 "PROPERTY" NVARCHAR2(500)
 );
 COMMENT ON COLUMN "JMQTT_SESSION"."ID" IS '主键';
 COMMENT ON COLUMN "JMQTT_SESSION"."CLIENT_ID" IS '客户端id';
 COMMENT ON COLUMN "JMQTT_SESSION"."STATE" IS '状态：ONLINE,OFFLINE两种';
 COMMENT ON COLUMN "JMQTT_SESSION"."OFFLINE_TIME" IS 'OFFLINE状态时对应的离线时间戳（只有cleanStart为0时候离线才有该数据）';
+COMMENT ON COLUMN "JMQTT_SESSION"."PROPERTY" IS 'mqtt5 客户端连接属性';
 COMMENT ON TABLE "JMQTT_SESSION" IS '客户端会话状态';
 
 -- ----------------------------

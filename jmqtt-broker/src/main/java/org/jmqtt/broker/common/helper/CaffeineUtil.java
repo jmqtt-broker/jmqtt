@@ -7,8 +7,11 @@ import lombok.SneakyThrows;
 import org.checkerframework.checker.index.qual.NonNegative;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -16,13 +19,13 @@ import java.util.function.BiConsumer;
 public class CaffeineUtil {
 
     private static String REDIS_KEY_DELIMITER = ":";
-    private final static Map<String, BiConsumer<String, String>> LISTENER_MAP = new HashMap<>();
+    private final static List<BiConsumer<String, Object>> LISTENERS = new CopyOnWriteArrayList<>();
     private static Cache<String, CacheObject> cache = Caffeine.newBuilder()
             // key过期后处理逻辑
             .removalListener((String key, CacheObject val, RemovalCause cause) ->
-                    LISTENER_MAP.forEach((k, v) -> {
-                        if (key.startsWith(k) && RemovalCause.EXPIRED.equals(cause)) {
-                            v.accept(key, val.getData());
+                    LISTENERS.forEach(l -> {
+                        if (RemovalCause.EXPIRED.equals(cause)) {
+                            l.accept(key, val.getData());
                         }
                     }))
             // 过期时间到后立即触发，默认key过期后不触发回调，等下次调用或者缓存空间不足时才清理过期的key
@@ -48,17 +51,17 @@ public class CaffeineUtil {
             })
             .build();
 
-    public static void put(String k, String v) {
+    public static void put(String k, Object v) {
         CacheObject cacheObject = new CacheObject(v);
         cache.put(k, cacheObject);
     }
 
-    public static void put(String k, String v, long expireSeconds) {
+    public static void put(String k, Object v, long expireSeconds) {
         CacheObject cacheObject = new CacheObject(v, expireSeconds);
         cache.put(k, cacheObject);
     }
 
-    public static String get(String k) {
+    public static Object get(String k) {
         CacheObject val = cache.getIfPresent(k);
         return Optional.ofNullable(val).isPresent() ? val.getData() : "";
     }
@@ -67,17 +70,13 @@ public class CaffeineUtil {
         cache.invalidate(k);
     }
 
-    public static void addRemoveListener(String key, BiConsumer<String, String> listener) {
-        LISTENER_MAP.put(key, listener);
-    }
-
-    public static String buildKey(String... args) {
-        return String.join(REDIS_KEY_DELIMITER, args);
+    public static void addRemoveListener(BiConsumer<String, Object> listener) {
+        LISTENERS.add(listener);
     }
 
     @SneakyThrows
     public static void main(String[] args) {
-        addRemoveListener("test", (k, v) -> {
+        addRemoveListener((k, v) -> {
             System.out.println("key过期了 -> " + k + ": " + v);
         });
         put("test", "testVal", 6);
@@ -101,15 +100,15 @@ public class CaffeineUtil {
     static class CacheObject {
 
         private static Long defaultExpire = 1800L;
-        String data;
+        Object data;
         long expire;
 
-        public CacheObject(String data, long second) {
+        public CacheObject(Object data, long second) {
             this.data = data;
             this.expire = TimeUnit.SECONDS.toNanos(second);
         }
 
-        public CacheObject(String data) {
+        public CacheObject(Object data) {
             this.data = data;
             this.expire = TimeUnit.SECONDS.toNanos(defaultExpire);
         }

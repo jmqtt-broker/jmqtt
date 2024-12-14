@@ -1,6 +1,7 @@
 
 package org.jmqtt.broker.store.rdb;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.MixAll;
@@ -42,6 +43,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         sessionDO.setClientId(clientId);
         sessionDO.setState(sessionState.getState().getCode());
         sessionDO.setOfflineTime(sessionState.getOfflineTime());
+        Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> sessionDO.setProperty(JSON.toJSONString(p)));
         Long id = (Long) operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).storeSession(sessionDO));
         return id != null;
     }
@@ -101,7 +103,11 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     }
 
     @Override
-    public Message releaseInflowMsg(String clientId, int msgId) {
+    public Message releaseInflowMsg(String clientId, Integer msgId) {
+        if (msgId == null) {
+            operate(sqlSession -> getMapper(sqlSession, inflowMessageMapperClass).delInflowMessageByClientId(clientId));
+            return null;
+        }
         InflowMessageDO inflowMessageDO = (InflowMessageDO) operate(
                 sqlSession -> getMapper(sqlSession, inflowMessageMapperClass).getInflowMessage(clientId, msgId));
         if (inflowMessageDO == null) {
@@ -158,7 +164,11 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     }
 
     @Override
-    public Message releaseOutflowMsg(String clientId, int msgId) {
+    public Message releaseOutflowMsg(String clientId, Integer msgId) {
+        if (msgId == null) {
+            operate(sqlSession -> getMapper(sqlSession, outflowMessageMapperClass).delOutflowMessageByClientId(clientId));
+            return null;
+        }
         OutflowMessageDO outflowMessageDO = (OutflowMessageDO) operate(
                 sqlSession -> getMapper(sqlSession, outflowMessageMapperClass).getOutflowMessage(clientId, msgId));
         if (outflowMessageDO == null) {
@@ -184,7 +194,11 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     }
 
     @Override
-    public boolean releaseOutflowSecMsgId(String clientId, int msgId) {
+    public boolean releaseOutflowSecMsgId(String clientId, Integer msgId) {
+        if (msgId == null) {
+            operate(sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).delOutflowSecMessageByClientId(clientId));
+            return true;
+        }
         OutflowSecMessageDO outflowSecMessageDO = (OutflowSecMessageDO) operate(
                 sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).getOutflowSecMessage(clientId, msgId));
         if (outflowSecMessageDO == null) {
