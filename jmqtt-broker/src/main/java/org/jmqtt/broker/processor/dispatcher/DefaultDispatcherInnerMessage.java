@@ -139,21 +139,25 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                 if (qos > 0) {
                                     cacheOutflowMsg(subClientId, message);
                                 }
-                                if (message.alive() > 0) {
-                                    MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
-                                    if (clientSession.getCtx().channel().isWritable()) {
-                                        clientSession.getCtx().writeAndFlush(publishMessage);
+                                MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
+                                if (clientSession.isMqtt5()) {
+                                    if (message.validity()) {
+                                        if (message.alive() > 0) {
+                                            write(clientSession, subscription, message);
+                                        } else {
+                                            LogUtil.warn(log, "message expired. {}", JSON.toJSONString(message));
+                                            // 如果是保留消息则删除
+                                            Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).ifPresent(r -> {
+                                                if ((boolean) r) {
+                                                    messageStore.clearRetainMessage(topic);
+                                                }
+                                            });
+                                        }
                                     } else {
-                                        sessionStore.storeOfflineMsg(subClientId, message);
+                                        write(clientSession, subscription, message);
                                     }
                                 } else {
-                                    LogUtil.warn(log, "message expired. {}", JSON.toJSONString(message));
-                                    // 如果是保留消息则删除
-                                    Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).ifPresent(r -> {
-                                        if ((boolean) r) {
-                                            messageStore.clearRetainMessage(topic);
-                                        }
-                                    });
+                                    write(clientSession, subscription, message);
                                 }
                             } else {
                                 subscriptionMatcher.unSubscribe(subscription.getTopic(), subClientId);
@@ -165,6 +169,14 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                 }
             }
         }
+    }
 
+    private void write(ClientSession session, Subscription subscription, Message message) {
+        if (session.getCtx().channel().isWritable()) {
+            MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
+            session.getCtx().writeAndFlush(publishMessage);
+        } else {
+            sessionStore.storeOfflineMsg(subscription.getClientId(), message);
+        }
     }
 }

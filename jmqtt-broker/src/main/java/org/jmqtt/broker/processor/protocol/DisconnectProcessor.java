@@ -49,9 +49,6 @@ public class DisconnectProcessor implements RequestProcessor {
         // 1. 清理会话 或 重新设置该客户端会话状态
         clearSession(clientSession);
 
-        // 3. 清理will消息
-        clearWillMessage(clientSession.getClientId());
-
         // 4. 移除本节点上的连接
         ConnectManager.getInstance().removeClient(clientId);
 
@@ -79,10 +76,6 @@ public class DisconnectProcessor implements RequestProcessor {
             }
             sessionStore.storeSession(clientId, sessionState);
         }
-    }
-
-    private void clearWillMessage(String clientId) {
-        messageStore.clearWillMessage(clientId);
     }
 
 }

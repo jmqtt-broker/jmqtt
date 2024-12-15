@@ -53,6 +53,11 @@ public class Message {
         return headers.get(key);
     }
 
+    public boolean validity() {
+        return properties != null && !properties.isEmpty() &&
+                properties.get(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value()) != null;
+    }
+
     public int alive() {
         if (properties != null && !properties.isEmpty()) {
             Integer exipre = (Integer) properties.get(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value());
