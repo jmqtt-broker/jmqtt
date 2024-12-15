@@ -47,6 +47,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
     public void onChannelClose(String remoteAddr, Channel channel) {
         String clientId = NettyUtil.getClientId(channel);
         if (StringUtils.isNotEmpty(clientId)) {
+            TopicAliasManager.clear(clientId);
             ClientSession session = ConnectManager.getInstance().getClient(clientId);
             if (session != null && !session.isCleanStart()) {
                 TimerManager.startSessionTimeout(session, (k, v) -> {
@@ -58,10 +59,17 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                     ConnectManager.getInstance().removeClient(clientId);
                 });
             }
-            TopicAliasManager.clear(clientId);
             Message willMessage = messageStore.getWillMessage(clientId);
             if (willMessage != null) {
-                innerMessageDispatcher.appendMessage(willMessage);
+                if (session != null && session.isMqtt5()) {
+                    TimerManager.startWillTimeout(clientId, willMessage, (k, v) -> {
+                        innerMessageDispatcher.appendMessage((Message) v);
+                        messageStore.clearWillMessage(clientId);
+                    });
+                } else {
+                    innerMessageDispatcher.appendMessage(willMessage);
+                    messageStore.clearWillMessage(clientId);
+                }
             }
         }
     }

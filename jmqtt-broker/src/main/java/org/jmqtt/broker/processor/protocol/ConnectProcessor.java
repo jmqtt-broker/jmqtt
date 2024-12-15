@@ -120,6 +120,7 @@ public class ConnectProcessor implements RequestProcessor {
                     }
                     if (clientSession.isMqtt5()) {
                         TimerManager.stopSessionTimeout(clientId);
+                        TimerManager.stopWillTimeout(clientId);
                     }
                 }
                 SessionState ss = new SessionState(SessionState.StateEnum.ONLINE);
@@ -148,9 +149,11 @@ public class ConnectProcessor implements RequestProcessor {
                 if (willFlag) {
                     boolean willRetain = variableHeader.isWillRetain();
                     int willQos = variableHeader.willQos();
-                    String willTopic = connectMessage.payload().willTopic();
-                    byte[] willPayload = connectMessage.payload().willMessageInBytes();
-                    storeWillMsg(clientId, willRetain, willQos, willTopic, willPayload);
+                    MqttConnectPayload payload = connectMessage.payload();
+                    String willTopic = payload.willTopic();
+                    byte[] willPayload = payload.willMessageInBytes();
+                    MqttProperties properties = payload.willProperties();
+                    storeWillMsg(clientId, willRetain, willQos, willTopic, willPayload, Mqtt5Utils.propertyMap(properties));
                 }
                 returnCode = MqttConnectReturnCode.CONNECTION_ACCEPTED;
                 NettyUtil.setClientId(ctx.channel(), clientId);
@@ -192,13 +195,15 @@ public class ConnectProcessor implements RequestProcessor {
         return false;
     }
 
-    private void storeWillMsg(String clientId, boolean willRetain, int willQos, String willTopic, byte[] willPayload) {
+    private void storeWillMsg(String clientId, boolean willRetain, int willQos,
+                              String willTopic, byte[] willPayload, Map<Integer, Object> propertyMap) {
         Map<String, Object> headers = new HashMap<>();
         headers.put(MessageHeader.RETAIN, willRetain);
         headers.put(MessageHeader.QOS, willQos);
         headers.put(MessageHeader.TOPIC, willTopic);
         headers.put(MessageHeader.WILL, true);
         Message message = new Message(Message.Type.WILL, headers, willPayload);
+        message.setProperties(propertyMap);
         message.setStoreTime(System.currentTimeMillis());
         message.setClientId(clientId);
         messageStore.storeWillMessage(clientId, message);
