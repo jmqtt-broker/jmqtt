@@ -54,8 +54,11 @@ public class Message {
     }
 
     public boolean validity() {
-        return properties != null && !properties.isEmpty() &&
-                properties.get(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value()) != null;
+        if (properties != null && !properties.isEmpty()) {
+            Integer expire = (Integer) properties.get(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value());
+            return expire != null && expire > 0;
+        }
+        return false;
     }
 
     public int alive() {

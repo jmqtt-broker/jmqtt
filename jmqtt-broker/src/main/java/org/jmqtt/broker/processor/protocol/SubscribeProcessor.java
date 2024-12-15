@@ -70,7 +70,7 @@ public class SubscribeProcessor implements RequestProcessor {
         MqttMessage subAckMessage = MessageUtil.getSubAckMessage(variableHeader.messageId(), ackQos);
         ctx.writeAndFlush(subAckMessage);
         // send retain messages
-        subscribe(clientSession, validTopicList).forEach(m -> this.innerMessageDispatcher.appendMessage(m));
+        subscribe(clientSession, validTopicList);
     }
 
     private List<Integer> getTopicQos(List<Topic> topics) {
@@ -95,9 +95,17 @@ public class SubscribeProcessor implements RequestProcessor {
                 if (subscriptionMatcher.isMatch(pubTopic, subscription.getTopic())) {
                     int minQos = MessageUtil.getMinQos((int) retainMsg.getHeader(MessageHeader.QOS), topic.getQos());
                     retainMsg.putHeader(MessageHeader.QOS, minQos);
-                    if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
-                            (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRs)) {
+                    if (clientSession.isMqtt5()) {
+                        if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
+                                (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRs)) {
+                            needDispatcher.add(retainMsg);
+                            MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option);
+                            clientSession.getCtx().writeAndFlush(publishMessage);
+                        }
+                    } else {
                         needDispatcher.add(retainMsg);
+                        MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option);
+                        clientSession.getCtx().writeAndFlush(publishMessage);
                     }
                 }
             });
