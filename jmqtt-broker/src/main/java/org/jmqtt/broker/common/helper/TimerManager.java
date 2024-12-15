@@ -72,6 +72,14 @@ public class TimerManager {
         }
     }
 
+    public static void sendWillImmediately(String clientId) {
+        String key = TimerType.WILL.name() + ":" + clientId;
+        Object val = CaffeineUtil.get(key);
+        if (val != null) {
+            CaffeineUtil.put(key, val, 0);
+        }
+    }
+
     public static void stopWillTimeout(String clientId) {
         stop(TimerType.WILL.name() + ":" + clientId);
     }

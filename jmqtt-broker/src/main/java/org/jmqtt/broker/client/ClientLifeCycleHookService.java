@@ -57,6 +57,8 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                         this.subscriptionMatcher.unSubscribe(subscription.getTopic(), clientId);
                     }
                     ConnectManager.getInstance().removeClient(clientId);
+                    // 会话到期了，如果存在延迟未发送的遗嘱消息，此时需要立即发送
+                    TimerManager.sendWillImmediately(clientId);
                 });
             }
             Message willMessage = messageStore.getWillMessage(clientId);
