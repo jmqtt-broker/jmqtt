@@ -63,7 +63,7 @@ public class CaffeineUtil {
 
     public static Object get(String k) {
         CacheObject val = cache.getIfPresent(k);
-        return Optional.ofNullable(val).isPresent() ? val.getData() : "";
+        return Optional.ofNullable(val).isPresent() ? val.getData() : null;
     }
 
     public static void del(String k) {
@@ -80,7 +80,7 @@ public class CaffeineUtil {
             System.out.println("key过期了 -> " + k + ": " + v);
         });
         put("test", "testVal", 6);
-//        put("test", "testVal", 5);
+       put("test1", "testVal1", 20);
 //        put("test2", "testVal2", 6);
 //        put("test3", "testVal3", 7);
 //        put("4test", "testVal4", 8);
@@ -91,6 +91,8 @@ public class CaffeineUtil {
                 throw new RuntimeException(e);
             }
             System.out.println(get("test"));
+            put("test1", "test1111", 0);
+            // System.out.println(get("test1"));
         });
         thread.start();
     }
