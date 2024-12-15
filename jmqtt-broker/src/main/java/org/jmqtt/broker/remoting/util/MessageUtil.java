@@ -157,16 +157,24 @@ public class MessageUtil {
         return new MqttPubAckMessage(fixedHeader, idVariableHeader);
     }
 
-    public static MqttConnAckMessage getConnectAckMessage(MqttConnectReturnCode returnCode, boolean sessionPresent, Integer maxAlisa) {
+    public static MqttConnAckMessage getConnectAckMessage(String clientId, MqttConnectReturnCode returnCode,
+                                                          boolean sessionPresent,
+                                                          Integer maxAlisa,
+                                                          boolean mqtt5) {
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.CONNACK, false, MqttQoS.EXACTLY_ONCE, false, 0);
         MqttConnAckVariableHeader variableHeader;
-        if (maxAlisa != null) {
-            MqttProperties properties = new MqttProperties();
-            properties.add(new MqttProperties.IntegerProperty(MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value(), maxAlisa));
-            variableHeader = new MqttConnAckVariableHeader(returnCode, sessionPresent, properties);
-        } else {
-            variableHeader = new MqttConnAckVariableHeader(returnCode, sessionPresent);
+        MqttProperties properties = new MqttProperties();
+        if (mqtt5) {
+            if (maxAlisa != null) {
+                properties.add(new MqttProperties.IntegerProperty(MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value(), maxAlisa));
+            }
+            // TODO 服务端能同时处理的非qos0最大消息数，暂定int最大值，后面放到配置里
+            properties.add(new MqttProperties.IntegerProperty(MqttProperties.MqttPropertyType.RECEIVE_MAXIMUM.value(), Integer.MAX_VALUE));
+            if (clientId.length() == 0) {
+                properties.add(new MqttProperties.StringProperty(MqttProperties.MqttPropertyType.ASSIGNED_CLIENT_IDENTIFIER.value(), String.valueOf(System.nanoTime())));
+            }
         }
+        variableHeader = new MqttConnAckVariableHeader(returnCode, sessionPresent, properties);
         return new MqttConnAckMessage(fixedHeader, variableHeader);
     }
 }

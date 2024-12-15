@@ -164,7 +164,7 @@ public class ConnectProcessor implements RequestProcessor {
                 LogUtil.warn(log, "[CONNECT remote:{}] -> {} connect failure,returnCode={}", remoteAddress, clientId, returnCode);
                 return;
             }
-            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, maxAlisa);
+            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(clientId, returnCode, sessionPresent, maxAlisa, clientSession.isMqtt5());
             ctx.writeAndFlush(ackMessage);
             LogUtil.info(log, "1234[CONNECT remote:{}] -> {} connect to this mqtt server", remoteAddress, clientId);
             reConnect2SendMessage(clientId);
@@ -173,7 +173,7 @@ public class ConnectProcessor implements RequestProcessor {
         } catch (Exception ex) {
             LogUtil.warn(log, "[CONNECT remote:{}] -> Service Unavailable: cause={}", remoteAddress, ex);
             returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE;
-            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
+            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(clientId, returnCode, sessionPresent, null, mqttVersion == 5);
             ctx.writeAndFlush(ackMessage);
             ctx.close();
         }

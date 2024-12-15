@@ -139,7 +139,6 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                 if (qos > 0) {
                                     cacheOutflowMsg(subClientId, message);
                                 }
-                                MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
                                 if (clientSession.isMqtt5()) {
                                     if (message.validity()) {
                                         if (message.alive() > 0) {
