@@ -4,6 +4,7 @@ import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.Getter;
 import lombok.Setter;
 import org.jmqtt.broker.acl.AuthValid;
+import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
@@ -122,7 +123,7 @@ public class BrokerController {
                 this.clusterEventHandler = MixAll.pluginInit(AkkaClusterEventHandler.class);
             }
             String store = brokerConfig.getStore();
-            if (SessionStore.RDB.equals(store)) {
+            if (JmqttConst.RDB.equals(store)) {
                 if (this.sessionStore == null) {
                     this.sessionStore = MixAll.pluginInit(RDBSessionStore.class);
                 }
@@ -132,7 +133,7 @@ public class BrokerController {
                 if (this.clusterEventHandler == null) {
                     this.clusterEventHandler = MixAll.pluginInit(RDBClusterEventHandler.class);
                 }
-            } else if (SessionStore.REDIS.equals(store)) {
+            } else if (JmqttConst.REDIS.equals(store)) {
                 if (this.sessionStore == null) {
                     this.sessionStore = MixAll.pluginInit(RedisSessionStore.class);
                 }
@@ -250,7 +251,7 @@ public class BrokerController {
         if (this.remotingServer != null) {
             this.remotingServer.start();
         }
-        LogUtil.info(log, "JMqtt Server start success and version = {}", brokerConfig.getVersion());
+        LogUtil.info(log, "JMqtt Server start success.");
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override

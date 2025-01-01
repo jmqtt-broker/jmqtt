@@ -47,9 +47,8 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
     public void onChannelClose(String remoteAddr, Channel channel) {
         String clientId = NettyUtil.getClientId(channel);
         if (StringUtils.isNotEmpty(clientId)) {
-            TopicAliasManager.clear(clientId);
             ClientSession session = ConnectManager.getInstance().getClient(clientId);
-            if (session != null && !session.isCleanStart()) {
+            if (!session.isCleanStart()) {
                 TimerManager.startSessionTimeout(session, (k, v) -> {
                     sessionStore.clearSession(clientId, false);
                     Set<Subscription> subscriptions = sessionStore.getSubscriptions(clientId);
@@ -60,10 +59,13 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                     // 会话到期了，如果存在延迟未发送的遗嘱消息，此时需要立即发送
                     TimerManager.sendWillImmediately(clientId);
                 });
+            } else {
+                TopicAliasManager.clear(clientId);
+                sessionStore.clearClientProperty(clientId);
             }
             Message willMessage = messageStore.getWillMessage(clientId);
             if (willMessage != null) {
-                if (session != null && session.isMqtt5()) {
+                if (session.isMqtt5()) {
                     TimerManager.startWillTimeout(clientId, willMessage, (k, v) -> {
                         innerMessageDispatcher.appendMessage((Message) v);
                         messageStore.clearWillMessage(clientId);

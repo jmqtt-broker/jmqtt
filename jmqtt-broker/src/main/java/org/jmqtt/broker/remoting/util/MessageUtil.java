@@ -172,4 +172,10 @@ public class MessageUtil {
         }
         return new MqttConnAckMessage(fixedHeader, variableHeader);
     }
+
+    public static MqttMessage getDisconnectMessage(byte reasonCode) {
+        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.DISCONNECT, false, MqttQoS.EXACTLY_ONCE, false, 0);
+        MqttReasonCodeAndPropertiesVariableHeader variableHeader = new MqttReasonCodeAndPropertiesVariableHeader(reasonCode, null);
+        return new MqttMessage(fixedHeader, variableHeader);
+    }
 }

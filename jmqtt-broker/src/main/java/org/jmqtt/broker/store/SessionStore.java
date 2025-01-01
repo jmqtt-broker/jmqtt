@@ -1,12 +1,15 @@
 
 package org.jmqtt.broker.store;
 
+import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.common.helper.CaffeineUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -20,10 +23,6 @@ import java.util.Set;
  *
  */
 public interface SessionStore {
-
-    String MEM = "mem";
-    String RDB = "rdb";
-    String REDIS = "redis";
 
     void start(BrokerConfig brokerConfig);
 
@@ -139,4 +138,29 @@ public interface SessionStore {
      * 清理该客户端的离线消息
      */
     boolean clearOfflineMsg(String clientId);
+
+    /**
+     * 获取某个客户端的某个连接属性
+     * @param clientId
+     * @param propertyId
+     * @return
+     */
+    default Object getClientProperty(String clientId, Integer propertyId) {
+        String key = JmqttConst.CLIENT_PROPERTIES + clientId;
+        Map<Integer, Object> propertyMap = (Map<Integer, Object>) CaffeineUtil.get(key);
+        if (propertyMap != null) {
+            return propertyMap.get(propertyId);
+        }
+        SessionState session = getSession(clientId);
+        propertyMap = session.getPropertyMap();
+        if (propertyMap != null) {
+            CaffeineUtil.put(clientId, propertyMap, 30 * 60);
+            return propertyMap.get(propertyId);
+        }
+        return null;
+    }
+
+    default void clearClientProperty(String clientId) {
+        CaffeineUtil.del(JmqttConst.CLIENT_PROPERTIES + clientId);
+    }
 }
