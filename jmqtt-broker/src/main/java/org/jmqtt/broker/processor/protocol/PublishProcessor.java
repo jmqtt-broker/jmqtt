@@ -40,40 +40,45 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
     public void processRequest(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         try {
             MqttPublishMessage publishMessage = (MqttPublishMessage) mqttMessage;
-            MqttQoS qos = publishMessage.fixedHeader().qosLevel();
+            MqttFixedHeader fixedHeader = publishMessage.fixedHeader();
+            MqttPublishVariableHeader variableHeader = publishMessage.variableHeader();
+            MqttQoS qos = fixedHeader.qosLevel();
             Message innerMsg = new Message();
             innerMsg.setStoreTime(System.currentTimeMillis());
             String clientId = NettyUtil.getClientId(ctx.channel());
             ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
-            String topic = publishMessage.variableHeader().topicName();
+            String topic = variableHeader.topicName();
             if (!this.authValid.publishVerify(clientId, topic)) {
                 LogUtil.warn(log, "[PubMessage] permission is not allowed");
                 clientSession.getCtx().close();
                 return;
             }
-            innerMsg.setPayload(MessageUtil.readBytesFromByteBuf(((MqttPublishMessage) mqttMessage).payload()));
+            innerMsg.setPayload(MessageUtil.readBytesFromByteBuf(publishMessage.payload()));
             innerMsg.setClientId(clientId);
-            innerMsg.setType(Message.Type.valueOf(mqttMessage.fixedHeader().messageType().value()));
+            innerMsg.setType(Message.Type.valueOf(fixedHeader.messageType().value()));
             Map<String, Object> headers = new HashMap<>();
             headers.put(MessageHeader.TOPIC, topic);
-            headers.put(MessageHeader.QOS, publishMessage.fixedHeader().qosLevel().value());
-            headers.put(MessageHeader.RETAIN, publishMessage.fixedHeader().isRetain());
-            headers.put(MessageHeader.DUP, publishMessage.fixedHeader().isDup());
-            headers.put(MessageHeader.REMAINING_LENGTH, publishMessage.fixedHeader().remainingLength());
-            MqttProperties properties = publishMessage.variableHeader().properties();
-            if (properties != null && !properties.isEmpty()) {
-                MqttProperties.MqttProperty topicAlias = properties.getProperty(MqttProperties.MqttPropertyType.TOPIC_ALIAS.value());
-                if (topicAlias != null) {
-                    if (StringUtils.isNotBlank(topic)) {
-                        TopicAliasManager.put(clientId, (Integer) topicAlias.value(), topic);
-                    } else {
-                        headers.put(MessageHeader.TOPIC, TopicAliasManager.get(clientId, (Integer) topicAlias.value()));
+            headers.put(MessageHeader.QOS, fixedHeader.qosLevel().value());
+            headers.put(MessageHeader.RETAIN, fixedHeader.isRetain());
+            headers.put(MessageHeader.DUP, fixedHeader.isDup());
+            headers.put(MessageHeader.REMAINING_LENGTH, fixedHeader.remainingLength());
+            if (clientSession.isMqtt5()) {
+                MqttProperties properties = variableHeader.properties();
+                if (properties != null && !properties.isEmpty()) {
+                    MqttProperties.IntegerProperty topicAlias = (MqttProperties.IntegerProperty)
+                            properties.getProperty(MqttProperties.MqttPropertyType.TOPIC_ALIAS.value());
+                    if (topicAlias != null) {
+                        if (StringUtils.isNotBlank(topic)) {
+                            TopicAliasManager.put(clientId, topicAlias.value(), topic);
+                        } else {
+                            headers.put(MessageHeader.TOPIC, TopicAliasManager.get(clientId, topicAlias.value()));
+                        }
                     }
+                    innerMsg.setProperties(Mqtt5Utils.propertyMap(properties));
                 }
-                innerMsg.setProperties(Mqtt5Utils.propertyMap(properties));
             }
             innerMsg.setHeaders(headers);
-            innerMsg.setMsgId(publishMessage.variableHeader().packetId());
+            innerMsg.setMsgId(variableHeader.packetId());
             switch (qos) {
                 case AT_MOST_ONCE:
                     processMessage(innerMsg);

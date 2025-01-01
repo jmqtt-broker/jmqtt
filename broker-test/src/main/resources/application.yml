@@ -43,7 +43,19 @@ jmqtt:
     anonymous-enable: true
     user: admin
     pwd: 123456
-    # 是否开启高性能模式
+    mqtt5:
+      # 是否使用服务端心跳周期
+      use-server-keepalive: false
+      default-keepalive: 15
+      # 服务端能同时处理的非qos0最大消息数，默认int最大值
+      receive-maximum: 300000
+      # 服务端能处理的最大packet长度，默认256M，也是mqtt报文数据最大长度（可变头 + payload）
+      maximum-packet-size: 20000
+      # 主题别名最大值
+      topic-alias-maximum: 1024
+      # 服务端生成的clientId前缀，当客户端未设置clientId时，由服务端生成clientId返回
+      client-id-prefix: JMQTT_CLIENT_
+    # 是否开启高性能模式，开启则使用内存缓存QOS1、2的过程消息
     high-performance: true
     # 数据存储仓库，默认mem为内存存储，可选redis、rdb，配置redis需要配置redis连接，配置rdb需要数据库连接
     # 当系统中存在DataSource对象时，优先使用已存在的DataSource

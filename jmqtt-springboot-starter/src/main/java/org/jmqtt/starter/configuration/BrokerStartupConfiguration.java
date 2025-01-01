@@ -68,6 +68,7 @@ public class BrokerStartupConfiguration {
         BeanUtils.copyProperties(filterNull, brokerConfig);
         Optional.ofNullable(autoConfig.getRdb()).ifPresent(rdb -> BeanUtils.copyProperties(rdb, brokerConfig));
         Optional.ofNullable(autoConfig.getRedis()).ifPresent(redis -> BeanUtils.copyProperties(redis, brokerConfig));
+        Optional.ofNullable(autoConfig.getMqtt5()).ifPresent(mqtt5 -> BeanUtils.copyProperties(mqtt5, brokerConfig));
         // getProperties(brokerConfig, "jmqtt.broker.");
         return brokerConfig;
     }

@@ -26,7 +26,7 @@ public class MyValid extends DefaultAuthValid {
     @Override
     public boolean clientIdVerify(String clientId) {
         log.info("客户端ID: {}", clientId);
-        return true;
+        return super.clientIdVerify(clientId);
     }
 
     @Override

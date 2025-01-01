@@ -2,10 +2,7 @@ package org.jmqtt.starter.config;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.jmqtt.broker.common.config.AkkaConfig;
-import org.jmqtt.broker.common.config.NettyConfig;
-import org.jmqtt.broker.common.config.RDBConfig;
-import org.jmqtt.broker.common.config.RedisConfig;
+import org.jmqtt.broker.common.config.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -31,5 +28,6 @@ public class JmqttConfiguration {
     private RDBConfig rdb;
     private RedisConfig redis;
     private NettyConfig netty;
+    private Mqtt5Config mqtt5;
 
 }
