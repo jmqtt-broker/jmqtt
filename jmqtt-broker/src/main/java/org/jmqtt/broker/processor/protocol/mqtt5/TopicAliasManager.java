@@ -20,10 +20,13 @@ public class TopicAliasManager {
 
     private final static Map<String, Map<Integer, String>> TOPIC_ALIAS_MAP = new ConcurrentHashMap<>();
 
+    private final static Object LOCK = new Object();
+
     public static void put(String clientId, Integer alias, String topic) {
         Map<Integer, String> aliasMap = TOPIC_ALIAS_MAP.get(clientId);
         if (aliasMap == null) {
-            synchronized (clientId) {
+            synchronized (LOCK) {
+                aliasMap = TOPIC_ALIAS_MAP.get(clientId);
                 if (aliasMap == null) {
                     aliasMap = new ConcurrentHashMap<>();
                     TOPIC_ALIAS_MAP.put(clientId, aliasMap);

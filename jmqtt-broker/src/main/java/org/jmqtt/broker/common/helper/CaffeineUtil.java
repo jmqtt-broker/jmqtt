@@ -6,11 +6,8 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import org.checkerframework.checker.index.qual.NonNegative;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -18,9 +15,8 @@ import java.util.function.BiConsumer;
 
 public class CaffeineUtil {
 
-    private static String REDIS_KEY_DELIMITER = ":";
     private final static List<BiConsumer<String, Object>> LISTENERS = new CopyOnWriteArrayList<>();
-    private static Cache<String, CacheObject> cache = Caffeine.newBuilder()
+    private final static Cache<String, CacheObject> CACHE = Caffeine.newBuilder()
             // key过期后处理逻辑
             .removalListener((String key, CacheObject val, RemovalCause cause) ->
                     LISTENERS.forEach(l -> {
@@ -53,21 +49,21 @@ public class CaffeineUtil {
 
     public static void put(String k, Object v) {
         CacheObject cacheObject = new CacheObject(v);
-        cache.put(k, cacheObject);
+        CACHE.put(k, cacheObject);
     }
 
     public static void put(String k, Object v, long expireSeconds) {
         CacheObject cacheObject = new CacheObject(v, expireSeconds);
-        cache.put(k, cacheObject);
+        CACHE.put(k, cacheObject);
     }
 
     public static Object get(String k) {
-        CacheObject val = cache.getIfPresent(k);
+        CacheObject val = CACHE.getIfPresent(k);
         return Optional.ofNullable(val).isPresent() ? val.getData() : null;
     }
 
     public static void del(String k) {
-        cache.invalidate(k);
+        CACHE.invalidate(k);
     }
 
     public static void addRemoveListener(BiConsumer<String, Object> listener) {
@@ -81,9 +77,6 @@ public class CaffeineUtil {
         });
         put("test", "testVal", 6);
        put("test1", "testVal1", 20);
-//        put("test2", "testVal2", 6);
-//        put("test3", "testVal3", 7);
-//        put("4test", "testVal4", 8);
         Thread thread = new Thread(() -> {
             try {
                 Thread.sleep(6000);

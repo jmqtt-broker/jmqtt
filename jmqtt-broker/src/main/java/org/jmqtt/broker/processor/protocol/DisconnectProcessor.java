@@ -57,7 +57,7 @@ public class DisconnectProcessor implements RequestProcessor {
     }
 
     protected void sessionDestroy(ClientSession clientSession) {
-        log.info("会话销毁：{}", clientSession.getClientId());
+        log.info("session destroyed：{}", clientSession.getClientId());
     }
 
     private void clearSession(ClientSession clientSession) {

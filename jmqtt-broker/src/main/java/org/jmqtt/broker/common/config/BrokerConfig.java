@@ -70,4 +70,16 @@ public class BrokerConfig {
     private RDBConfig rdb;
     private RedisConfig redis;
 
+    // 是否使用服务端默认的心跳周期
+    private boolean useServerKeepalive = false;
+    private int defaultKeepalive = 60;
+    // 服务端能同时处理的非qos0最大消息数，默认int最大值
+    private Integer receiveMaximum = Integer.MAX_VALUE;
+    // 服务端能处理的最大packet长度，默认256M，也是mqtt报文数据最大长度（可变头 + payload）
+    private Integer maximumPacketSize = 1024 * 1024 * 256;
+    // 主题别名最大值
+    private Integer topicAliasMaximum;
+    // 服务端生成的clientId默认前缀
+    private String clientIdPrefix = "JMQTT_";
+
 }

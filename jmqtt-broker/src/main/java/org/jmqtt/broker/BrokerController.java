@@ -198,12 +198,12 @@ public class BrokerController {
         // 1. start store
         this.sessionStore.start(brokerConfig);
         this.messageStore.start(brokerConfig);
+        this.clusterEventHandler.start(brokerConfig);
 
         // 2. start cluster
         if (!this.akkaEnable) {
             this.eventConsumeHandler.start();
         }
-        this.clusterEventHandler.start(brokerConfig);
 
         // 3. start message service
         if (this.innerMessageDispatcher != null) {

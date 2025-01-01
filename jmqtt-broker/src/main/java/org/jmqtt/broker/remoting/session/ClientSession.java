@@ -2,6 +2,7 @@ package org.jmqtt.broker.remoting.session;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttProperties;
+import io.netty.handler.codec.mqtt.MqttVersion;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -48,7 +49,7 @@ public class ClientSession {
     }
 
     public boolean isMqtt5() {
-        return this.version == 5;
+        return this.version == MqttVersion.MQTT_5.protocolLevel();
     }
 
     public int timeoutSecond() {

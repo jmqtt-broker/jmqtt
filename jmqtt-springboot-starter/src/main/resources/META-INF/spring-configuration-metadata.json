@@ -193,6 +193,47 @@
       "type": "java.lang.Boolean",
       "sourceType": "org.jmqtt.starter.config.JmqttConfiguration",
       "defaultValue": false
+    },
+    {
+      "name": "jmqtt.broker.mqtt5",
+      "type": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "sourceType": "org.jmqtt.starter.config.JmqttConfiguration"
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.use-server-keepalive",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": false
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.default-keepalive",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": 60
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.receive-maximum",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": 2147483647
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.maximum-packet-size",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": 20971520
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.topic-alias-maximum",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": 2048
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.client-id-prefix",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": "JMQTT_"
     }
   ],
   "hints": []

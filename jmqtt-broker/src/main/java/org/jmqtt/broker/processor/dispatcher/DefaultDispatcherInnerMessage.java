@@ -64,7 +64,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
             int waitTime = 1000;
             while (!stoped) {
                 try {
-                    List<Message> messageList = new ArrayList(32);
+                    List<Message> messageList = new ArrayList<>(32);
                     Message message;
                     for (int i = 0; i < 32; i++) {
                         if (i == 0) {
