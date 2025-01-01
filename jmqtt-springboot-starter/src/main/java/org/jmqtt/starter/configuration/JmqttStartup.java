@@ -3,6 +3,7 @@ package org.jmqtt.starter.configuration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.BrokerController;
+import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.processor.RequestProcessor;
 import org.jmqtt.broker.store.SessionStore;
@@ -40,9 +41,9 @@ public class JmqttStartup {
     @PostConstruct
     public void start() {
         String store = brokerConfig.getStore();
-        if (SessionStore.RDB.equals(store)) {
+        if (JmqttConst.RDB.equals(store)) {
             initRdb();
-        } else if (SessionStore.REDIS.equals(store)) {
+        } else if (JmqttConst.REDIS.equals(store)) {
             initRedis();
         }
         BrokerController ctrl = ctx.getBean(BrokerController.class);

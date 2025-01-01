@@ -1,6 +1,7 @@
 package org.jmqtt.broker.processor.dispatcher;
 
 import com.alibaba.fastjson.JSON;
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import org.jmqtt.broker.common.helper.RejectHandler;
 import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
@@ -125,13 +126,17 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                         for (Subscription subscription : subscriptions) {
                             String subClientId = subscription.getClientId();
                             if (ConnectManager.getInstance().containClient(subClientId)) {
+                                ClientSession clientSession = ConnectManager.getInstance().getClient(subClientId);
+                                if (clientSession.isMqtt5() && checkPackageSize(clientSession, (Integer) message.getHeader(MessageHeader.REMAINING_LENGTH))) {
+                                    log.warn("exceeding message, clientId: {}, stop publish.", subClientId);
+                                    continue;
+                                }
                                 SubscriptionOption option = subscription.getOption();
                                 if (option != null) {
                                     if (option.isNoLocal() && pubClientId.equals(subClientId)) {
                                         continue;
                                     }
                                 }
-                                ClientSession clientSession = ConnectManager.getInstance().getClient(subClientId);
                                 int qos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
                                 int messageId = clientSession.generateMessageId();
                                 message.putHeader(MessageHeader.QOS, qos);
@@ -177,5 +182,11 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
         } else {
             sessionStore.storeOfflineMsg(subscription.getClientId(), message);
         }
+    }
+
+    private boolean checkPackageSize(ClientSession clientSession, int remainingLength) {
+        String clientId = clientSession.getClientId();
+        Integer receiveMaximum = (Integer) sessionStore.getClientProperty(clientId, MqttProperties.MqttPropertyType.RECEIVE_MAXIMUM.value());
+        return receiveMaximum != null && (remainingLength + 5) > receiveMaximum;
     }
 }

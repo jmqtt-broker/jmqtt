@@ -6,6 +6,7 @@ import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
 import org.jmqtt.broker.acl.impl.DefaultAuthValid;
 import org.jmqtt.broker.client.ClientLifeCycleHookService;
+import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;
@@ -86,9 +87,9 @@ public class BrokerStartupConfiguration {
     public SessionStore sessionStore(JmqttConfiguration autoConfig) {
         String store = autoConfig.getStore();
         SessionStore sessionStore;
-        if (SessionStore.RDB.equals(store)) {
+        if (JmqttConst.RDB.equals(store)) {
             sessionStore = new RDBSessionStore();
-        } else if (SessionStore.REDIS.equals(store)) {
+        } else if (JmqttConst.REDIS.equals(store)) {
             sessionStore = new RedisSessionStore();
         } else {
             sessionStore = new MemSessionStore();
@@ -100,9 +101,9 @@ public class BrokerStartupConfiguration {
     public MessageStore messageStore(JmqttConfiguration autoConfig) {
         String store = autoConfig.getStore();
         MessageStore messageStore;
-        if (SessionStore.RDB.equals(store)) {
+        if (JmqttConst.RDB.equals(store)) {
             messageStore = new RDBMessageStore();
-        } else if (SessionStore.REDIS.equals(store)) {
+        } else if (JmqttConst.REDIS.equals(store)) {
             messageStore = new RedisMessageStore();
         } else {
             messageStore = new MemMessageStore();
@@ -116,9 +117,9 @@ public class BrokerStartupConfiguration {
         ClusterEventHandler clusterEventHandler;
         if (autoConfig.getAkka().getEnable()) {
             clusterEventHandler = new AkkaClusterEventHandler();
-        } else if (SessionStore.RDB.equals(store)) {
+        } else if (JmqttConst.RDB.equals(store)) {
             clusterEventHandler = new RDBClusterEventHandler();
-        } else if (SessionStore.REDIS.equals(store)) {
+        } else if (JmqttConst.REDIS.equals(store)) {
             clusterEventHandler = new RedisClusterEventHandler();
         } else {
             clusterEventHandler = new MemEventHandler();

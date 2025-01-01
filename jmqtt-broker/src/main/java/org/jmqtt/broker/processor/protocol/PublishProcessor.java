@@ -17,6 +17,7 @@ import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
 import org.jmqtt.broker.remoting.util.NettyUtil;
+import org.jmqtt.broker.store.SessionStore;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
@@ -31,9 +32,12 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
 
     private AuthValid authValid;
 
+    private SessionStore sessionStore;
+
     public PublishProcessor(BrokerController controller) {
         super(controller);
         this.authValid = controller.getAuthValid();
+        this.sessionStore = controller.getSessionStore();
     }
 
     @Override
@@ -41,12 +45,18 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
         try {
             MqttPublishMessage publishMessage = (MqttPublishMessage) mqttMessage;
             MqttFixedHeader fixedHeader = publishMessage.fixedHeader();
+            String clientId = NettyUtil.getClientId(ctx.channel());
+            ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
+            if (clientSession.isMqtt5() && checkPackageSize(clientSession, fixedHeader.remainingLength())) {
+                // 消息超出约定的大小，直接丢弃
+                log.warn("exceeding message, clientId: {}", clientId);
+                clientSession.getCtx().close();
+                return;
+            }
             MqttPublishVariableHeader variableHeader = publishMessage.variableHeader();
             MqttQoS qos = fixedHeader.qosLevel();
             Message innerMsg = new Message();
             innerMsg.setStoreTime(System.currentTimeMillis());
-            String clientId = NettyUtil.getClientId(ctx.channel());
-            ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
             String topic = variableHeader.topicName();
             if (!this.authValid.publishVerify(clientId, topic)) {
                 LogUtil.warn(log, "[PubMessage] permission is not allowed");
@@ -116,6 +126,22 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
         LogUtil.info(log, "[PubMessage] -> Process qos1 message,clientId={}", innerMsg.getClientId());
         MqttPubAckMessage pubAckMessage = MessageUtil.getPubAckMessage(originMessageId);
         ctx.writeAndFlush(pubAckMessage);
+    }
+
+    private boolean checkPackageSize(ClientSession clientSession, int remainingLength) {
+        boolean res = false;
+        String clientId = clientSession.getClientId();
+        Integer maxSize = (Integer) sessionStore.getClientProperty(clientId, MqttProperties.MqttPropertyType.MAXIMUM_PACKET_SIZE.value());
+        if (maxSize != null) {
+            if ((remainingLength + 5) > maxSize) {
+                // 固定头长度2~5字节，这里直接以5为准
+                // 当包大小大于连接时约定的值时，服务端主动发送DISCONNECT
+                clientSession.getCtx().writeAndFlush(MessageUtil.getDisconnectMessage((byte) 0x95));
+                log.warn("max packet size error,clientId {}", clientId);
+                res = true;
+            }
+        }
+        return res;
     }
 
 }

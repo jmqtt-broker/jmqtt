@@ -3,6 +3,7 @@ package org.jmqtt.broker.store.rdb;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.LogUtil;
@@ -33,7 +34,13 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         if (sessionDO == null) {
             return new SessionState(SessionState.StateEnum.NULL);
         }
-        return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()), sessionDO.getOfflineTime());
+        String property = sessionDO.getProperty();
+        if (StringUtils.isNotBlank(property)) {
+            return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
+                    sessionDO.getOfflineTime(), new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)));
+        }
+        return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
+                sessionDO.getOfflineTime());
     }
 
     @Override
