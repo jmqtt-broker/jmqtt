@@ -160,6 +160,13 @@ public class MessageUtil {
         return new MqttPubAckMessage(fixedHeader, idVariableHeader);
     }
 
+    public static MqttMessage getPubReplyMessage(int messageId, MqttMessageType type,
+                                                 byte reasonCode, MqttProperties properties) {
+        MqttFixedHeader fixedHeader = new MqttFixedHeader(type, false, MqttQoS.EXACTLY_ONCE, false, 0);
+        MqttPubReplyMessageVariableHeader variableHeader = new MqttPubReplyMessageVariableHeader(messageId, reasonCode, properties);
+        return new MqttMessage(fixedHeader, variableHeader);
+    }
+
     public static MqttConnAckMessage getConnectAckMessage(MqttConnectReturnCode returnCode,
                                                           boolean sessionPresent,
                                                           MqttProperties properties) {

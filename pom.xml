@@ -7,7 +7,7 @@
     <groupId>jz-mqtt</groupId>
     <artifactId>jz-mqtt</artifactId>
     <packaging>pom</packaging>
-    <version>3.0.0</version>
+    <version>1.0.0</version>
     <modules>
         <module>jmqtt-broker</module>
         <module>jmqtt-springboot-starter</module>

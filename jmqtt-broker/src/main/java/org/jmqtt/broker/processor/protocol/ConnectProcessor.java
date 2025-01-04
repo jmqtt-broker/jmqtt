@@ -154,7 +154,6 @@ public class ConnectProcessor implements RequestProcessor {
                     Map<Integer, Object> propertyMap = Mqtt5Utils.propertyMap(variableHeader.properties());
                     if (!propertyMap.isEmpty()) {
                         ss.setPropertyMap(propertyMap);
-                        clientSession.setPropertyMap(propertyMap);
                     }
                 }
                 // 3. 存储 session 会话
@@ -180,6 +179,8 @@ public class ConnectProcessor implements RequestProcessor {
                 ConnectManager.getInstance().putClient(clientId, clientSession);
             }
             if (returnCode != MqttConnectReturnCode.CONNECTION_ACCEPTED) {
+                MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
+                ctx.writeAndFlush(ackMessage);
                 ctx.close();
                 LogUtil.warn(log, "[CONNECT remote:{}] -> {} connect failure,returnCode={}", remoteAddress, clientId, returnCode);
                 return;

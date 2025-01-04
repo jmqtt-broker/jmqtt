@@ -3,7 +3,7 @@ package org.jmqtt.broker.common.helper;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.broker.remoting.session.ClientSession;
+import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,15 +45,11 @@ public class TimerManager {
         }
     }
 
-    public static void startSessionTimeout(ClientSession clientSession, BiConsumer<String, Object> consumer) {
-        String clientId = clientSession.getClientId();
-        Map<Integer, Object> propertyMap = clientSession.getPropertyMap();
-        if (propertyMap != null && !propertyMap.isEmpty()) {
-            int expire = clientSession.timeoutSecond();
-            if (expire > 0) {
-                TimerBO task = new TimerBO(clientId, TimerType.SESSION, clientId, expire);
-                start(task, consumer);
-            }
+    public static void startSessionTimeout(String clientId, BiConsumer<String, Object> consumer) {
+        int expire = Mqtt5Utils.timeoutSecond(clientId);
+        if (expire > 0) {
+            TimerBO task = new TimerBO(clientId, TimerType.SESSION, clientId, expire);
+            start(task, consumer);
         }
     }
 

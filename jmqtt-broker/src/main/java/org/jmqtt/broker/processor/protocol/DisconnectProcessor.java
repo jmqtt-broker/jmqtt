@@ -5,23 +5,16 @@ import io.netty.handler.codec.mqtt.MqttMessage;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
-import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.processor.RequestProcessor;
-import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.NettyUtil;
 import org.jmqtt.broker.store.MessageStore;
-import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
-import java.util.Map;
-import java.util.Set;
-
 /**
  * 客户端主动发起断开连接：正常断连
- * TODO mqtt5实现
  */
 public class DisconnectProcessor implements RequestProcessor {
 
@@ -42,39 +35,6 @@ public class DisconnectProcessor implements RequestProcessor {
         LogUtil.info(log, "[DISCONNECT remote:{}] -> {} disconnect mqtt server", ctx.channel().remoteAddress(), clientId);
         if (!ConnectManager.getInstance().containClient(clientId)) {
             LogUtil.warn(log, "[DISCONNECT] -> {} hasn't connect before", clientId);
-        }
-
-        ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
-
-        // 1. 清理会话 或 重新设置该客户端会话状态
-        clearSession(clientSession);
-
-        // 4. 移除本节点上的连接
-        ConnectManager.getInstance().removeClient(clientId);
-
-        ctx.close();
-        sessionDestroy(clientSession);
-    }
-
-    protected void sessionDestroy(ClientSession clientSession) {
-        log.info("session destroyed：{}", clientSession.getClientId());
-    }
-
-    private void clearSession(ClientSession clientSession) {
-        String clientId = clientSession.getClientId();
-        if (clientSession.isCleanStart()) {
-            Set<Subscription> subscriptions = sessionStore.getSubscriptions(clientId);
-            for (Subscription subscription : subscriptions) {
-                this.subscriptionMatcher.unSubscribe(subscription.getTopic(), clientId);
-            }
-            sessionStore.clearSession(clientId, false);
-        } else {
-            SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis());
-            Map<Integer, Object> propertyMap = clientSession.getPropertyMap();
-            if (propertyMap != null && !propertyMap.isEmpty()) {
-                sessionState.setPropertyMap(propertyMap);
-            }
-            sessionStore.storeSession(clientId, sessionState);
         }
     }
 

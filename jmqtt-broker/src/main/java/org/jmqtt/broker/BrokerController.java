@@ -8,6 +8,7 @@ import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.helper.RejectHandler;
 import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
@@ -192,7 +193,7 @@ public class BrokerController {
 
 
     public void start() {
-
+        BrokerContext.setBrokerController(this);
         MixAll.printProperties(log, brokerConfig);
         MixAll.printProperties(log, nettyConfig);
 

@@ -48,7 +48,7 @@ jmqtt:
       use-server-keepalive: false
       default-keepalive: 15
       # 服务端能同时处理的非qos0最大消息数，默认int最大值
-      receive-maximum: 300000
+      receive-maximum: 100
       # 服务端能处理的最大packet长度，默认256M，也是mqtt报文数据最大长度（可变头 + payload）
       maximum-packet-size: 20000
       # 主题别名最大值

@@ -2,10 +2,12 @@ package org.jmqtt.broker.processor.protocol.mqtt5;
 
 import io.netty.handler.codec.mqtt.MqttProperties;
 import org.apache.commons.lang3.StringUtils;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.MessageHeader;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @Description: java类作用描述
@@ -24,6 +26,16 @@ public class Mqtt5Utils {
             }
         });
         return propertyMap;
+    }
+
+    public static boolean isOk(byte reasonCode) {
+        return reasonCode == 0x00;
+    }
+
+    public static int timeoutSecond(String clientId) {
+        Integer expire = (Integer) BrokerContext.getSessionStore()
+                .getClientProperty(clientId, MqttProperties.MqttPropertyType.SESSION_EXPIRY_INTERVAL.value());
+        return Optional.ofNullable(expire).orElse(0);
     }
 
 }

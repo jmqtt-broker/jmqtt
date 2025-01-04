@@ -18,6 +18,7 @@ import io.netty.handler.codec.mqtt.MqttEncoder;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.AttributeKey;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;
@@ -207,6 +208,9 @@ public class NettyRemotingServer implements RemotingService {
             MqttMessage mqttMessage = (MqttMessage) obj;
             if (mqttMessage != null && mqttMessage.decoderResult().isSuccess()) {
                 MqttMessageType messageType = mqttMessage.fixedHeader().messageType();
+                if (messageType.equals(MqttMessageType.DISCONNECT)) {
+                    ctx.channel().attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).set(true);
+                }
                 LogUtil.debug(log, "[Remoting] ->clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", NettyUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
                 Runnable runnable = () -> processorTable.get(messageType).getObject1().processRequest(ctx, mqttMessage);
                 try {
