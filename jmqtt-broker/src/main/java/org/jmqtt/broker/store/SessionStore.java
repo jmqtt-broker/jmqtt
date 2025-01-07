@@ -1,16 +1,18 @@
 
 package org.jmqtt.broker.store;
 
+import io.netty.handler.codec.mqtt.MqttVersion;
 import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.CaffeineUtil;
+import org.jmqtt.broker.common.helper.TimerManager;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
+import org.jmqtt.broker.remoting.session.ConnectManager;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 存储客户端会话信息
@@ -47,7 +49,19 @@ public interface SessionStore {
      *  4. 订阅状态{@link SessionState}
      */
     default void clearSession(String clientId,boolean clearOfflineMsg){
-        storeSession(clientId,new SessionState(SessionState.StateEnum.NULL));
+        SessionState session = getSession(clientId);
+        Optional.ofNullable(session.getVersion()).ifPresent(v -> {
+            if (v == MqttVersion.MQTT_5.protocolLevel()) {
+                TopicAliasManager.clear(clientId);
+                clearClientProperty(clientId);
+                // 会话到期了，如果存在延迟未发送的遗嘱消息，此时需要立即发送
+                TimerManager.sendWillImmediately(clientId);
+            }
+        });
+        Set<Subscription> subscriptions = getSubscriptions(clientId);
+        if (!subscriptions.isEmpty()) {
+            subscriptions.forEach(s -> BrokerContext.getSubscriptionMatcher().unSubscribe(s.getTopic(), clientId));
+        }
         clearSubscription(clientId);
         releaseInflowMsg(clientId, null);
         releaseOutflowMsg(clientId, null);
@@ -55,6 +69,8 @@ public interface SessionStore {
         if (clearOfflineMsg) {
             clearOfflineMsg(clientId);
         }
+        storeSession(clientId,new SessionState(SessionState.StateEnum.NULL));
+        ConnectManager.getInstance().removeClient(clientId);
     }
 
     /**

@@ -22,4 +22,6 @@ public class SessionDO implements Serializable {
 
     private String property;
 
+    private Integer version;
+
 }

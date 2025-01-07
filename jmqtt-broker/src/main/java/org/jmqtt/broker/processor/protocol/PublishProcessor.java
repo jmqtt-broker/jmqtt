@@ -51,14 +51,26 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
             MqttPublishMessage publishMessage = (MqttPublishMessage) mqttMessage;
             MqttFixedHeader fixedHeader = publishMessage.fixedHeader();
             String clientId = NettyUtil.getClientId(ctx.channel());
+            MqttQoS qos = fixedHeader.qosLevel();
             ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
-            if (clientSession.isMqtt5() && checkPackageSize(clientSession, fixedHeader.remainingLength())) {
-                // 消息超出约定的大小，直接丢弃
-                log.warn("exceeding message, clientId: {}", clientId);
-                clientSession.getCtx().close();
+            if (clientSession.isMqtt5()) {
+                if (!brokerConfig.getRetainAvailable() && fixedHeader.isRetain()) {
+                    // broker没有开启保留消息功能，禁止发布保留消息
+                    log.warn("retain not available, clientId: {}", clientId);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9A);
+                    return;
+                } else if (qos.value() > brokerConfig.getMaximumQos()) {
+                    log.warn("QoS not supported, clientId: {}", clientId);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9B);
+                    return;
+                } else if (Mqtt5Utils.checkPackageSize(clientSession, fixedHeader.remainingLength())) {
+                    // 消息超出约定的大小
+                    log.warn("exceeding message, clientId: {}", clientId);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x95);
+                    return;
+                }
             }
             MqttPublishVariableHeader variableHeader = publishMessage.variableHeader();
-            MqttQoS qos = fixedHeader.qosLevel();
             Message innerMsg = new Message();
             innerMsg.setStoreTime(System.currentTimeMillis());
             innerMsg.setMsgId(variableHeader.packetId());
@@ -66,8 +78,6 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
             if (!this.authValid.publishVerify(clientId, topic)) {
                 LogUtil.warn(log, "[PubMessage] permission is not allowed");
                 reasonCode = (byte) 0x87;
-                // clientSession.getCtx().close();
-                // return;
             }
             boolean isOk = Mqtt5Utils.isOk(reasonCode);
             if (isOk) {
@@ -125,6 +135,9 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
     private void processQos2(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode) {
         int originMessageId = innerMsg.getMsgId();
         if (Mqtt5Utils.isOk(reasonCode)) {
+            /*if (hasSubscriber(innerMsg)) {
+                reasonCode = 0x10;
+            }*/
             LogUtil.debug(log, "[PubMessage] -> Process qos2 message,clientId={}", innerMsg.getClientId());
             boolean flag = cacheInflowMsg(innerMsg.getClientId(), innerMsg);
             if (!flag) {
@@ -139,6 +152,9 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
     private void processQos1(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode) {
         int originMessageId = innerMsg.getMsgId();
         if (Mqtt5Utils.isOk(reasonCode)) {
+            /*if (hasSubscriber(innerMsg)) {
+                reasonCode = 0x10;
+            }*/
             processMessage(innerMsg);
             LogUtil.info(log, "[PubMessage] -> Process qos1 message,clientId={}", innerMsg.getClientId());
         }
@@ -147,27 +163,9 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
         ctx.writeAndFlush(pubAckMessage);
     }
 
-    private boolean checkPackageSize(ClientSession clientSession, int remainingLength) {
-        boolean res = false;
-        // 固定头长度2~5字节，这里直接以5为准
-        int packetSize = remainingLength + 5;
-        String clientId = clientSession.getClientId();
-        Integer maxSize = (Integer) sessionStore.getClientProperty(clientId, MqttProperties.MqttPropertyType.MAXIMUM_PACKET_SIZE.value());
-        if (maxSize != null) {
-            if (packetSize > maxSize) {
-                // 当包大小大于连接时约定的值时，服务端主动发送DISCONNECT
-                clientSession.getCtx().writeAndFlush(MessageUtil.getDisconnectMessage((byte) 0x95));
-                log.warn("client max packet size error,clientId {}", clientId);
-                res = true;
-            }
-        }
-        if (packetSize > brokerConfig.getMaximumPacketSize()) {
-            // 当包大小大于服务端允许接收的最大长度时
-            clientSession.getCtx().writeAndFlush(MessageUtil.getDisconnectMessage((byte) 0x95));
-            log.warn("server max packet size error,clientId {}", clientId);
-            res = true;
-        }
-        return res;
+    private boolean hasSubscriber(Message message) {
+        LogUtil.warn(log, "[PubMessage] -> No matching subscribers,clientId={}", message.getClientId());
+        return !Mqtt5Utils.getSubscriptions((String) message.getHeader(MessageHeader.TOPIC), message.getClientId()).isEmpty();
     }
 
 }

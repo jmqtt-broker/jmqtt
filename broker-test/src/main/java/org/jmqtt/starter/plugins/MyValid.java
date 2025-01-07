@@ -25,13 +25,13 @@ public class MyValid extends DefaultAuthValid {
 
     @Override
     public boolean clientIdVerify(String clientId) {
-        log.info("客户端ID: {}", clientId);
+        log.info("clientId校验: {}", clientId);
         return super.clientIdVerify(clientId);
     }
 
     @Override
     public boolean onBlacklist(String remoteAddr, String clientId) {
-        log.info("是否在白名单: {}", remoteAddr + " | " + clientId);
+        log.info("黑名单校验: {}", remoteAddr + " | " + clientId);
         return false;
     }
 

@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS `jmqtt_session`
     `state`        varchar(12) NOT NULL COMMENT '状态：ONLINE,OFFLINE两种',
     `offline_time` bigint(20) DEFAULT NULL COMMENT 'OFFLINE状态时对应的离线时间戳（只有cleanStart为0时候离线才有该数据）',
     `property`    varchar(500) DEFAULT NULL COMMENT 'mqtt5 client连接属性',
+    `version`    int DEFAULT NULL COMMENT 'mqtt客户端版本',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uqe_client_id` (`client_id`)
 ) ENGINE = InnoDB

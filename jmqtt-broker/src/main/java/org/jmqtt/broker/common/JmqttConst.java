@@ -11,6 +11,11 @@ public interface JmqttConst {
     String RDB = "rdb";
     String REDIS = "redis";
 
-
     String CLIENT_PROPERTIES = "CLIENT_PROPERTIES_";
+
+    String SHARE_IDENTIFIERS = "$share";
+
+    String WILDCARD_MULTY = "#";
+
+    String WILDCARD_SINGLE = "+";
 }

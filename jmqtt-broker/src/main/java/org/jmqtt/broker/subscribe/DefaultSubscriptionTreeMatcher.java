@@ -1,5 +1,6 @@
 package org.jmqtt.broker.subscribe;
 
+import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Subscription;
@@ -16,13 +17,13 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
 
     private static final Logger log = JmqttLogger.messageTraceLog;
 
-    private static final String GROUP_STR = "$share";
+    private static final String GROUP_STR = JmqttConst.SHARE_IDENTIFIERS;
     private static final Pattern SHARE_PATTERN = Pattern.compile("(\\" + GROUP_STR + ")(/\\w+)/(\\S+)");
     private final Object lock = new Object();
     private TreeNode root = new TreeNode(new Token("root"));
     private Token EMPTY = new Token("");
-    private Token SINGLE = new Token("+");
-    private Token MULTY = new Token("#");
+    private Token SINGLE = new Token(JmqttConst.WILDCARD_SINGLE);
+    private Token MULTY = new Token(JmqttConst.WILDCARD_MULTY);
     private Token GROUP = new Token(GROUP_STR);
 
     //TODO 共享订阅均衡策略（提取到配置文件）

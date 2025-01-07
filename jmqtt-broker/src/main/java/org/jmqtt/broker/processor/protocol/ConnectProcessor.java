@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.*;
+
 /**
  * mqtt 客户端连接逻辑处理 强制约束：jmqtt在未返回conAck之前，不接收其它任何mqtt协议报文（mqtt协议可以允许） TODO mqtt5 协议支持
  */
@@ -71,7 +73,7 @@ public class ConnectProcessor implements RequestProcessor {
     @Override
     public void processRequest(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         MqttConnectMessage connectMessage = (MqttConnectMessage) mqttMessage;
-        MqttConnectReturnCode returnCode;
+        MqttConnectReturnCode returnCode = MqttConnectReturnCode.CONNECTION_ACCEPTED;
         MqttConnectVariableHeader variableHeader = connectMessage.variableHeader();
         int mqttVersion = variableHeader.version();
         boolean mqtt5 = mqttVersion == MqttVersion.MQTT_5.protocolLevel();
@@ -108,14 +110,24 @@ public class ConnectProcessor implements RequestProcessor {
                     LogUtil.warn(log, "[CONNECT] -> set heartbeat failure,clientId:{},heartbeatSec:{}", clientId, heartbeatSec);
                     throw new Exception("set heartbeat failure");
                 }
+                // 开启心跳检测
+                TimerManager.startHeartbeat(clientId, (int) (heartbeatSec * 1.5), (k, v) -> {
+                    // 客户端1.5倍心跳周期未发送任何数据，服务端主动断开连接
+                    ctx.writeAndFlush(MessageUtil.getDisconnectMessage((byte) 0x8D));
+                    ctx.close();
+                });
                 // 2. 从集群/本服务器中查询是否存在该clientId的设备消息
                 SessionState sessionState = sessionStore.getSession(clientId);
                 boolean notifyClearOtherSession = true;
                 if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
                     ClientSession previousClient = ConnectManager.getInstance().getClient(clientId);
                     if (previousClient != null) {
-                        previousClient.getCtx().close();
-                        ConnectManager.getInstance().removeClient(clientId);
+                        if (previousClient.isMqtt5()) {
+                            Mqtt5Utils.sendDisconnectAndClose(previousClient, (byte) 0x8E);
+                        } else {
+                            previousClient.getCtx().close();
+                        }
+                        this.sessionStore.clearSession(clientId, true);
                         notifyClearOtherSession = false;
                     }
                 }
@@ -132,25 +144,15 @@ public class ConnectProcessor implements RequestProcessor {
                         clientSession = reloadClientSession(ctx, clientId, mqttVersion);
                         sessionPresent = true;
                     }
-                    if (clientSession.isMqtt5()) {
+                    if (mqtt5) {
                         TimerManager.stopSessionTimeout(clientId);
                         TimerManager.stopWillTimeout(clientId);
                     }
                 }
-                SessionState ss = new SessionState(SessionState.StateEnum.ONLINE);
+                SessionState ss = new SessionState(SessionState.StateEnum.ONLINE, mqttVersion);
                 if (mqtt5) {
-                    // 服务端能同时处理的非qos0最大消息数，暂定int最大值，后面放到配置里
-                    responseProperties.add(new MqttProperties.IntegerProperty(
-                            MqttProperties.MqttPropertyType.RECEIVE_MAXIMUM.value(),
-                            brokerConfig.getReceiveMaximum()));
-                    // 服务端能处理的最大packet长度，默认20M，后面放到配置里
-                    responseProperties.add(new MqttProperties.IntegerProperty(
-                            MqttProperties.MqttPropertyType.MAXIMUM_PACKET_SIZE.value(),
-                            brokerConfig.getMaximumPacketSize()));
-                    // 主题别名最大值
-                    responseProperties.add(new MqttProperties.IntegerProperty(
-                            MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value(),
-                            brokerConfig.getTopicAliasMaximum()));
+                    // 返回服务端可选功能
+                    optionalServers(responseProperties);
                     Map<Integer, Object> propertyMap = Mqtt5Utils.propertyMap(variableHeader.properties());
                     if (!propertyMap.isEmpty()) {
                         ss.setPropertyMap(propertyMap);
@@ -162,7 +164,6 @@ public class ConnectProcessor implements RequestProcessor {
                     Event event = new Event(EventCode.CLEAR_SESSION.getCode(), clientId, System.currentTimeMillis(), MixAll.getLocalIp());
                     clusterEventHandler.sendEvent(event);
                 }
-
                 // 4. 处理will 消息
                 boolean willFlag = variableHeader.isWillFlag();
                 if (willFlag) {
@@ -170,13 +171,21 @@ public class ConnectProcessor implements RequestProcessor {
                     int willQos = variableHeader.willQos();
                     MqttConnectPayload payload = connectMessage.payload();
                     String willTopic = payload.willTopic();
-                    byte[] willPayload = payload.willMessageInBytes();
+                    if (mqtt5) {
+                        if (!brokerConfig.getRetainAvailable() && willRetain) {
+                            log.warn("retain not available, clientId: {}", clientId);
+                            returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_RETAIN_NOT_SUPPORTED;
+                        } else if (willQos > brokerConfig.getMaximumQos()) {
+                            log.warn("QoS not supported, clientId: {}", clientId);
+                            returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_QOS_NOT_SUPPORTED;
+                        } else if (Mqtt5Utils.checkPackageSize(clientSession, connectMessage.fixedHeader().remainingLength())) {
+                            log.warn("exceeding message, clientId: {}", clientId);
+                            returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_PACKET_TOO_LARGE;
+                        }
+                    }
                     MqttProperties properties = payload.willProperties();
-                    storeWillMsg(clientId, willRetain, willQos, willTopic, willPayload, Mqtt5Utils.propertyMap(properties));
+                    storeWillMsg(clientId, willRetain, willQos, willTopic, payload.willMessageInBytes(), Mqtt5Utils.propertyMap(properties));
                 }
-                returnCode = MqttConnectReturnCode.CONNECTION_ACCEPTED;
-                NettyUtil.setClientId(ctx.channel(), clientId);
-                ConnectManager.getInstance().putClient(clientId, clientSession);
             }
             if (returnCode != MqttConnectReturnCode.CONNECTION_ACCEPTED) {
                 MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
@@ -185,6 +194,8 @@ public class ConnectProcessor implements RequestProcessor {
                 LogUtil.warn(log, "[CONNECT remote:{}] -> {} connect failure,returnCode={}", remoteAddress, clientId, returnCode);
                 return;
             }
+            NettyUtil.setClientId(ctx.channel(), clientId);
+            ConnectManager.getInstance().putClient(clientId, clientSession);
             MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, responseProperties);
             ctx.writeAndFlush(ackMessage);
             LogUtil.info(log, "1234[CONNECT remote:{}] -> {} connect to this mqtt server", remoteAddress, clientId);
@@ -275,6 +286,27 @@ public class ConnectProcessor implements RequestProcessor {
             return true;
         }
         return false;
+    }
+
+    public void optionalServers(MqttProperties properties) {
+        // 服务端能同时处理的非qos0最大消息数，暂定int最大值，后面放到配置里
+        properties.add(new MqttProperties.IntegerProperty(
+                MqttProperties.MqttPropertyType.RECEIVE_MAXIMUM.value(),
+                brokerConfig.getReceiveMaximum()));
+        // 服务端能处理的最大packet长度，默认20M，后面放到配置里
+        properties.add(new MqttProperties.IntegerProperty(
+                MqttProperties.MqttPropertyType.MAXIMUM_PACKET_SIZE.value(),
+                brokerConfig.getMaximumPacketSize()));
+        // 主题别名最大值
+        properties.add(new MqttProperties.IntegerProperty(
+                MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value(),
+                brokerConfig.getTopicAliasMaximum()));
+        // 可选功能
+        properties.add(new MqttProperties.IntegerProperty(WILDCARD_SUBSCRIPTION_AVAILABLE.value(), brokerConfig.getWildcardSubscriptionAvailable() ? 1 : 0));
+        properties.add(new MqttProperties.IntegerProperty(SUBSCRIPTION_IDENTIFIER_AVAILABLE.value(), brokerConfig.getSubscriptionIdentifierAvailable() ? 1 : 0));
+        properties.add(new MqttProperties.IntegerProperty(SHARED_SUBSCRIPTION_AVAILABLE.value(), brokerConfig.getSharedSubscriptionAvailable() ? 1 : 0));
+        properties.add(new MqttProperties.IntegerProperty(RETAIN_AVAILABLE.value(), brokerConfig.getRetainAvailable() ? 1 : 0));
+        properties.add(new MqttProperties.IntegerProperty(MAXIMUM_QOS.value(), brokerConfig.getMaximumQos()));
     }
 
 }

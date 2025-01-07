@@ -24,6 +24,7 @@ import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.helper.Pair;
 import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
+import org.jmqtt.broker.common.helper.TimerManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.processor.RequestProcessor;
@@ -35,6 +36,7 @@ import org.slf4j.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -122,7 +124,7 @@ public class NettyRemotingServer implements RemotingService {
                         pipeline.addLast("idleStateHandler", new IdleStateHandler(0, 0, 0))
                                 .addLast("httpCodec", new HttpServerCodec())
                                 .addLast("aggregator", new HttpObjectAggregator(65535))
-                                .addLast("compressor ", new HttpContentCompressor())
+                                .addLast("compressor", new HttpContentCompressor())
                                 .addLast("webSocketHandler", new WebSocketServerProtocolHandler("/mqtt", MixAll.MQTT_VERSION_SUPPORT, false, 65536))
                                 .addLast("webSocket2ByteBufDecoder", new WebSocket2ByteBufDecoder())
                                 .addLast("byteBuf2WebSocketEncoder", new ByteBuf2WebSocketEncoder())
@@ -211,6 +213,7 @@ public class NettyRemotingServer implements RemotingService {
                 if (messageType.equals(MqttMessageType.DISCONNECT)) {
                     ctx.channel().attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).set(true);
                 }
+                Optional.ofNullable(NettyUtil.getClientId(ctx.channel())).ifPresent(clientId -> TimerManager.resetTimerTask(TimerManager.TimerType.KEEPALIVE, clientId));
                 LogUtil.debug(log, "[Remoting] ->clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", NettyUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
                 Runnable runnable = () -> processorTable.get(messageType).getObject1().processRequest(ctx, mqttMessage);
                 try {

@@ -56,6 +56,6 @@ public class NettyConfig {
     /**
      * max mqtt message size
      */
-    private int maxMsgSize = 512 * 1024;
+    private int maxMsgSize = 256 * 1024;
 
 }

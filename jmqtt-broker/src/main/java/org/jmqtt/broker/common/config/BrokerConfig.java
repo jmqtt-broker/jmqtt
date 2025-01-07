@@ -1,5 +1,6 @@
 package org.jmqtt.broker.common.config;
 
+import io.netty.handler.codec.mqtt.MqttQoS;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -81,5 +82,15 @@ public class BrokerConfig {
     private Integer topicAliasMaximum = 2048;
     // 服务端生成的clientId默认前缀
     private String clientIdPrefix = "JMQTT_CLIENT_ID_";
+    // 是否支持通配符订阅
+    private Boolean wildcardSubscriptionAvailable = true;
+    // 是否支持订阅标识符
+    private Boolean subscriptionIdentifierAvailable = true;
+    // 是否支持共享订阅
+    private Boolean sharedSubscriptionAvailable = true;
+    // 是否支持保留消息
+    private Boolean retainAvailable = true;
+    // 支持的最大QOS等级
+    private Integer maximumQos = MqttQoS.EXACTLY_ONCE.value();
 
 }

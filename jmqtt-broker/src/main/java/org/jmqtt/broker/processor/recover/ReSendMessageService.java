@@ -139,7 +139,7 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
 
             // 出栈报文-qos2第二阶段：
             Collection<Integer> qos2MsgIds = getAllOutflowSecMsgId(clientId);
-            if (!MixAll.isEmpty(outflowMsgs)) {
+            if (!MixAll.isEmpty(qos2MsgIds)) {
                 for (Integer msgId : qos2MsgIds) {
                     Message temp = new Message();
                     temp.setMsgId(msgId);
@@ -156,7 +156,7 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
 
             // 出栈消息：离线消息，未分发的publish消息
             Collection<Message> messages = sessionStore.getAllOfflineMsg(clientId);
-            if (!MixAll.isEmpty(outflowMsgs)) {
+            if (!MixAll.isEmpty(messages)) {
                 for (Message message : messages) {
                     if (!dispatcherMessage(clientId, message, publishMqttMsg)) {
                         return false;

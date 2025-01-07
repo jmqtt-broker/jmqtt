@@ -36,6 +36,7 @@ public class DisconnectProcessor implements RequestProcessor {
         if (!ConnectManager.getInstance().containClient(clientId)) {
             LogUtil.warn(log, "[DISCONNECT] -> {} hasn't connect before", clientId);
         }
+        ctx.close();
     }
 
 }

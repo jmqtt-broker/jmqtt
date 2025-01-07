@@ -8,9 +8,7 @@ import org.jmqtt.broker.common.helper.TimerManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
-import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.netty.ChannelEventListener;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
@@ -22,7 +20,6 @@ import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
 import java.util.Optional;
-import java.util.Set;
 
 public class ClientLifeCycleHookService implements ChannelEventListener {
 
@@ -55,20 +52,21 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
             Boolean normalDisconnection = (Boolean) Optional.ofNullable(session.getCtx().channel()
                     .attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).get()).orElse(false);
             if (session.isCleanStart()) {
-                clearSession(session);
+                sessionStore.clearSession(clientId, false);
             } else {
                 offlineSession(session);
-                TimerManager.startSessionTimeout(clientId, (k, v) -> clearSession(session));
+                TimerManager.startSessionTimeout(clientId, (k, v) -> sessionStore.clearSession(clientId, false));
             }
-            ConnectManager.getInstance().removeClient(clientId);
+            TimerManager.stopHeartbeat(clientId);
             // 收到DISCONNECT报文而断开的连接属于正常断开，不发送遗嘱消息，仅异常断开的连接发送遗嘱消息
             if (!normalDisconnection) {
                 Message willMessage = messageStore.getWillMessage(clientId);
                 if (willMessage != null) {
                     if (session.isMqtt5()) {
                         TimerManager.startWillTimeout(clientId, willMessage, (k, v) -> {
-                            innerMessageDispatcher.appendMessage((Message) v);
-                            messageStore.clearWillMessage(clientId);
+                            Message msg = (Message) v;
+                            innerMessageDispatcher.appendMessage(msg);
+                            messageStore.clearWillMessage(msg.getClientId());
                         });
                     } else {
                         innerMessageDispatcher.appendMessage(willMessage);
@@ -79,24 +77,9 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         }
     }
 
-    private void clearSession(ClientSession clientSession) {
-        String clientId = clientSession.getClientId();
-        Set<Subscription> subscriptions = sessionStore.getSubscriptions(clientId);
-        for (Subscription subscription : subscriptions) {
-            this.subscriptionMatcher.unSubscribe(subscription.getTopic(), clientId);
-        }
-        sessionStore.clearSession(clientId, false);
-        if (clientSession.isMqtt5()) {
-            TopicAliasManager.clear(clientId);
-            sessionStore.clearClientProperty(clientId);
-            // 会话到期了，如果存在延迟未发送的遗嘱消息，此时需要立即发送
-            TimerManager.sendWillImmediately(clientId);
-        }
-    }
-
     private void offlineSession(ClientSession clientSession) {
         String clientId = clientSession.getClientId();
-        SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis());
+        SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis(), clientSession.getVersion());
         SessionState exist = BrokerContext.getSessionStore().getSession(clientId);
         if (exist != null) {
             sessionState.setPropertyMap(exist.getPropertyMap());
@@ -113,6 +96,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         String clientId = NettyUtil.getClientId(channel);
         ConnectManager.getInstance().removeClient(clientId);
         LogUtil.warn(log, "[ClientLifeCycleHook] -> {} channelException,close channel and remove ConnectCache!", clientId);
+        channel.close();
     }
 
 }

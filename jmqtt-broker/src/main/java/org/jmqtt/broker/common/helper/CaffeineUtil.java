@@ -15,19 +15,19 @@ import java.util.function.BiConsumer;
 
 public class CaffeineUtil {
 
-    private final static List<BiConsumer<String, Object>> LISTENERS = new CopyOnWriteArrayList<>();
+    private final static List<BiConsumer<String, CacheObject>> LISTENERS = new CopyOnWriteArrayList<>();
     private final static Cache<String, CacheObject> CACHE = Caffeine.newBuilder()
             // key过期后处理逻辑
             .removalListener((String key, CacheObject val, RemovalCause cause) ->
                     LISTENERS.forEach(l -> {
                         if (RemovalCause.EXPIRED.equals(cause)) {
-                            l.accept(key, val.getData());
+                            l.accept(key, Optional.ofNullable(val).orElse(null));
                         }
                     }))
             // 过期时间到后立即触发，默认key过期后不触发回调，等下次调用或者缓存空间不足时才清理过期的key
-            .scheduler(Scheduler.forScheduledExecutorService(new ScheduledThreadPoolExecutor(1)))
+            .scheduler(Scheduler.forScheduledExecutorService(new ScheduledThreadPoolExecutor(10, new ThreadFactoryImpl("caffeine_scheduler"))))
             // 最大key个数
-            .maximumSize(1000000)
+            .maximumSize(Integer.MAX_VALUE)
             // 可以针对每个key设置过期时间
             .expireAfter(new Expiry<String, CacheObject>() {
                 @Override
@@ -66,28 +66,27 @@ public class CaffeineUtil {
         CACHE.invalidate(k);
     }
 
-    public static void addRemoveListener(BiConsumer<String, Object> listener) {
+    public static void addRemoveListener(BiConsumer<String, CacheObject> listener) {
         LISTENERS.add(listener);
     }
 
     @SneakyThrows
     public static void main(String[] args) {
         addRemoveListener((k, v) -> {
-            System.out.println("key过期了 -> " + k + ": " + v);
+            System.out.println("key过期了 -> " + k + ": " + v.getData());
         });
         put("test", "testVal", 6);
-       put("test1", "testVal1", 20);
-        Thread thread = new Thread(() -> {
-            try {
-                Thread.sleep(6000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            System.out.println(get("test"));
-            put("test1", "test1111", 0);
-            // System.out.println(get("test1"));
-        });
-        thread.start();
+        put("test1", "testVal1", 20);
+        // Thread thread = new Thread(() -> {
+        //     try {
+        //         Thread.sleep(6000);
+        //     } catch (InterruptedException e) {
+        //         throw new RuntimeException(e);
+        //     }
+        //     System.out.println(get("test"));
+        //     put("test1", "test1111", 0);
+        // });
+        // thread.start();
     }
 
     @Getter

@@ -4,12 +4,14 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
-import org.jmqtt.broker.common.helper.MixAll;
+import org.jmqtt.broker.common.JmqttConst;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.processor.RequestProcessor;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
+import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
@@ -61,10 +63,30 @@ public class SubscribeProcessor implements RequestProcessor {
         MqttMessageIdAndPropertiesVariableHeader variableHeader = (MqttMessageIdAndPropertiesVariableHeader) subscribeMessage.variableHeader();
         MqttProperties properties = variableHeader.properties();
         if (clientSession.isMqtt5() && properties != null) {
-            Optional.ofNullable(properties.getProperty(MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value())).ifPresent(v -> {
-                int subscriptionIdentifier = (int) v.value();
-                validTopicList.forEach(t -> t.getOption().setSubscriptionIdentifier(subscriptionIdentifier));
-            });
+            Optional<MqttProperties.IntegerProperty> subscriptionIdentifier = Optional.ofNullable((MqttProperties.IntegerProperty) properties.getProperty(MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value()));
+            if (subscriptionIdentifier.isPresent()) {
+                if (!BrokerContext.getBrokerConfig().getSubscriptionIdentifierAvailable()) {
+                    LogUtil.warn(log, "[Subscribe] -> Subscription Identifiers not supported,clientId:{}", clientId);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0xA1);
+                    return;
+                }
+                validTopicList.forEach(t -> t.getOption().setSubscriptionIdentifier(subscriptionIdentifier.get().value()));
+            }
+            for (Topic t : validTopicList) {
+                if (!BrokerContext.getBrokerConfig().getSharedSubscriptionAvailable() &&
+                        t.getTopicName().startsWith(JmqttConst.SHARE_IDENTIFIERS)) {
+                    LogUtil.warn(log, "[Subscribe] -> Shared Subscriptions not supported,clientId:{}", clientId);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9E);
+                    return;
+                }
+                if (!BrokerContext.getBrokerConfig().getWildcardSubscriptionAvailable() &&
+                        (t.getTopicName().contains(JmqttConst.WILDCARD_SINGLE) ||
+                                t.getTopicName().contains(JmqttConst.WILDCARD_MULTY))) {
+                    LogUtil.warn(log, "[Subscribe] -> Wildcard Subscriptions not supported,clientId:{}", clientId);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0xA2);
+                    return;
+                }
+            }
         }
         List<Integer> ackQos = getTopicQos(validTopicList);
         MqttMessage subAckMessage = MessageUtil.getSubAckMessage(variableHeader.messageId(), ackQos);

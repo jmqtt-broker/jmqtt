@@ -234,6 +234,36 @@
       "type": "java.lang.String",
       "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
       "defaultValue": "JMQTT_"
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.wildcard-subscription-available",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": true
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.subscription-identifier-available",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": true
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.shared-subscription-available",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": true
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.retain-available",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": true
+    },
+    {
+      "name": "jmqtt.broker.mqtt5.maximum-qos",
+      "type": "java.lang.Integer",
+      "sourceType": "org.jmqtt.broker.common.config.Mqtt5Config",
+      "defaultValue": 2
     }
   ],
   "hints": []

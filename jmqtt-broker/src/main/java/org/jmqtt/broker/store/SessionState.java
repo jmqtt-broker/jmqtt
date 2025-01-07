@@ -22,13 +22,21 @@ public class SessionState {
 
     private Map<Integer, Object> propertyMap;
 
+    private Integer version;
+
     public SessionState(StateEnum state) {
         this.state = state;
     }
 
-    public SessionState(StateEnum state, long offlineTime) {
+    public SessionState(StateEnum state, Integer version) {
+        this.state = state;
+        this.version = version;
+    }
+
+    public SessionState(StateEnum state, long offlineTime, Integer version) {
         this.state = state;
         this.offlineTime = offlineTime;
+        this.version = version;
     }
 
     @Getter

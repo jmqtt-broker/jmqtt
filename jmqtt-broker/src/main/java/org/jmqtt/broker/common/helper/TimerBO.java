@@ -1,9 +1,6 @@
 package org.jmqtt.broker.common.helper;
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * @Description: java类作用描述
@@ -14,6 +11,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @EqualsAndHashCode(of = {"timerId", "type"})
+@ToString
 public class TimerBO {
 
     private String timerId;
