@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONObject;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.mqtt.*;
+import lombok.val;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.common.model.SubscriptionOption;
@@ -54,23 +56,25 @@ public class MessageUtil {
     }
 
     public static MqttPublishMessage getPubMessage(Message message, boolean dup) {
-        return getPubMessage(message, dup, null);
+        return getPubMessage(message, dup, null, null);
     }
 
-    public static MqttPublishMessage getPubMessage(Message message, boolean dup, SubscriptionOption option) {
+    public static MqttPublishMessage getPubMessage(Message message, boolean dup, SubscriptionOption option, String subClientId) {
         boolean retain = (boolean) Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).orElse(false);
         int remainingLength = (int) Optional.ofNullable(message.getHeader(MessageHeader.REMAINING_LENGTH)).orElse(0);
         MqttFixedHeader fixedHeader = new MqttFixedHeader(
                 MqttMessageType.PUBLISH,
                 dup,
                 MqttQoS.valueOf((int) message.getHeader(MessageHeader.QOS)),
-                option != null && option.isRetainAsPublished() && retain,
+                option != null && option.getRetainAsPublished() && retain,
                 remainingLength);
-        MqttProperties properties = getProperties(message.getProperties());
+        MqttProperties properties = getProperties(message.getProperties(), subClientId);
         if (properties != null && option != null) {
-            properties.add(new MqttProperties.IntegerProperty(
-                    MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value(),
-                    option.getSubscriptionIdentifier()));
+            Optional.ofNullable(option.getSubscriptionIdentifier()).ifPresent(subscriptId -> {
+                properties.add(new MqttProperties.IntegerProperty(
+                        MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value(),
+                        subscriptId));
+            });
         }
         MqttPublishVariableHeader publishVariableHeader = new MqttPublishVariableHeader(
                 (String) message.getHeader(MessageHeader.TOPIC), message.getMsgId(), properties);
@@ -83,7 +87,7 @@ public class MessageUtil {
         return new MqttPublishMessage(fixedHeader, publishVariableHeader, heapBuf);
     }
 
-    private static MqttProperties getProperties(Map<Integer, Object> propertyMap) {
+    private static MqttProperties getProperties(Map<Integer, Object> propertyMap, String subClientId) {
         if (propertyMap != null && !propertyMap.isEmpty()) {
             MqttProperties properties = new MqttProperties();
             propertyMap.forEach((k, v) -> {
@@ -95,9 +99,8 @@ public class MessageUtil {
                         });
                     } else if (v instanceof JSONArray) {
                         ((JSONArray) v).forEach(pair -> {
-                            ((JSONObject) pair).forEach((key, val) -> {
-                                properties.add(new MqttProperties.UserProperty(key, val.toString()));
-                            });
+                            JSONObject pairObj = ((JSONObject) pair);
+                            properties.add(new MqttProperties.UserProperty(pairObj.getString("key"), pairObj.getString("value")));
                         });
                     }
                 } else if (k == MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value()) {
@@ -107,7 +110,16 @@ public class MessageUtil {
                 } else if (v instanceof String) {
                     properties.add(new MqttProperties.StringProperty(k, (String) v));
                 } else if (v instanceof Integer) {
-                    properties.add(new MqttProperties.IntegerProperty(k, (int) v));
+                    if (k == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value()) {
+                        // 发布的消息带有主题别名，订阅方建立连接的时候如果没有设置别名最大值，
+                        // 那么转发消息的时候需要将消息中的主题别名去掉
+                        Optional.ofNullable(BrokerContext.getSessionStore().getClientProperty(subClientId,
+                                MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value())).ifPresent(aliasMax -> {
+                            properties.add(new MqttProperties.IntegerProperty(k, (int) v));
+                        });
+                    } else {
+                        properties.add(new MqttProperties.IntegerProperty(k, (int) v));
+                    }
                 }
             });
             return properties;

@@ -9,6 +9,7 @@ import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.common.model.SubscriptionOption;
 import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
@@ -63,8 +64,10 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         subscriptionDO.setClientId(clientId);
         subscriptionDO.setTopic(subscription.getTopic());
         subscriptionDO.setQos(subscription.getQos());
+        Optional.ofNullable(subscription.getOption()).ifPresent(opt -> {
+            subscriptionDO.setOpt(JSON.toJSONString(opt));
+        });
         Long id = (Long) operate(sqlSession -> getMapper(sqlSession, subscriptionMapperClass).storeSubscription(subscriptionDO));
-
         return id != null;
     }
 
@@ -93,6 +96,9 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         Set<Subscription> set = new HashSet<>();
         for (SubscriptionDO item : subscriptionDOList) {
             Subscription subscription = new Subscription(item.getClientId(), item.getTopic(), item.getQos());
+            Optional.ofNullable(item.getOpt()).ifPresent(opt -> {
+                subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
+            });
             set.add(subscription);
         }
         return set;

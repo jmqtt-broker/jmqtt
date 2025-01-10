@@ -80,7 +80,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
                 }
             }
         }
-        v.put(subscription.getTopic(), subscription);
+        v.putIfAbsent(subscription.getTopic(), subscription);
         return true;
     }
 

@@ -15,7 +15,7 @@ public interface OutflowMessageMapper {
             "MERGE INTO JMQTT_OUTFLOW_MESSAGE a " +
             "USING (SELECT #{id} AS ID, #{clientId} AS CLIENT_ID, #{msgId} AS MSG_ID," +
             " #{content} AS CONTENT, #{gmtCreate} AS GMT_CREATE FROM DUAL) b " +
-            "ON (a.CLIENT_ID = b.CLIENT_ID) " +
+            "ON (a.CLIENT_ID = b.CLIENT_ID AND a.MSG_ID = b.MSG_ID) " +
             "WHEN MATCHED THEN " +
             "UPDATE SET CONTENT = b.CONTENT, GMT_CREATE = b.GMT_CREATE " +
             "WHEN NOT MATCHED THEN " +

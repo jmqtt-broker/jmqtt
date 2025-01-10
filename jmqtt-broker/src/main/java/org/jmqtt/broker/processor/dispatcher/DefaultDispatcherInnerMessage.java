@@ -118,8 +118,8 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
         @Override
         public void run() {
             if (Objects.nonNull(messages)) {
-                try {
-                    for (Message message : messages) {
+                for (Message message : messages) {
+                    try {
                         String pubClientId = message.getClientId();
                         String topic = TopicAliasManager.getRealTopic(message);
                         Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
@@ -133,7 +133,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                 }
                                 SubscriptionOption option = subscription.getOption();
                                 if (option != null) {
-                                    if (option.isNoLocal() && pubClientId.equals(subClientId)) {
+                                    if (option.getNoLocal() && pubClientId.equals(subClientId)) {
                                         continue;
                                     }
                                 }
@@ -146,6 +146,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                 }
                                 if (clientSession.isMqtt5()) {
                                     if (message.validity()) {
+                                        // 该消息具有时效性，需要判断是否过期
                                         if (message.alive() > 0) {
                                             write(clientSession, subscription, message);
                                         } else {
@@ -158,18 +159,20 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                             });
                                         }
                                     } else {
+                                        // 消息未设置过期间隔，发送
                                         write(clientSession, subscription, message);
                                     }
                                 } else {
+                                    // 不是mqtt5客户端，直接发送
                                     write(clientSession, subscription, message);
                                 }
                             } else {
                                 subscriptionMatcher.unSubscribe(subscription.getTopic(), subClientId);
                             }
                         }
+                    } catch (Exception ex) {
+                        LogUtil.warn(log, "Dispatcher message failure,cause={}", ex);
                     }
-                } catch (Exception ex) {
-                    LogUtil.warn(log, "Dispatcher message failure,cause={}", ex);
                 }
             }
         }
@@ -177,7 +180,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
 
     private void write(ClientSession session, Subscription subscription, Message message) {
         if (session.getCtx().channel().isWritable()) {
-            MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption());
+            MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption(), subscription.getClientId());
             session.getCtx().writeAndFlush(publishMessage);
         } else {
             sessionStore.storeOfflineMsg(subscription.getClientId(), message);

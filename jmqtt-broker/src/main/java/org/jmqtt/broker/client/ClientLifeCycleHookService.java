@@ -8,10 +8,12 @@ import org.jmqtt.broker.common.helper.TimerManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
+import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.remoting.netty.ChannelEventListener;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
+import org.jmqtt.broker.remoting.util.MessageUtil;
 import org.jmqtt.broker.remoting.util.NettyUtil;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionState;
@@ -57,24 +59,31 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                 offlineSession(session);
                 TimerManager.startSessionTimeout(clientId, (k, v) -> sessionStore.clearSession(clientId, false));
             }
-            TimerManager.stopHeartbeat(clientId);
             // 收到DISCONNECT报文而断开的连接属于正常断开，不发送遗嘱消息，仅异常断开的连接发送遗嘱消息
             if (!normalDisconnection) {
                 Message willMessage = messageStore.getWillMessage(clientId);
                 if (willMessage != null) {
                     if (session.isMqtt5()) {
                         TimerManager.startWillTimeout(clientId, willMessage, (k, v) -> {
-                            Message msg = (Message) v;
-                            innerMessageDispatcher.appendMessage(msg);
-                            messageStore.clearWillMessage(msg.getClientId());
+                            sendWill((Message) v);
                         });
                     } else {
-                        innerMessageDispatcher.appendMessage(willMessage);
-                        messageStore.clearWillMessage(clientId);
+                        sendWill(willMessage);
                     }
                 }
+            } else {
+                messageStore.clearWillAndWillRetain(clientId);
             }
         }
+    }
+
+    private void sendWill(Message willMessage) {
+        innerMessageDispatcher.appendMessage(willMessage);
+        Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
+            if ((boolean) retain) {
+                messageStore.storeRetainMessage((String) willMessage.getHeader(MessageHeader.TOPIC), willMessage);
+            }
+        });
     }
 
     private void offlineSession(ClientSession clientSession) {
@@ -89,14 +98,18 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
 
     @Override
     public void onChannelIdle(String remoteAddr, Channel channel) {
+        String clientId = NettyUtil.getClientId(channel);
+        log.info("onChannelIdle:[{}],ClientId:{{}}", remoteAddr, clientId);
+        Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(session -> {
+            session.getCtx().writeAndFlush(MessageUtil.getDisconnectMessage((byte) 0x8D));
+            session.getCtx().close();
+        });
     }
 
     @Override
     public void onChannelException(String remoteAddr, Channel channel) {
         String clientId = NettyUtil.getClientId(channel);
-        ConnectManager.getInstance().removeClient(clientId);
         LogUtil.warn(log, "[ClientLifeCycleHook] -> {} channelException,close channel and remove ConnectCache!", clientId);
-        channel.close();
     }
 
 }

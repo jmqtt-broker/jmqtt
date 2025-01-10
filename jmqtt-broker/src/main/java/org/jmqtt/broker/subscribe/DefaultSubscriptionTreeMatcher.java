@@ -29,7 +29,6 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
     //TODO 共享订阅均衡策略（提取到配置文件）
     private String sharedSubscriptionStrategy = "random";
 
-
     public DefaultSubscriptionTreeMatcher() {
     }
 
@@ -42,12 +41,10 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
             if (subscriptions.contains(subscription)) {
                 for (Subscription sub : subscriptions) {
                     if (sub.equals(subscription)) {
-                        if (sub.getQos() == subscription.getQos()) {
-                            return false;
-                        } else {
+                        if (sub.getQos() != subscription.getQos()) {
                             sub.setQos(subscription.getQos());
-                            return true;
                         }
+                        return false;
                     }
                 }
             } else {

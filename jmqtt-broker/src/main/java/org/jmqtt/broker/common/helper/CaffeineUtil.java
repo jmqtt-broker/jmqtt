@@ -18,12 +18,15 @@ public class CaffeineUtil {
     private final static List<BiConsumer<String, CacheObject>> LISTENERS = new CopyOnWriteArrayList<>();
     private final static Cache<String, CacheObject> CACHE = Caffeine.newBuilder()
             // key过期后处理逻辑
-            .removalListener((String key, CacheObject val, RemovalCause cause) ->
-                    LISTENERS.forEach(l -> {
-                        if (RemovalCause.EXPIRED.equals(cause)) {
-                            l.accept(key, Optional.ofNullable(val).orElse(null));
-                        }
-                    }))
+            .removalListener((String key, CacheObject val, RemovalCause cause) -> {
+                if (cause.equals(RemovalCause.EXPIRED)) {
+                    if (val != null && (val.getData() instanceof TimerBO)) {
+                        TimerBO bo = (TimerBO) val.getData();
+                        Optional.ofNullable(bo.getExpiredFunc()).ifPresent(func -> func.accept(key, bo.getData()));
+                    }
+                    LISTENERS.forEach(l -> l.accept(key, val));
+                }
+            })
             // 过期时间到后立即触发，默认key过期后不触发回调，等下次调用或者缓存空间不足时才清理过期的key
             .scheduler(Scheduler.forScheduledExecutorService(new ScheduledThreadPoolExecutor(10, new ThreadFactoryImpl("caffeine_scheduler"))))
             // 最大key个数

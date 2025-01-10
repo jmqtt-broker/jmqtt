@@ -2,7 +2,9 @@ package org.jmqtt.broker.common.model;
 
 import io.netty.handler.codec.mqtt.MqttSubscriptionOption;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * @Description: java类作用描述
@@ -11,12 +13,14 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@NoArgsConstructor
+@ToString
 public class SubscriptionOption {
 
-    private int subscriptionIdentifier;
-    private boolean noLocal;
-    private boolean retainAsPublished;
-    private int retainHandling;
+    private Integer subscriptionIdentifier;
+    private Boolean noLocal;
+    private Boolean retainAsPublished;
+    private Integer retainHandling;
 
     public SubscriptionOption(MqttSubscriptionOption option) {
         this.noLocal = option.isNoLocal();

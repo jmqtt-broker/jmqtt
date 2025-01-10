@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS "jmqtt_session"
     "state"     varchar(12) COLLATE "pg_catalog"."default" NOT NULL,
     "offline_time" int8,
     "property" varchar(500) COLLATE "pg_catalog"."default",
-    "version" int8 COLLATE "pg_catalog"."default",
+    "version" int8,
     CONSTRAINT "jmqtt_session_pkey" PRIMARY KEY ("id")
 )
 ;
@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS "jmqtt_subscription"
     "client_id" varchar(64) COLLATE "pg_catalog"."default"  NOT NULL,
     "topic"     varchar(128) COLLATE "pg_catalog"."default" NOT NULL,
     "qos" int2 NOT NULL,
+    "opt" varchar(100) COLLATE "pg_catalog"."default",
     CONSTRAINT "jmqtt_subscription_pkey" PRIMARY KEY ("id")
 )
 ;
@@ -226,10 +227,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "uqe_client_id_session" ON "jmqtt_session" USI
 -- ----------------------------
 -- Indexes structure for table jmqtt_subscription
 -- ----------------------------
-CREATE INDEX IF NOT EXISTS "idx_client_id_sub" ON "jmqtt_subscription" USING btree (
-    "client_id" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
-    );
-CREATE INDEX IF NOT EXISTS "idx_topic" ON "jmqtt_subscription" USING btree (
+CREATE UNIQUE INDEX IF NOT EXISTS "uqe_client_id_topic" ON "jmqtt_subscription" USING btree (
+    "client_id" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
     "topic" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
     );
 

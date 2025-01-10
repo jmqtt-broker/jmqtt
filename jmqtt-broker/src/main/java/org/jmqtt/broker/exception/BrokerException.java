@@ -1,8 +1,10 @@
 package org.jmqtt.broker.exception;
 
-public class BrokerException extends Exception{
+public class BrokerException extends RuntimeException{
 
-    private String message;
+    public BrokerException() {
+
+    }
 
     public BrokerException(String message){
         super(message);

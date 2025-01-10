@@ -13,6 +13,7 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.exception.BrokerException;
 import org.jmqtt.broker.processor.RequestProcessor;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.event.Event;
@@ -34,6 +35,7 @@ import org.slf4j.Logger;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.*;
@@ -81,26 +83,30 @@ public class ConnectProcessor implements RequestProcessor {
         boolean cleanSession = variableHeader.isCleanSession();
         String userName = connectMessage.payload().userName();
         byte[] password = connectMessage.payload().passwordInBytes();
-        ClientSession clientSession = null;
+        ClientSession clientSession;
         boolean sessionPresent = false;
         SocketAddress remoteAddress = ctx.channel().remoteAddress();
         MqttProperties responseProperties = new MqttProperties();
         try {
             if (!versionValid(mqttVersion)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
+                throw new BrokerException("version not support.");
             } else if (!clientIdVerify(clientId)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED;
+                throw new BrokerException("clientId invalid.");
             } else if (onBlackList(RemotingHelper.getRemoteAddr(ctx.channel()), clientId)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED;
+                throw new BrokerException("clientId in blacklist.");
             } else if (!authentication(clientId, userName, password, this.user, this.pwd, this.anonymousEnable)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD;
+                throw new BrokerException("bad username or password.");
             } else {
                 if (mqtt5 && clientId.isEmpty()) {
                     // 客户端未设置clientId，返回服务端生成的clientId给客户端
                     clientId = brokerConfig.getClientIdPrefix() + IdWorker.getId();
                     responseProperties.add(new MqttProperties.StringProperty(MqttProperties.MqttPropertyType.ASSIGNED_CLIENT_IDENTIFIER.value(), clientId));
                 }
-                // 1. 设置心跳
+                // 设置心跳，并开启心跳检测
                 int heartbeatSec = variableHeader.keepAliveTimeSeconds();
                 if (mqtt5 && (brokerConfig.isUseServerKeepalive() || (heartbeatSec <= 0 || heartbeatSec > 600))) {
                     heartbeatSec = brokerConfig.getDefaultKeepalive();
@@ -108,15 +114,17 @@ public class ConnectProcessor implements RequestProcessor {
                 }
                 if (!keepAlive(clientId, ctx, heartbeatSec)) {
                     LogUtil.warn(log, "[CONNECT] -> set heartbeat failure,clientId:{},heartbeatSec:{}", clientId, heartbeatSec);
-                    throw new Exception("set heartbeat failure");
+                    throw new BrokerException("set heartbeat failure.");
                 }
-                // 开启心跳检测
+                /*final String realClientId = clientId;
                 TimerManager.startHeartbeat(clientId, (int) (heartbeatSec * 1.5), (k, v) -> {
                     // 客户端1.5倍心跳周期未发送任何数据，服务端主动断开连接
-                    ctx.writeAndFlush(MessageUtil.getDisconnectMessage((byte) 0x8D));
-                    ctx.close();
-                });
-                // 2. 从集群/本服务器中查询是否存在该clientId的设备消息
+                    Optional.ofNullable(ConnectManager.getInstance().getClient(realClientId)).ifPresent(session -> {
+                        session.getCtx().writeAndFlush(MessageUtil.getDisconnectMessage((byte) 0x8D));
+                        session.getCtx().close();
+                    });
+                });*/
+                // 从集群/本服务器中查询是否存在该clientId的设备
                 SessionState sessionState = sessionStore.getSession(clientId);
                 boolean notifyClearOtherSession = true;
                 if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
@@ -149,6 +157,36 @@ public class ConnectProcessor implements RequestProcessor {
                         TimerManager.stopWillTimeout(clientId);
                     }
                 }
+                // 处理will消息
+                boolean willFlag = variableHeader.isWillFlag();
+                if (willFlag) {
+                    MqttConnectPayload payload = connectMessage.payload();
+                    byte[] content = payload.willMessageInBytes();
+                    if (content.length > 0) {
+                        boolean willRetain = variableHeader.isWillRetain();
+                        int willQos = variableHeader.willQos();
+                        String willTopic = payload.willTopic();
+                        if (mqtt5) {
+                            if (!brokerConfig.getRetainAvailable() && willRetain) {
+                                log.warn("retain not available, clientId: {}", clientId);
+                                returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_RETAIN_NOT_SUPPORTED;
+                                throw new BrokerException("retain not available.");
+                            } else if (willQos > brokerConfig.getMaximumQos()) {
+                                log.warn("QoS not supported, clientId: {}", clientId);
+                                returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_QOS_NOT_SUPPORTED;
+                                throw new BrokerException("QoS not supported.");
+                            } else if (Mqtt5Utils.checkPackageSize(clientSession, connectMessage.fixedHeader().remainingLength())) {
+                                log.warn("exceeding packet size, clientId: {}", clientId);
+                                returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_PACKET_TOO_LARGE;
+                                throw new BrokerException("exceeding packet size.");
+                            }
+                        }
+                        MqttProperties properties = payload.willProperties();
+                        storeWillMsg(clientId, willRetain, willQos, willTopic, payload.willMessageInBytes(), Mqtt5Utils.propertyMap(properties));
+                    } else {
+                        messageStore.clearWillAndWillRetain(clientId);
+                    }
+                }
                 SessionState ss = new SessionState(SessionState.StateEnum.ONLINE, mqttVersion);
                 if (mqtt5) {
                     // 返回服务端可选功能
@@ -158,50 +196,26 @@ public class ConnectProcessor implements RequestProcessor {
                         ss.setPropertyMap(propertyMap);
                     }
                 }
-                // 3. 存储 session 会话
+                // 存储 session 会话
                 sessionStore.storeSession(clientId, ss);
                 if (notifyClearOtherSession) {
                     Event event = new Event(EventCode.CLEAR_SESSION.getCode(), clientId, System.currentTimeMillis(), MixAll.getLocalIp());
                     clusterEventHandler.sendEvent(event);
                 }
-                // 4. 处理will 消息
-                boolean willFlag = variableHeader.isWillFlag();
-                if (willFlag) {
-                    boolean willRetain = variableHeader.isWillRetain();
-                    int willQos = variableHeader.willQos();
-                    MqttConnectPayload payload = connectMessage.payload();
-                    String willTopic = payload.willTopic();
-                    if (mqtt5) {
-                        if (!brokerConfig.getRetainAvailable() && willRetain) {
-                            log.warn("retain not available, clientId: {}", clientId);
-                            returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_RETAIN_NOT_SUPPORTED;
-                        } else if (willQos > brokerConfig.getMaximumQos()) {
-                            log.warn("QoS not supported, clientId: {}", clientId);
-                            returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_QOS_NOT_SUPPORTED;
-                        } else if (Mqtt5Utils.checkPackageSize(clientSession, connectMessage.fixedHeader().remainingLength())) {
-                            log.warn("exceeding message, clientId: {}", clientId);
-                            returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_PACKET_TOO_LARGE;
-                        }
-                    }
-                    MqttProperties properties = payload.willProperties();
-                    storeWillMsg(clientId, willRetain, willQos, willTopic, payload.willMessageInBytes(), Mqtt5Utils.propertyMap(properties));
-                }
-            }
-            if (returnCode != MqttConnectReturnCode.CONNECTION_ACCEPTED) {
-                MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
+                NettyUtil.setClientId(ctx.channel(), clientId);
+                ConnectManager.getInstance().putClient(clientId, clientSession);
+                MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, responseProperties);
                 ctx.writeAndFlush(ackMessage);
-                ctx.close();
-                LogUtil.warn(log, "[CONNECT remote:{}] -> {} connect failure,returnCode={}", remoteAddress, clientId, returnCode);
-                return;
+                LogUtil.info(log, "[CONNECT remote:{}] -> {} connect to this mqtt server", remoteAddress, clientId);
+                reConnect2SendMessage(clientId);
+                clientSession.setUserName(userName);
+                newClientNotify(clientSession);
             }
-            NettyUtil.setClientId(ctx.channel(), clientId);
-            ConnectManager.getInstance().putClient(clientId, clientSession);
-            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, responseProperties);
+        } catch (BrokerException be) {
+            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
             ctx.writeAndFlush(ackMessage);
-            LogUtil.info(log, "1234[CONNECT remote:{}] -> {} connect to this mqtt server", remoteAddress, clientId);
-            reConnect2SendMessage(clientId);
-            clientSession.setUserName(userName);
-            newClientNotify(clientSession);
+            ctx.close();
+            LogUtil.warn(log, "[CONNECT remote:{}] -> {} connect failure,returnCode={}", remoteAddress, clientId, returnCode);
         } catch (Exception ex) {
             LogUtil.warn(log, "[CONNECT remote:{}] -> Service Unavailable: cause={}", remoteAddress, ex);
             returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE;
@@ -234,14 +248,12 @@ public class ConnectProcessor implements RequestProcessor {
         headers.put(MessageHeader.QOS, willQos);
         headers.put(MessageHeader.TOPIC, willTopic);
         headers.put(MessageHeader.WILL, true);
+        headers.put(MessageHeader.REMAINING_LENGTH, willPayload.length);
         Message message = new Message(Message.Type.WILL, headers, willPayload);
         message.setProperties(propertyMap);
         message.setStoreTime(System.currentTimeMillis());
         message.setClientId(clientId);
         messageStore.storeWillMessage(clientId, message);
-        if (willRetain) {
-            messageStore.storeRetainMessage(willTopic, message);
-        }
         LogUtil.info(log, "[WillMessageStore] : {} store will message:{}", clientId, message);
     }
 

@@ -115,9 +115,9 @@ CREATE TABLE IF NOT EXISTS `jmqtt_subscription`
     `client_id` varchar(64)  NOT NULL COMMENT '客户端id',
     `topic`     varchar(128) NOT NULL COMMENT '订阅的topic',
     `qos`       tinyint(4)   NOT NULL COMMENT '对应的qos',
+    `opt` varchar(100)  DEFAULT NULL COMMENT '订阅选项',
     PRIMARY KEY (`id`),
-    KEY `idx_client_id` (`client_id`),
-    KEY `idx_topic` (`topic`)
+    UNIQUE KEY `uqe_client_id_topic` (`client_id`, `topic`) USING BTREE
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='客户端订阅关系';
 

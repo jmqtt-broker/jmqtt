@@ -53,6 +53,11 @@ public class Message {
         return headers.get(key);
     }
 
+    /**
+     * 是否为时效性消息，包含过期间隔属性的消息为时效性消息，转发的时候
+     * 需要携带有效时间，剩余有效时间 = 有效间隔 - 服务器停留时间
+     * @return
+     */
     public boolean validity() {
         if (properties != null && !properties.isEmpty()) {
             Integer expire = (Integer) properties.get(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value());
@@ -61,13 +66,19 @@ public class Message {
         return false;
     }
 
+    /**
+     * 剩余有效时间 = 有效间隔 - 服务器停留时间
+     * @return
+     */
     public int alive() {
         if (properties != null && !properties.isEmpty()) {
             Integer exipre = (Integer) properties.get(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value());
             if (exipre != null) {
                 int aliveSeconds = (int) ((storeTime / 1000 + exipre) - System.currentTimeMillis() / 1000);
-                properties.put(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value(), aliveSeconds);
-                return aliveSeconds;
+                if (aliveSeconds > 0) {
+                    properties.put(MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL.value(), aliveSeconds);
+                    return aliveSeconds;
+                }
             }
         }
         return 0;

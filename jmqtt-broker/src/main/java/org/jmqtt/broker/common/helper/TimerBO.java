@@ -2,6 +2,8 @@ package org.jmqtt.broker.common.helper;
 
 import lombok.*;
 
+import java.util.function.BiConsumer;
+
 /**
  * @Description: java类作用描述
  * @Author: zhengtao
@@ -21,5 +23,7 @@ public class TimerBO {
     private Object data;
 
     private int expire;
+
+    private BiConsumer<String, Object> expiredFunc;
 
 }

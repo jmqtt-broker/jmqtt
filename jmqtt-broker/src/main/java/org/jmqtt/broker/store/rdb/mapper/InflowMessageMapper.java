@@ -15,11 +15,11 @@ public interface InflowMessageMapper {
             "MERGE INTO JMQTT_INFLOW_MESSAGE a " +
             "USING (SELECT #{id} AS ID, #{clientId} AS CLIENT_ID, #{msgId} AS MSG_ID," +
             " #{content} AS CONTENT, #{gmtCreate} AS GMT_CREATE FROM DUAL) b " +
-            "ON (a.CLIENT_ID = b.CLIENT_ID) " +
+            "ON (a.CLIENT_ID = b.CLIENT_ID AND a.MSG_ID = b.MSG_ID) " +
             "WHEN MATCHED THEN " +
             "UPDATE SET CONTENT = b.CONTENT, GMT_CREATE = b.GMT_CREATE " +
             "WHEN NOT MATCHED THEN " +
-            "  INSERT (ID, CLIENT_ID, MSG_ID, CONTENT, GMT_CREATE) VALUES " +
+            " INSERT (ID, CLIENT_ID, MSG_ID, CONTENT, GMT_CREATE) VALUES " +
             "(b.ID, b.CLIENT_ID, b.MSG_ID, b.CONTENT, b.GMT_CREATE)" +
             "</if>" +
             "<if test=\"'${dbType}' != 'oracle'\">" +
