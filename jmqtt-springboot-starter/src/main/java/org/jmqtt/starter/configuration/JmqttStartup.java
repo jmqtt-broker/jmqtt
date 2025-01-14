@@ -23,11 +23,6 @@ import javax.sql.DataSource;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/11/4 16:23
- */
 @Slf4j
 @RequiredArgsConstructor
 public class JmqttStartup {

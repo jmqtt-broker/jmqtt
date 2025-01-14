@@ -6,11 +6,6 @@ import org.jmqtt.broker.processor.protocol.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/11/1 14:12
- */
 @Slf4j
 public class JmqttProcessorConfiguration {
 

@@ -1,20 +1,14 @@
 package org.jmqtt.broker.store.redis.support;
 
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/11/10 12:32
- */
 public interface RedisOperator {
 
     int DEFAULT_EXPIRE = 30 * 24 * 3600;
 
-    default void init() {}
+    default void init() {
+    }
 
     boolean set(String key, String value);
 

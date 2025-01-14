@@ -4,11 +4,6 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/12/31 16:57
- */
 @Getter
 @Setter
 public class Mqtt5Config {

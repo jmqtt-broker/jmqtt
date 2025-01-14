@@ -15,9 +15,7 @@
     },
     "cluster": {
       "seed-nodes": [
-        "akka://JMqttDispatcherSystem@127.0.0.1:25251",
-        "akka://JMqttDispatcherSystem@127.0.0.1:25252",
-        "akka://JMqttDispatcherSystem@127.0.0.1:25253"
+        "akka://JMqttDispatcherSystem@127.0.0.1:25251"
       ],
       "downing-provider-class": "akka.cluster.sbr.SplitBrainResolverProvider"
     }

@@ -32,12 +32,17 @@ public interface SessionStore {
 
     /**
      * 从集群中查询该clientId之前的连接状态
+     * @param clientId  clientId
+     * @return  return
      */
     SessionState getSession(String clientId);
 
     /**
      * 1. 保存会话到 Jmqtt集群
      * 2. 通知集群其它服务器，把该连接的本地会话信息清理掉
+     * @param clientId      clientId
+     * @param sessionState  sessionState
+     * @return  return
      */
     boolean storeSession(String clientId,SessionState sessionState);
 
@@ -47,6 +52,8 @@ public interface SessionStore {
      *  2. 离线消息
      *  3. 订阅关系
      *  4. 订阅状态{@link SessionState}
+     * @param clientId          clientId
+     * @param clearOfflineMsg   clearOfflineMsg
      */
     default void clearSession(String clientId,boolean clearOfflineMsg){
         SessionState session = getSession(clientId);
@@ -75,91 +82,131 @@ public interface SessionStore {
 
     /**
      * 存储订阅关系
+     * @param clientId      clientId
+     * @param subscription  subscription
+     * @return  return
      */
     boolean storeSubscription(String clientId,Subscription subscription);
 
     /**
      * 移除订阅关系
+     * @param clientId  clientId
+     * @param topic     topic
+     * @return  return
      */
     boolean delSubscription(String clientId,String topic);
 
     /**
      * 清理订阅信息
+     * @param clientId  clientId
+     * @return  return
      */
     boolean clearSubscription(String clientId);
 
     /**
      * 获取该clientId的所有的订阅关系
+     * @param clientId  clientId
+     * @return  return
      */
     Set<Subscription> getSubscriptions(String clientId);
 
     /**
      * 缓存qos2 publish报文消息-入栈消息
-     * @return true:缓存成功   false:缓存失败
+     * @param clientId  clientId
+     * @param message   message
+     * @return  return
      */
     boolean cacheInflowMsg(String clientId, Message message);
 
     /**
      * 获取并删除接收到的qos2消息-入栈消息
+     * @param clientId  clientId
+     * @param msgId     msgId
+     * @return  return
      */
     Message releaseInflowMsg(String clientId,Integer msgId);
 
     /**
      * 获取所有的入栈消息
+     * @param clientId  clientId
+     * @return  return
      */
     Collection<Message> getAllInflowMsg(String clientId);
 
     /**
      * 缓存出栈消息-分发给客户端的qos1,qos2消息
+     * @param clientId  clientId
+     * @param message   message
+     * @return  return
      */
     boolean cacheOutflowMsg(String clientId,Message message);
 
     /**
      * 获取所有的出栈消息
+     * @param clientId  clientId
+     * @return  return
      */
     Collection<Message> getAllOutflowMsg(String clientId);
 
     /**
      * 获取并删除发送的出栈消息
+     * @param clientId  clientId
+     * @param msgId     msgId
+     * @return  return
      */
     Message releaseOutflowMsg(String clientId,Integer msgId);
 
     /**
      * 出栈qos2第二阶段，缓存msgId
+     * @param clientId  clientId
+     * @param msgId     msgId
+     * @return  return
      */
     boolean cacheOutflowSecMsgId(String clientId,int msgId);
 
     /**
      * 出栈qos2第二阶段，释放msgId
      * 若为false，说明msgId不存在（异常情况）
+     * @param clientId  clientId
+     * @param msgId     msgId
+     * @return  return
      */
     boolean releaseOutflowSecMsgId(String clientId,Integer msgId);
 
     /**
      * 获取所有的信息，进行发送
+     * @param clientId  clientId
+     * @return  return
      */
     List<Integer> getAllOutflowSecMsgId(String clientId);
 
     /**
      * 缓存离线消息
+     * @param clientId  clientId
+     * @param message   message
+     * @return  return
      */
     boolean storeOfflineMsg(String clientId,Message message);
 
     /**
      * 获取所有的离线消息
+     * @param clientId  clientId
+     * @return  return
      */
     Collection<Message> getAllOfflineMsg(String clientId);
 
     /**
      * 清理该客户端的离线消息
+     * @param clientId  clientId
+     * @return  return
      */
     boolean clearOfflineMsg(String clientId);
 
     /**
      * 获取某个客户端的某个连接属性
-     * @param clientId
-     * @param propertyId
-     * @return
+     * @param clientId      clientId
+     * @param propertyId    propertyId
+     * @return  return
      */
     default Object getClientProperty(String clientId, Integer propertyId) {
         String key = JmqttConst.CLIENT_PROPERTIES + clientId;

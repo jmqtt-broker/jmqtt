@@ -4,11 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.acl.impl.DefaultAuthValid;
 import org.springframework.stereotype.Service;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/3/27 14:08
- */
 @Slf4j
 @Service
 public class MyValid extends DefaultAuthValid {

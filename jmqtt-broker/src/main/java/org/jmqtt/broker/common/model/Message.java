@@ -56,7 +56,7 @@ public class Message {
     /**
      * 是否为时效性消息，包含过期间隔属性的消息为时效性消息，转发的时候
      * 需要携带有效时间，剩余有效时间 = 有效间隔 - 服务器停留时间
-     * @return
+     * @return  true or false
      */
     public boolean validity() {
         if (properties != null && !properties.isEmpty()) {
@@ -68,7 +68,7 @@ public class Message {
 
     /**
      * 剩余有效时间 = 有效间隔 - 服务器停留时间
-     * @return
+     * @return  int
      */
     public int alive() {
         if (properties != null && !properties.isEmpty()) {

@@ -17,6 +17,8 @@ public class InflowMessageHandler {
 
     /**
      * 缓存qos2 publish报文消息-入栈消息
+     * @param clientId      clientId
+     * @param message       message
      * @return true:缓存成功   false:缓存失败
      */
     public static boolean cacheInflowMsg(String clientId, Message message){
@@ -36,6 +38,9 @@ public class InflowMessageHandler {
 
     /**
      * 获取并删除接收到的qos2消息-入栈消息
+     * @param clientId  clientId
+     * @param msgId     msgId
+     * @return  return
      */
     public static Message releaseInflowMsg(String clientId,Integer msgId){
         Map<Integer,Message> msgCache = infowMsgMap.get(clientId);
@@ -52,6 +57,8 @@ public class InflowMessageHandler {
 
     /**
      * 获取所有的入栈消息
+     * @param clientId  clientId
+     * @return  return
      */
     public static Collection<Message> getAllInflowMsg(String clientId){
         Map<Integer,Message> msgCache = infowMsgMap.get(clientId);

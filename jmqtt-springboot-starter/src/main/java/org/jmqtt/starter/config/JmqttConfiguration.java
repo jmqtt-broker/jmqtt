@@ -5,11 +5,6 @@ import lombok.Setter;
 import org.jmqtt.broker.common.config.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/10/31 14:29
- */
 @ConfigurationProperties(prefix = "jmqtt.broker")
 @Getter
 @Setter

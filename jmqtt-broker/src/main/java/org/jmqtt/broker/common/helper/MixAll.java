@@ -163,9 +163,6 @@ public class MixAll {
         }
     }
 
-    /**
-     * transfer properties 2 pojo
-     */
     public static void properties2POJO(Properties properties, Object obj) {
         Method[] methods = obj.getClass().getMethods();
         for (Method method : methods) {

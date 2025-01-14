@@ -7,11 +7,6 @@ import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2025/1/4 22:39
- */
 public class BrokerContext {
 
     public static BrokerController brokerController;

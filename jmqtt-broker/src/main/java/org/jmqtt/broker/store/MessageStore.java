@@ -21,11 +21,16 @@ public interface MessageStore {
 
     /**
      * 存储clientId的遗嘱消息
+     * @param clientId  clientId
+     * @param message   message
+     * @return  return
      */
     boolean storeWillMessage(String clientId, Message message);
 
     /**
      * 清理该clientId的遗嘱消息
+     * @param clientId  clientId
+     * @return  return
      */
     boolean clearWillMessage(String clientId);
 
@@ -43,21 +48,29 @@ public interface MessageStore {
 
     /**
      * 获取will消息
+     * @param clientId  clientId
+     * @return  return
      */
     Message getWillMessage(String clientId);
 
     /**
      * 存储retain消息
+     * @param topic     topic
+     * @param message   message
+     * @return  return
      */
     boolean storeRetainMessage(String topic,Message message);
 
     /**
      * 清理该topic的 retain消息
+     * @param topic topic
+     * @return  return
      */
     boolean clearRetainMessage(String topic);
 
     /**
      * 获取所有retain消息
+     * @return  return
      */
     Collection<Message> getAllRetainMsg();
 }

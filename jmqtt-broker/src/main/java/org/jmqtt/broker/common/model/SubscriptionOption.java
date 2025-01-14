@@ -6,11 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/12/6 9:33
- */
 @Getter
 @Setter
 @NoArgsConstructor

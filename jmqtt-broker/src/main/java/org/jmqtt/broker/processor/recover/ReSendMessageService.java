@@ -21,8 +21,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * send offline message and flow message when client re connect and cleanSession is false 设备重连：分发会话消息服务 客户端以新开始(Clean
- * Start)标志为0且会话存在的情况下重连时, 客户端和服务端都必须使用原始报文标识符重新发送任何未被确认的 PUBLISH 报文(当QoS > 0)和PUBREL报文. 这是唯一要求客户端 或服务端重发消息的情况. 客户端和服务端不能在其他任何时间重发消息
+ * send offline message and flow message when client re connect and cleanSession is false
+ * 设备重连：分发会话消息服务 客户端以新开始(Clean Start)标志为0且会话存在的情况下重连时,
+ * 客户端和服务端都必须使用原始报文标识符重新发送任何未被确认的 PUBLISH 报文(当QoS &gt; 0)和PUBREL报文. 这是唯一要求客户端 或服务端重发消息的情况. 客户端和服务端不能在其他任何时间重发消息
  */
 public class ReSendMessageService extends HighPerformanceMessageHandler {
 

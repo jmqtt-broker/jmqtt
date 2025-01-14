@@ -78,7 +78,9 @@ public class BrokerStartupConfiguration {
     public NettyConfig nettyConfig(@Qualifier("jmqttConfig") Properties jmqttConfig, JmqttConfiguration autoConfig) {
         NettyConfig nettyConfig = new NettyConfig();
         MixAll.properties2POJO(jmqttConfig, nettyConfig);
-        BeanUtils.copyProperties(autoConfig.getNetty(), nettyConfig);
+        Optional.ofNullable(autoConfig.getNetty()).ifPresent(nf -> {
+            BeanUtils.copyProperties(nf, nettyConfig);
+        });
         // getProperties(nettyConfig, "jmqtt.broker.");
         return nettyConfig;
     }
@@ -115,7 +117,7 @@ public class BrokerStartupConfiguration {
     public ClusterEventHandler clusterEventHandler(JmqttConfiguration autoConfig) {
         String store = autoConfig.getStore();
         ClusterEventHandler clusterEventHandler;
-        if (autoConfig.getAkka().getEnable()) {
+        if (autoConfig.getAkka() != null && autoConfig.getAkka().getEnable()) {
             clusterEventHandler = new AkkaClusterEventHandler();
         } else if (JmqttConst.RDB.equals(store)) {
             clusterEventHandler = new RDBClusterEventHandler();

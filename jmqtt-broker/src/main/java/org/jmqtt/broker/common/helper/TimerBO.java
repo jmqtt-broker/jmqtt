@@ -4,11 +4,6 @@ import lombok.*;
 
 import java.util.function.BiConsumer;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/12/13 10:13
- */
 @Getter
 @Setter
 @AllArgsConstructor

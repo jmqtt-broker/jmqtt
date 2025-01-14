@@ -159,6 +159,7 @@ public class DBUtils {
 
     /**
      * 获取关闭事物的session，需要手动提交事物
+     * @return  return
      */
     public SqlSession getSqlSessionWithTrans() {
         return this.sqlSessionFactory.openSession(false);

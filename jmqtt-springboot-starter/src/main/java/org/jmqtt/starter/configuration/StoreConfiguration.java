@@ -17,11 +17,6 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/11/11 9:58
- */
 @AutoConfigureAfter({RedisAutoConfiguration.class, DataSourceAutoConfiguration.class})
 @Slf4j
 public class StoreConfiguration {

@@ -15,11 +15,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/12/11 17:11
- */
 @Slf4j
 public class Mqtt5Utils {
 

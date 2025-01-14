@@ -87,7 +87,7 @@ public class IdWorker {
     /**
      * 获取下一个ID
      *
-     * @return
+     * @return  long
      */
     private synchronized long nextId() {
         long timestamp = timeGen();
@@ -128,6 +128,8 @@ public class IdWorker {
      * <p>
      * 获取 maxWorkerId
      * </p>
+     * @param datacenterId  datacenterId
+     * @return  long
      */
     protected static long getMaxWorkerId(long datacenterId) {
         StringBuilder mpid = new StringBuilder();
@@ -146,9 +148,8 @@ public class IdWorker {
     }
 
     /**
-     * <p>
      * 数据标识id部分
-     * </p>
+     * @return  return
      */
     protected static long getDatacenterId() {
         long id = 0L;
@@ -169,10 +170,4 @@ public class IdWorker {
         return id;
     }
 
-    /**
-     * 测试
-     */
-    public static void main(String[] args) {
-
-    }
 }

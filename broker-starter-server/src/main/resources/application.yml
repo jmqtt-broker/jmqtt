@@ -10,22 +10,22 @@ spring:
     name: jmqtt-test
   datasource:
     # mysql
-#    url: ${MYSQL_URL:jdbc:mysql://192.168.100.26:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
-#    username: ${MYSQL_USERNAME:root}
-#    password: ${MYSQL_PASSWORD:zhibo2022}
+#    url: ${RDB_URL:jdbc:mysql://dev.jmqtt.com:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
+#    username: ${RDB_USERNAME:root}
+#    password: ${RDB_PASSWORD:zhibo2022}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
     # postgres
-#    url: ${POSTGRES_URL:jdbc:postgresql://192.168.100.26:5432/zb_iot}
-#    username: ${POSTGRES_USERNAME:postgres}
-#    password: ${POSTGRES_PASSWORD:123456}
+#    url: ${RDB_URL:jdbc:postgresql://dev.jmqtt.com:5432/zb_iot}
+#    username: ${RDB_USERNAME:postgres}
+#    password: ${RDB_PASSWORD:123456}
 #    driver-class-name: org.postgresql.Driver
     # oracle
-    url: ${HUIZHI_URL:jdbc:oracle:thin:@192.168.100.102:1521:helowin}
-    username: ${HUIZHI_USERNAME:zhibo}
-    password: ${HUIZHI_PASSWORD:zhibo2023}
+    url: ${RDB_URL:jdbc:oracle:thin:@odb.jmqtt.com:1521:helowin}
+    username: ${RDB_USERNAME:zhibo}
+    password: ${RDB_PASSWORD:zhibo2023}
     driverClassName: oracle.jdbc.driver.OracleDriver
   redis:
-    host: ${REDIS_HOST:192.168.100.26}
+    host: ${REDIS_HOST:dev.jmqtt.com}
     port: ${REDIS_PORT:56379}
     password: ${REDIS_PASSWORD:zhibo2022}
     database: 11
@@ -72,13 +72,13 @@ jmqtt:
     useDefaultRdb: false
     rdb:
       driver: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://192.168.100.251:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false&useSSL=false&serverTimezone=Asia/Shanghai
+      url: jdbc:mysql://rdb.jmqtt.com:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false&useSSL=false&serverTimezone=Asia/Shanghai
       username: root
       password: zhibo@2020
     # redis数据源，逻辑同rdb
     useDefaultRedis: false
     redis:
-      redis-host: 192.168.100.251
+      redis-host: rdb.jmqtt.com
       redis-port: 56379
       redis-password: zhibo@2020
       database: 11

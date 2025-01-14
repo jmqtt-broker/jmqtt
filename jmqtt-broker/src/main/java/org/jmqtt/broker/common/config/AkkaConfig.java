@@ -8,11 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/10/31 11:25
- */
 @Getter
 @Setter
 public class AkkaConfig {

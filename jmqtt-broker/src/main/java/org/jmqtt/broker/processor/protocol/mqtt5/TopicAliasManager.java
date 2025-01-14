@@ -10,11 +10,6 @@ import org.jmqtt.broker.remoting.util.MessageUtil;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * @Description: java类作用描述
- * @Author: zhengtao
- * @CreateDate: 2024/12/2 11:37
- */
 @Slf4j
 public class TopicAliasManager {
 

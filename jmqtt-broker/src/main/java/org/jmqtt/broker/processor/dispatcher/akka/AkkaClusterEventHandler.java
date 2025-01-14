@@ -37,7 +37,7 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
         Config config;
         String systemName = "JMqttDispatcherSystem";
         if (akkaConfig != null) {
-            config = ConfigFactory.parseString(brokerConfig.getAkka().configStr()).withFallback(baseConfig);
+            config = ConfigFactory.parseString(akkaConfig.configStr()).withFallback(baseConfig);
             systemName = akkaConfig.getSystemName();
         } else {
             config = baseConfig;
