@@ -22,6 +22,7 @@ import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class ClientLifeCycleHookService implements ChannelEventListener {
 
@@ -51,8 +52,6 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         String clientId = NettyUtil.getClientId(channel);
         if (StringUtils.isNotEmpty(clientId)) {
             ClientSession session = ConnectManager.getInstance().getClient(clientId);
-            Boolean normalDisconnection = (Boolean) Optional.ofNullable(session.getCtx().channel()
-                    .attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).get()).orElse(false);
             if (session.isCleanStart()) {
                 sessionStore.clearSession(clientId, false);
             } else {
@@ -60,30 +59,44 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                 TimerManager.startSessionTimeout(clientId, (k, v) -> sessionStore.clearSession(clientId, false));
             }
             // 收到DISCONNECT报文而断开的连接属于正常断开，不发送遗嘱消息，仅异常断开的连接发送遗嘱消息
-            if (!normalDisconnection) {
-                Message willMessage = messageStore.getWillMessage(clientId);
-                if (willMessage != null) {
-                    if (session.isMqtt5()) {
-                        TimerManager.startWillTimeout(clientId, willMessage, (k, v) -> {
-                            sendWill((Message) v);
-                        });
-                    } else {
-                        sendWill(willMessage);
-                    }
+            Boolean normalDisconnection = (Boolean) Optional.ofNullable(channel.attr(
+                    AttributeKey.valueOf("NORMAL_DISCONNECTION")).get()).orElse(false);
+            if (normalDisconnection) {
+                if ((Boolean) Optional.ofNullable(channel.attr(
+                        AttributeKey.valueOf("PUBLISH_WILL")).get()).orElse(false)) {
+                    // 正常断开连接，但是收到的DISCONNECT中ReasonCode为0x04，表示即使是正常断开也需要发布遗嘱
+                    publishWill(session);
+                    messageStore.clearWillMessage(clientId);
+                } else {
+                    messageStore.clearWillAndWillRetain(clientId);
                 }
             } else {
-                messageStore.clearWillAndWillRetain(clientId);
+                // 异常断开，发布遗嘱
+                publishWill(session);
             }
         }
     }
 
-    private void sendWill(Message willMessage) {
-        innerMessageDispatcher.appendMessage(willMessage);
-        Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
-            if ((boolean) retain) {
-                messageStore.storeRetainMessage((String) willMessage.getHeader(MessageHeader.TOPIC), willMessage);
+    private void publishWill(ClientSession session) {
+        String clientId = session.getClientId();
+        Message willMessage = messageStore.getWillMessage(clientId);
+        if (willMessage != null) {
+            Consumer<Message> consumer = message -> {
+                innerMessageDispatcher.appendMessage(message);
+                Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
+                    if ((boolean) retain) {
+                        messageStore.storeRetainMessage((String) message.getHeader(MessageHeader.TOPIC), message);
+                    }
+                });
+            };
+            if (session.isMqtt5()) {
+                TimerManager.startWillTimeout(clientId, willMessage, (k, v) -> {
+                    consumer.accept((Message) v);
+                });
+            } else {
+                consumer.accept(willMessage);
             }
-        });
+        }
     }
 
     private void offlineSession(ClientSession clientSession) {

@@ -28,9 +28,9 @@ public class UnSubscribeProcessor implements RequestProcessor {
     private Logger log = JmqttLogger.messageTraceLog;
 
     private SubscriptionMatcher subscriptionMatcher;
-    private SessionStore        sessionStore;
+    private SessionStore sessionStore;
 
-    public UnSubscribeProcessor(SubscriptionMatcher subscriptionMatcher,SessionStore sessionStore){
+    public UnSubscribeProcessor(SubscriptionMatcher subscriptionMatcher, SessionStore sessionStore) {
         this.subscriptionMatcher = subscriptionMatcher;
         this.sessionStore = sessionStore;
     }
@@ -42,14 +42,18 @@ public class UnSubscribeProcessor implements RequestProcessor {
         List<String> topics = unsubscribePayload.topics();
         String clientId = NettyUtil.getClientId(ctx.channel());
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
-        if(Objects.isNull(clientSession)){
-            LogUtil.warn(log,"[UnSubscribe] -> The client is not online.clientId={}",clientId);
+        if (Objects.isNull(clientSession)) {
+            LogUtil.warn(log, "[UnSubscribe] -> The client is not online.clientId={}", clientId);
         }
-        topics.forEach( topic -> {
-            subscriptionMatcher.unSubscribe(topic,clientId);
-            sessionStore.delSubscription(clientId,topic);
-        });
-        MqttUnsubAckMessage unsubAckMessage = MessageUtil.getUnSubAckMessage(MessageUtil.getMessageId(mqttMessage));
+        byte reasonCode = 0;
+        for (String topic : topics) {
+            if (!subscriptionMatcher.unSubscribe(topic, clientId)) {
+                // 取消订阅没有发现匹配的订阅
+                reasonCode = 0x11;
+            }
+            sessionStore.delSubscription(clientId, topic);
+        }
+        MqttUnsubAckMessage unsubAckMessage = MessageUtil.getUnSubAckMessage(MessageUtil.getMessageId(mqttMessage), reasonCode);
         ctx.writeAndFlush(unsubAckMessage);
     }
 }

@@ -34,9 +34,12 @@ public class MessageUtil {
         return bytes;
     }
 
-    public static MqttUnsubAckMessage getUnSubAckMessage(int messageId) {
+    public static MqttUnsubAckMessage getUnSubAckMessage(int messageId, byte reasonCode) {
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.UNSUBACK, false, MqttQoS.AT_MOST_ONCE, false, 0);
         MqttMessageIdVariableHeader idVariableHeader = MqttMessageIdVariableHeader.from(messageId);
+        if (reasonCode != 0) {
+            return new MqttUnsubAckMessage(fixedHeader, idVariableHeader, new MqttUnsubAckPayload(reasonCode));
+        }
         return new MqttUnsubAckMessage(fixedHeader, idVariableHeader);
     }
 

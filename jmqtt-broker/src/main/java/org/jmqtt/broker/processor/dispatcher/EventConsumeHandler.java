@@ -108,12 +108,7 @@ public class EventConsumeHandler {
         }
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
         clientSession.getCtx().close();
-        Set<Subscription> subscriptionSet = sessionStore.getSubscriptions(clientId);
-        if (!MixAll.isEmpty(subscriptionSet)) {
-            subscriptionSet.forEach(item -> {
-                subscriptionMatcher.unSubscribe(item.getTopic(), clientId);
-            });
-        }
+        sessionStore.clearSession(clientId, false);
     }
 
 }

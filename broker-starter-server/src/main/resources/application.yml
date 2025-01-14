@@ -64,13 +64,11 @@ jmqtt:
     # 是否开启高性能模式，开启则使用内存缓存QOS1、2的过程消息
     high-performance: true
     # 数据存储仓库，默认mem为内存存储，可选redis、rdb，配置redis需要配置redis连接，配置rdb需要数据库连接
-    # 当系统中存在DataSource对象时，优先使用已存在的DataSource
-    # 当系统中存在RedisTemplate对象时，优先使用已存在的RedisTemplate
     store: rdb
     # 默认值true
     # store = rdb条件下，useDefaultRdb为true时，优先使用依赖方数据源，依赖方没有数据源使用rdb配置的数据源
     # useDefaultRdb为false时，使用rdb配置的数据源
-    # useDefaultRdb、rdb配置缺省时使用依赖方数据源，依赖方无数据源报错
+    # useDefaultRdb、rdb配置缺省时，使用依赖方数据源，依赖方无数据源则启动报错
     useDefaultRdb: false
     rdb:
       driver: com.mysql.cj.jdbc.Driver
@@ -97,6 +95,8 @@ jmqtt:
       ssl-key-file-path: conf/server.pfx
       ssl-manager-pwd: 654321
       ssl-store-pwd: 654321
+      use-epoll: true
+      pooled-byte-buf-allocator-enable: true
     akka:
       # 是否开启Akka，开启后提高吞吐，集群环境下建议开启
       # Akka作用是将一个broker节点的消息同步到其他broker节点

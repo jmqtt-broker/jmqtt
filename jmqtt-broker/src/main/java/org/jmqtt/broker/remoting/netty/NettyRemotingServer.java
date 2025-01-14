@@ -5,6 +5,8 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
+import io.netty.channel.kqueue.KQueueEventLoopGroup;
+import io.netty.channel.kqueue.KQueueServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -55,18 +57,25 @@ public class NettyRemotingServer implements RemotingService {
         this.brokerConfig = brokerConfig;
         this.nettyEventExecutor = new NettyEventExecutor(listener);
 
-        if (!nettyConfig.getUseEpoll()) {
-            selectorGroup = new NioEventLoopGroup(coreThreadNum,
-                    new ThreadFactoryImpl("SelectorEventGroup"));
-            ioGroup = new NioEventLoopGroup(coreThreadNum * 2,
-                    new ThreadFactoryImpl("IOEventGroup"));
-            clazz = NioServerSocketChannel.class;
-        } else {
+        String osName = System.getProperty("os.name").toLowerCase();
+        if (osName.contains("linux") && nettyConfig.getUseEpoll()) {
             selectorGroup = new EpollEventLoopGroup(coreThreadNum,
                     new ThreadFactoryImpl("SelectorEventGroup"));
             ioGroup = new EpollEventLoopGroup(coreThreadNum * 2,
                     new ThreadFactoryImpl("IOEventGroup"));
             clazz = EpollServerSocketChannel.class;
+        } else if (osName.contains("mac")) {
+            selectorGroup = new KQueueEventLoopGroup(coreThreadNum,
+                    new ThreadFactoryImpl("SelectorEventGroup"));
+            ioGroup = new KQueueEventLoopGroup(coreThreadNum * 2,
+                    new ThreadFactoryImpl("IOEventGroup"));
+            clazz = KQueueServerSocketChannel.class;
+        } else {
+            selectorGroup = new NioEventLoopGroup(coreThreadNum,
+                    new ThreadFactoryImpl("SelectorEventGroup"));
+            ioGroup = new NioEventLoopGroup(coreThreadNum * 2,
+                    new ThreadFactoryImpl("IOEventGroup"));
+            clazz = NioServerSocketChannel.class;
         }
     }
 
@@ -207,9 +216,6 @@ public class NettyRemotingServer implements RemotingService {
             MqttMessage mqttMessage = (MqttMessage) obj;
             if (mqttMessage != null && mqttMessage.decoderResult().isSuccess()) {
                 MqttMessageType messageType = mqttMessage.fixedHeader().messageType();
-                if (messageType.equals(MqttMessageType.DISCONNECT)) {
-                    ctx.channel().attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).set(true);
-                }
                 LogUtil.debug(log, "[Remoting] ->clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", NettyUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
                 Runnable runnable = () -> processorTable.get(messageType).getObject1().processRequest(ctx, mqttMessage);
                 try {

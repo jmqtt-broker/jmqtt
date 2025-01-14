@@ -24,9 +24,11 @@ import org.jmqtt.broker.processor.dispatcher.mem.MemEventHandler;
 import org.jmqtt.broker.processor.dispatcher.rdb.RDBClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.redis.RedisClusterEventHandler;
 import org.jmqtt.broker.processor.protocol.*;
+import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.processor.recover.ReSendMessageService;
 import org.jmqtt.broker.remoting.netty.ChannelEventListener;
 import org.jmqtt.broker.remoting.netty.NettyRemotingServer;
+import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.store.mem.MemMessageStore;
@@ -299,6 +301,10 @@ public class BrokerController {
         if (this.authValid != null) {
             this.authValid.shutdown();
         }
+        ConnectManager.getInstance().forEach(session -> {
+            // Server shutting down, ReasonCode = 0x8B
+            Mqtt5Utils.sendDisconnectAndClose(session, (byte) 0x8B);
+        });
 
     }
 

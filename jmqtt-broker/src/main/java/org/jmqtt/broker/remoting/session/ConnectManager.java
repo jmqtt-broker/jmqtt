@@ -2,6 +2,7 @@ package org.jmqtt.broker.remoting.session;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * 客户端连接管理器
@@ -36,4 +37,9 @@ public class ConnectManager {
         }
         return null;
     }
+
+    public void forEach(Consumer<ClientSession> consumer) {
+        clientCache.values().forEach(consumer);
+    }
+
 }

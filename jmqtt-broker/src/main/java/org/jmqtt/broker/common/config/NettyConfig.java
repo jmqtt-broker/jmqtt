@@ -12,8 +12,8 @@ public class NettyConfig {
     private Boolean tcpKeepAlive = false;
     private int tcpSndBuf = 65536;
     private int tcpRcvBuf = 65536;
-    private Boolean useEpoll = false;
-    private Boolean pooledByteBufAllocatorEnable = false;
+    private Boolean useEpoll = true;
+    private Boolean pooledByteBufAllocatorEnable = true;
 
     /**
      * tcp port default 1883

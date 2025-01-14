@@ -83,6 +83,18 @@
       "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
     },
     {
+      "name": "jmqtt.broker.netty.use-epoll",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig",
+      "defaultValue": true
+    },
+    {
+      "name": "jmqtt.broker.netty.pooled-byte-buf-allocator-enable",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig",
+      "defaultValue": true
+    },
+    {
       "name": "jmqtt.broker.rdb",
       "type": "org.jmqtt.broker.common.config.RDBConfig",
       "sourceType": "org.jmqtt.starter.config.JmqttConfiguration"

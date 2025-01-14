@@ -98,7 +98,7 @@ public class SubscribeProcessor implements RequestProcessor {
     private List<Integer> getTopicQos(List<Topic> topics) {
         List<Integer> qoss = new ArrayList<>(topics.size());
         for (Topic topic : topics) {
-            qoss.add(topic.getQos());
+            qoss.add(Math.min(topic.getQos(), BrokerContext.getBrokerConfig().getMaximumQos()));
         }
         return qoss;
     }

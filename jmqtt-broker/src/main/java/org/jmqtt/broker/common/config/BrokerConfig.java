@@ -15,7 +15,7 @@ public class BrokerConfig {
             File.separator + "jmqtt-broker" + File.separator + "src" + File.separator + "main" + File.separator + "resources";
     private String logLevel = "INFO";
 
-    private String  version         = "3.0.0";
+    private String  version         = "1.0.0";
     private boolean anonymousEnable = false;
     private String user = "admin";
     private String pwd = "admin";

@@ -135,9 +135,10 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
     private void processQos2(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode) {
         int originMessageId = innerMsg.getMsgId();
         if (Mqtt5Utils.isOk(reasonCode)) {
-            /*if (hasSubscriber(innerMsg)) {
+            if (noSubscribers(innerMsg)) {
+                LogUtil.warn(log, "[PubMessage] -> No matching subscribers,clientId={}", innerMsg.getClientId());
                 reasonCode = 0x10;
-            }*/
+            }
             LogUtil.debug(log, "[PubMessage] -> Process qos2 message,clientId={}", innerMsg.getClientId());
             boolean flag = cacheInflowMsg(innerMsg.getClientId(), innerMsg);
             if (!flag) {
@@ -152,9 +153,10 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
     private void processQos1(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode) {
         int originMessageId = innerMsg.getMsgId();
         if (Mqtt5Utils.isOk(reasonCode)) {
-            /*if (hasSubscriber(innerMsg)) {
+            if (noSubscribers(innerMsg)) {
+                LogUtil.warn(log, "[PubMessage] -> No matching subscribers,clientId={}", innerMsg.getClientId());
                 reasonCode = 0x10;
-            }*/
+            }
             processMessage(innerMsg);
             LogUtil.info(log, "[PubMessage] -> Process qos1 message,clientId={}", innerMsg.getClientId());
         }
@@ -163,9 +165,8 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
         ctx.writeAndFlush(pubAckMessage);
     }
 
-    private boolean hasSubscriber(Message message) {
-        LogUtil.warn(log, "[PubMessage] -> No matching subscribers,clientId={}", message.getClientId());
-        return !Mqtt5Utils.getSubscriptions((String) message.getHeader(MessageHeader.TOPIC), message.getClientId()).isEmpty();
+    private boolean noSubscribers(Message message) {
+        return Mqtt5Utils.getSubscriptions((String) message.getHeader(MessageHeader.TOPIC), message.getClientId()).isEmpty();
     }
 
 }

@@ -95,7 +95,7 @@ public class ConnectProcessor implements RequestProcessor {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED;
                 throw new BrokerException("clientId invalid.");
             } else if (onBlackList(RemotingHelper.getRemoteAddr(ctx.channel()), clientId)) {
-                returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED;
+                returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_BANNED;
                 throw new BrokerException("clientId in blacklist.");
             } else if (!authentication(clientId, userName, password, this.user, this.pwd, this.anonymousEnable)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD;
@@ -116,14 +116,6 @@ public class ConnectProcessor implements RequestProcessor {
                     LogUtil.warn(log, "[CONNECT] -> set heartbeat failure,clientId:{},heartbeatSec:{}", clientId, heartbeatSec);
                     throw new BrokerException("set heartbeat failure.");
                 }
-                /*final String realClientId = clientId;
-                TimerManager.startHeartbeat(clientId, (int) (heartbeatSec * 1.5), (k, v) -> {
-                    // 客户端1.5倍心跳周期未发送任何数据，服务端主动断开连接
-                    Optional.ofNullable(ConnectManager.getInstance().getClient(realClientId)).ifPresent(session -> {
-                        session.getCtx().writeAndFlush(MessageUtil.getDisconnectMessage((byte) 0x8D));
-                        session.getCtx().close();
-                    });
-                });*/
                 // 从集群/本服务器中查询是否存在该clientId的设备
                 SessionState sessionState = sessionStore.getSession(clientId);
                 boolean notifyClearOtherSession = true;

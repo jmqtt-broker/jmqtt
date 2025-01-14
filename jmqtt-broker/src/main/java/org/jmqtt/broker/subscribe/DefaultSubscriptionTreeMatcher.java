@@ -61,8 +61,7 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
     @Override
     public boolean unSubscribe(String topic, String clientId) {
         TreeNode currentNode = recursionGetTreeNode(topic, root);
-        currentNode.getSubscribers().remove(new Subscription(clientId, topic, 1));
-        return true;
+        return currentNode.getSubscribers().remove(new Subscription(clientId, topic, 1));
     }
 
     private TreeNode recursionGetTreeNode(String topic, TreeNode node) {
