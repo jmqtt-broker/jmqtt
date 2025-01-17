@@ -1,5 +1,6 @@
 package org.jmqtt.broker.store.mem;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
@@ -54,6 +55,9 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public SessionState getSession(String clientId) {
+        if (StringUtils.isBlank(clientId)) {
+            return null;
+        }
         SessionState s = sessionTable.get(clientId);
         if (s == null) {
             // 从未连接过

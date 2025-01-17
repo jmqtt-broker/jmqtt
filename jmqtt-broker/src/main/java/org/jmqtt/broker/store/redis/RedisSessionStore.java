@@ -1,6 +1,7 @@
 package org.jmqtt.broker.store.redis;
 
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
@@ -32,6 +33,9 @@ public class RedisSessionStore implements SessionStore {
 
     @Override
     public SessionState getSession(String clientId) {
+        if (StringUtils.isBlank(clientId)) {
+            return null;
+        }
         String sessionStr = redisOperator.get(RedisKeySupport.SESSION + clientId);
         SessionState sessionState;
         if (sessionStr == null) {

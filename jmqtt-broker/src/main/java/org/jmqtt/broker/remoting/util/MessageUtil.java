@@ -6,6 +6,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.mqtt.*;
 import lombok.val;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
@@ -113,7 +114,7 @@ public class MessageUtil {
                 } else if (v instanceof String) {
                     properties.add(new MqttProperties.StringProperty(k, (String) v));
                 } else if (v instanceof Integer) {
-                    if (k == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value()) {
+                    if (StringUtils.isNotBlank(subClientId) && k == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value()) {
                         // 发布的消息带有主题别名，订阅方建立连接的时候如果没有设置别名最大值，
                         // 那么转发消息的时候需要将消息中的主题别名去掉
                         Optional.ofNullable(BrokerContext.getSessionStore().getClientProperty(subClientId,

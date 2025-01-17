@@ -7,16 +7,22 @@ import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class BrokerContext {
 
-    public static BrokerController brokerController;
+    private static BrokerController brokerController;
+
+    private static AtomicBoolean ready = new AtomicBoolean(false);
 
     public static BrokerController getBrokerController() {
         return brokerController;
     }
 
     public static void setBrokerController(BrokerController brokerController) {
-        BrokerContext.brokerController = brokerController;
+        if (ready.compareAndSet(false, true)) {
+            BrokerContext.brokerController = brokerController;
+        }
     }
 
     public static SessionStore getSessionStore() {

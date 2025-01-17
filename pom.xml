@@ -7,7 +7,7 @@
     <groupId>io.github.jmqtt-broker</groupId>
     <artifactId>jmqtt</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1</version>
+    <version>1.0.3</version>
     <url>https://github.com/zt422680855/jmqtt.git</url>
     <description>高性能mqtt broker，支持mqtt5</description>
 
@@ -170,20 +170,25 @@
     </dependencies>
 
     <distributionManagement>
-        <repository>
-            <id>zbmaven</id>
-            <name>zb</name>
-            <url>http://mvn.jmqtt.com:8081/repository/maven-releases/</url>
-        </repository>
         <snapshotRepository>
-            <id>zbmaven</id>
-            <name>zb</name>
-            <url>http://mvn.jmqtt.com:8081/repository/maven-snapshots/</url>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
     </distributionManagement>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <includeSystemScope>true</includeSystemScope>
+                </configuration>
+            </plugin>
             <!-- Compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

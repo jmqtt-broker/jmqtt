@@ -9,13 +9,15 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
+    <groupId>io.github.jmqtt-broker</groupId>
     <artifactId>broker-starter-server</artifactId>
+    <version>1.0.3</version>
 
     <dependencies>
         <dependency>
             <groupId>io.github.jmqtt-broker</groupId>
             <artifactId>jmqtt-springboot-starter</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.3</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

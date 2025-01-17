@@ -1,6 +1,7 @@
 package org.jmqtt.broker.processor.recover;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
@@ -25,9 +26,10 @@ import java.util.concurrent.locks.LockSupport;
  * 设备重连：分发会话消息服务 客户端以新开始(Clean Start)标志为0且会话存在的情况下重连时,
  * 客户端和服务端都必须使用原始报文标识符重新发送任何未被确认的 PUBLISH 报文(当QoS &gt; 0)和PUBREL报文. 这是唯一要求客户端 或服务端重发消息的情况. 客户端和服务端不能在其他任何时间重发消息
  */
+@Slf4j
 public class ReSendMessageService extends HighPerformanceMessageHandler {
 
-    private Logger log = JmqttLogger.messageTraceLog;
+    // private Logger log = JmqttLogger.messageTraceLog;
 
     private Thread                thread;
     private boolean               stoped  = false;
@@ -185,9 +187,9 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
                         LogUtil.warn(log,"ReSend message is interrupted,the client offline again,clientId={}", clientId);
                     }
                     long cost = System.currentTimeMillis() - start;
-                    LogUtil.debug(log,"ReSend message clientId:{} cost time:{}", clientId, cost);
+                    log.debug("ReSend message clientId:{} cost time:{}", clientId, cost);
                 } catch (Exception e) {
-                    LogUtil.error(log,"ReSend message failure,clientId:{}", e);
+                    log.error("ReSend message failure,clientId:{}", clientId, e);
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e1) {

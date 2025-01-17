@@ -166,6 +166,8 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                     // 不是mqtt5客户端，直接发送
                                     write(clientSession, subscription, message);
                                 }
+                            } else {
+                                sessionStore.storeOfflineMsg(subscription.getClientId(), message);
                             }
                         }
                     } catch (Exception ex) {

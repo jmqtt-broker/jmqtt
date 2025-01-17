@@ -31,6 +31,9 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
 
     @Override
     public SessionState getSession(String clientId) {
+        if (StringUtils.isBlank(clientId)) {
+            return null;
+        }
         SessionDO sessionDO = (SessionDO) operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).getSession(clientId));
         if (sessionDO == null) {
             return new SessionState(SessionState.StateEnum.NULL);

@@ -64,7 +64,7 @@ jmqtt:
     # 是否开启高性能模式，开启则使用内存缓存QOS1、2的过程消息
     high-performance: true
     # 数据存储仓库，默认mem为内存存储，可选redis、rdb，配置redis需要配置redis连接，配置rdb需要数据库连接
-    store: rdb
+    store: mem
     # 默认值true
     # store = rdb条件下，useDefaultRdb为true时，优先使用依赖方数据源，依赖方没有数据源使用rdb配置的数据源
     # useDefaultRdb为false时，使用rdb配置的数据源

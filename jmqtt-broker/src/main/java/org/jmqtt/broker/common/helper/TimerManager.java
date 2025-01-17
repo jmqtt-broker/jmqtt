@@ -2,6 +2,7 @@ package org.jmqtt.broker.common.helper;
 
 import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 
@@ -13,6 +14,15 @@ import java.util.function.BiConsumer;
 
 @Slf4j
 public class TimerManager {
+
+    static {
+        CaffeineUtil.addRemoveListener((k, v) -> {
+            if (v != null && (v.getData() instanceof TimerBO)) {
+                TimerBO bo = (TimerBO) v.getData();
+                Optional.ofNullable(bo.getExpiredFunc()).ifPresent(func -> func.accept(k, bo.getData()));
+            }
+        });
+    }
 
     public static void start(TimerBO task) {
         String key = task.getType() + ":" + task.getTimerId();
