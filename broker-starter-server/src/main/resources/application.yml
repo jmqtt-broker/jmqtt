@@ -10,17 +10,17 @@ spring:
     name: jmqtt-test
   datasource:
     # mysql
-#    url: ${RDB_URL:jdbc:mysql://dev.jmqtt.com:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
+#    url: ${RDB_URL:jdbc:mysql://dev.jmqtt.com:3366/jmqtt?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
 #    username: ${RDB_USERNAME:root}
 #    password: ${RDB_PASSWORD:jmqtt2022}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
     # postgres
-#    url: ${RDB_URL:jdbc:postgresql://dev.jmqtt.com:5432/zb_iot}
+#    url: ${RDB_URL:jdbc:postgresql://dev.jmqtt.com:5432/jmqtt}
 #    username: ${RDB_USERNAME:postgres}
 #    password: ${RDB_PASSWORD:123456}
 #    driver-class-name: org.postgresql.Driver
     # oracle
-    url: ${RDB_URL:jdbc:oracle:thin:@odb.jmqtt.com:1521:helowin}
+    url: ${RDB_URL:jdbc:oracle:thin:@odb.jmqtt.com:1521:jmqtt}
     username: ${RDB_USERNAME:jmqtt}
     password: ${RDB_PASSWORD:jmqtt2023}
     driverClassName: oracle.jdbc.driver.OracleDriver
