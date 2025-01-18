@@ -2,6 +2,7 @@ package org.jmqtt.broker.processor.protocol;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageType;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
@@ -40,7 +41,7 @@ public class PubRelProcessor extends AbstractMessageProcessor implements Request
             }else{
                 LogUtil.warn(log,"[PubRelMessage] -> the message is not exist,clientId={},messageId={}.",clientId,msgId);
             }
-            MqttMessage pubComMessage = MessageUtil.getPubComMessage(msgId);
+            MqttMessage pubComMessage = MessageUtil.getPubReplyMessage(msgId, MqttMessageType.PUBCOMP, (byte) 0x00, null, false);
             ctx.writeAndFlush(pubComMessage);
         }else{
             LogUtil.warn(log,"[PubRelMessage] -> the client：{} disconnect to this server.",clientId);

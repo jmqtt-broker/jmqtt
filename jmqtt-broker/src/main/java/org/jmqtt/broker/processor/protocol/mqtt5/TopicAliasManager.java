@@ -3,6 +3,7 @@ package org.jmqtt.broker.processor.protocol.mqtt5;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.remoting.util.MessageUtil;
@@ -42,8 +43,11 @@ public class TopicAliasManager {
     public static String getRealTopic(Message message) {
         String topic = (String) message.getHeader(MessageHeader.TOPIC);
         if (StringUtils.isBlank(topic)) {
-            Integer topicAlias = (Integer) MessageUtil.getProperty(message, MqttProperties.MqttPropertyType.TOPIC_ALIAS.value());
-            topic = get(message.getClientId(), topicAlias);
+            Map<Integer, Object> properties = message.getProperties();
+            if (properties != null && !properties.isEmpty()) {
+                Integer topicAlias = (Integer) properties.get(MqttProperties.MqttPropertyType.TOPIC_ALIAS.value());
+                topic = get(message.getClientId(), topicAlias);
+            }
         }
         return topic;
     }
@@ -56,7 +60,6 @@ public class TopicAliasManager {
     }
 
     public static void clear(String clientId) {
-        log.debug("client offline, clear topic alias.");
         TOPIC_ALIAS_MAP.remove(clientId);
     }
 

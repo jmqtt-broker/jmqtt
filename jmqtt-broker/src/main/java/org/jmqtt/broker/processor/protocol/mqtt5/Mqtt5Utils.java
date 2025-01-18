@@ -50,6 +50,11 @@ public class Mqtt5Utils {
         ctx.close();
     }
 
+    public static boolean checkAlias(String clientId, Integer alias) {
+        Integer maxAlias = (Integer) BrokerContext.getSessionStore().getClientProperty(clientId, MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value());
+        return alias > 0 && maxAlias != null && alias <= maxAlias;
+    }
+
     public static boolean checkPackageSize(ClientSession clientSession, int remainingLength) {
         boolean res = false;
         // 固定头长度2~5字节，这里直接以5为准

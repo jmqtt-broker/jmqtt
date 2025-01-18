@@ -1,6 +1,7 @@
 package org.jmqtt.broker.processor.recover;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.MixAll;
@@ -113,7 +114,7 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
                     if (!dispatcherMessage(clientId, waitPubRecMsg, new Build() {
                         @Override
                         public MqttMessage buildMqttMessage(Message message) {
-                            return MessageUtil.getPubRecMessage(message.getMsgId(),true);
+                            return MessageUtil.getPubReplyMessage(message.getMsgId(), MqttMessageType.PUBREC, (byte) 0x00, null, true);
                         }
                     })) {
                         LogUtil.warn(log,"ReSendMessageService resend inflow error,{}",waitPubRecMsg);
@@ -124,8 +125,6 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
             Build publishMqttMsg = new Build() {
                 @Override
                 public MqttMessage buildMqttMessage(Message message) {
-                    int qos = (int) message.getHeader(MessageHeader.QOS);
-                    int messageId = message.getMsgId();
                     return MessageUtil.getPubMessage(message, false);
                 }
             };
@@ -149,7 +148,7 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
                     if (!dispatcherMessage(clientId, temp, new Build() {
                         @Override
                         public MqttMessage buildMqttMessage(Message message) {
-                            return MessageUtil.getPubRelMessage(msgId);
+                            return MessageUtil.getPubReplyMessage(msgId, MqttMessageType.PUBREL, (byte) 0x00, null, true);
                         }
                     })) {
                         return false;

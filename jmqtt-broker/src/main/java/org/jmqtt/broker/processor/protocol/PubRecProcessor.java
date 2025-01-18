@@ -2,6 +2,7 @@ package org.jmqtt.broker.processor.protocol;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageType;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
@@ -31,7 +32,7 @@ public class PubRecProcessor extends AbstractMessageProcessor implements Request
         cacheOutflowSecMsgId(clientId,messageId);
 
         LogUtil.debug(log,"[PubRec] -> Receive PubRec message,clientId={},msgId={}",clientId,messageId);
-        MqttMessage pubRelMessage = MessageUtil.getPubRelMessage(messageId);
+        MqttMessage pubRelMessage = MessageUtil.getPubReplyMessage(messageId, MqttMessageType.PUBREL, (byte) 0x00, null, false);
         ctx.writeAndFlush(pubRelMessage);
     }
 }

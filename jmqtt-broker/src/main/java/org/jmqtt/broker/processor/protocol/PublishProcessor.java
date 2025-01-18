@@ -99,7 +99,19 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
                             if (StringUtils.isNotBlank(topic)) {
                                 TopicAliasManager.put(clientId, topicAlias.value(), topic);
                             } else {
-                                headers.put(MessageHeader.TOPIC, TopicAliasManager.get(clientId, topicAlias.value()));
+                                if (Mqtt5Utils.checkAlias(clientId, topicAlias.value())) {
+                                    String realTopic = TopicAliasManager.get(clientId, topicAlias.value());
+                                    if (StringUtils.isNotBlank(realTopic)) {
+                                        headers.put(MessageHeader.TOPIC, realTopic);
+                                    } else {
+                                        // 没有根据别名找到topic，可能是重连后发送了带别名的消息，正确做法是重连后
+                                        // 重新建立主题 -> 别名的映射关系
+                                        Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x82);
+                                    }
+                                } else {
+                                    // 超过连接时约定的别名最大值
+                                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x82);
+                                }
                             }
                         }
                         innerMsg.setProperties(Mqtt5Utils.propertyMap(properties));
@@ -146,7 +158,7 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
             }
         }
         // MqttMessage pubRecMessage = MessageUtil.getPubRecMessage(originMessageId);
-        MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(originMessageId, MqttMessageType.PUBREC, reasonCode, null);
+        MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(originMessageId, MqttMessageType.PUBREC, reasonCode, null, false);
         ctx.writeAndFlush(pubRecMessage);
     }
 
@@ -161,7 +173,7 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
             LogUtil.info(log, "[PubMessage] -> Process qos1 message,clientId={}", innerMsg.getClientId());
         }
         // MqttPubAckMessage pubAckMessage = MessageUtil.getPubAckMessage(originMessageId);
-        MqttMessage pubAckMessage = MessageUtil.getPubReplyMessage(originMessageId, MqttMessageType.PUBACK, reasonCode, null);
+        MqttMessage pubAckMessage = MessageUtil.getPubReplyMessage(originMessageId, MqttMessageType.PUBACK, reasonCode, null, false);
         ctx.writeAndFlush(pubAckMessage);
     }
 

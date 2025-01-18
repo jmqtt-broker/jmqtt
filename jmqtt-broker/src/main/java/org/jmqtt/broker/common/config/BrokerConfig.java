@@ -79,7 +79,7 @@ public class BrokerConfig {
     // 服务端能处理的最大packet长度，默认256M，也是mqtt报文数据最大长度（可变头 + payload）
     private Integer maximumPacketSize = 1024 * 1024 * 256;
     // 主题别名最大值
-    private Integer topicAliasMaximum = 2048;
+    private Integer topicAliasMaximum = 65535;
     // 服务端生成的clientId默认前缀
     private String clientIdPrefix = "JMQTT_CLIENT_ID_";
     // 是否支持通配符订阅

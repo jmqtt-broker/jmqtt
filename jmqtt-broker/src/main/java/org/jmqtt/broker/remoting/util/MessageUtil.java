@@ -53,12 +53,6 @@ public class MessageUtil {
         return Math.min(qos1, qos2);
     }
 
-    public static MqttMessage getPubRelMessage(int messageId) {
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREL, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        MqttMessageIdVariableHeader idVariableHeader = MqttMessageIdVariableHeader.from(messageId);
-        return new MqttMessage(fixedHeader, idVariableHeader);
-    }
-
     public static MqttPublishMessage getPubMessage(Message message, boolean dup) {
         return getPubMessage(message, dup, null, null);
     }
@@ -131,14 +125,6 @@ public class MessageUtil {
         return null;
     }
 
-    public static Object getProperty(Message message, Integer propertyId) {
-        Map<Integer, Object> properties = message.getProperties();
-        if (properties != null && !properties.isEmpty()) {
-            return properties.get(propertyId);
-        }
-        return null;
-    }
-
     public static MqttMessage getSubAckMessage(int messageId, List<Integer> qos) {
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.SUBACK, false, MqttQoS.AT_MOST_ONCE, false, 0);
         MqttMessageIdVariableHeader idVariableHeader = MqttMessageIdVariableHeader.from(messageId);
@@ -148,37 +134,12 @@ public class MessageUtil {
 
     public static MqttMessage getPingRespMessage() {
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PINGRESP, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        MqttMessage mqttMessage = new MqttMessage(fixedHeader);
-        return mqttMessage;
-    }
-
-    public static MqttMessage getPubComMessage(int messageId) {
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBCOMP, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        MqttMessage mqttMessage = new MqttMessage(fixedHeader, MqttMessageIdVariableHeader.from(messageId));
-        return mqttMessage;
-    }
-
-    public static MqttMessage getPubRecMessage(int messageId) {
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREC, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        MqttMessage mqttMessage = new MqttMessage(fixedHeader, MqttMessageIdVariableHeader.from(messageId));
-        return mqttMessage;
-    }
-
-    public static MqttMessage getPubRecMessage(int messageId, boolean isDup) {
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREC, isDup, MqttQoS.AT_MOST_ONCE, false, 0);
-        MqttMessage mqttMessage = new MqttMessage(fixedHeader, MqttMessageIdVariableHeader.from(messageId));
-        return mqttMessage;
-    }
-
-    public static MqttPubAckMessage getPubAckMessage(int messageId) {
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBACK, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        MqttMessageIdVariableHeader idVariableHeader = MqttMessageIdVariableHeader.from(messageId);
-        return new MqttPubAckMessage(fixedHeader, idVariableHeader);
+        return new MqttMessage(fixedHeader);
     }
 
     public static MqttMessage getPubReplyMessage(int messageId, MqttMessageType type,
-                                                 byte reasonCode, MqttProperties properties) {
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(type, false, MqttQoS.AT_MOST_ONCE, false, 0);
+                                                 byte reasonCode, MqttProperties properties, boolean isDup) {
+        MqttFixedHeader fixedHeader = new MqttFixedHeader(type, isDup, MqttQoS.AT_MOST_ONCE, false, 0);
         MqttPubReplyMessageVariableHeader variableHeader = new MqttPubReplyMessageVariableHeader(messageId, reasonCode, properties);
         return new MqttMessage(fixedHeader, variableHeader);
     }
