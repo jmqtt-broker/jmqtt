@@ -1,11 +1,17 @@
-1、pom文件引入：
-    <dependency>
-        <groupId>io.github.jmqtt-broker</groupId>
-        <artifactId>jmqtt-springboot-starter</artifactId>
-        <version>1.0.2</version>
-    </dependency>
-2、springboot配置文件application.yml中增加如下配置：
-    jmqtt:
+1.pom文件引入：
+
+```plain
+<dependency>
+    <groupId>io.github.jmqtt-broker</groupId>
+    <artifactId>jmqtt-springboot-starter</artifactId>
+    <version>1.0.2</version>
+</dependency>
+```
+
+2.springboot配置文件application.yml中增加如下配置：
+
+```yaml
+ jmqtt:
       broker:
         # 是否开启匿名访问、默认登录账号、默认登录密码，可通过重写AuthValid来校验登录
         anonymous-enable: true
@@ -84,16 +90,24 @@
           cluster-nodes:
             - 127.0.0.1:25251
             - 127.0.0.1:25252
-3、以上配置均为可选，意味着引入依赖后直接启动项目即可，真正做到开箱即用。
-4、集群环境下
-  如果选择关系型数据库（store=rdb）作为存储，那么所有节点都必须连接到同一个数据库；
-  如果选择redis作为存储（store=redis），所有节点也必须连接到同一个redis；
-  选择内存存储时（store=mem），要开启akka，此时性能是最高的；
-  选择rdb或者redis时同样可以开启akka；
-  单节点环境下开启akka无意义。
-5、TODO
-  管理页面
-  $sys、$file
-  mqtt5 reasonCode完善
-  升级JDK21，将线程池替换为虚拟线程（类似go中的协程）
-  
+```
+
+3.以上配置均为可选，意味着引入依赖后直接启动项目即可，真正做到开箱即用。
+
+4.集群环境下
++ 如果选择关系型数据库（store=rdb）作为存储，那么所有节点都必须连接到同一个数据库；
++ 如果选择redis作为存储（store=redis），所有节点也必须连接到同一个redis；
++ 选择内存存储时（store=mem），要开启akka，此时性能是最高的；
++ 选择rdb或者redis时同样可以开启akka；
++ 单节点环境下开启akka无意义。
+
+5.Mqtt5
+
+支持mqtt5所有功能。
+
+6.Future
++ 管理页面
++ $sys、$file
++ mqtt5 reasonCode完善
++ 升级JDK21，将线程池替换为虚拟线程（类似go中的协程）
+
