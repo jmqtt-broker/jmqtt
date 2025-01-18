@@ -12,7 +12,7 @@ spring:
     # mysql
 #    url: ${RDB_URL:jdbc:mysql://dev.jmqtt.com:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
 #    username: ${RDB_USERNAME:root}
-#    password: ${RDB_PASSWORD:zhibo2022}
+#    password: ${RDB_PASSWORD:jmqtt2022}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
     # postgres
 #    url: ${RDB_URL:jdbc:postgresql://dev.jmqtt.com:5432/zb_iot}
@@ -21,13 +21,13 @@ spring:
 #    driver-class-name: org.postgresql.Driver
     # oracle
     url: ${RDB_URL:jdbc:oracle:thin:@odb.jmqtt.com:1521:helowin}
-    username: ${RDB_USERNAME:zhibo}
-    password: ${RDB_PASSWORD:zhibo2023}
+    username: ${RDB_USERNAME:jmqtt}
+    password: ${RDB_PASSWORD:jmqtt2023}
     driverClassName: oracle.jdbc.driver.OracleDriver
   redis:
     host: ${REDIS_HOST:dev.jmqtt.com}
     port: ${REDIS_PORT:56379}
-    password: ${REDIS_PASSWORD:zhibo2022}
+    password: ${REDIS_PASSWORD:jmqtt2022}
     database: 11
     jedis:
       pool:
@@ -74,13 +74,13 @@ jmqtt:
       driver: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://rdb.jmqtt.com:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false&useSSL=false&serverTimezone=Asia/Shanghai
       username: root
-      password: zhibo@2020
+      password: jmqtt@2020
     # redis数据源，逻辑同rdb
     useDefaultRedis: false
     redis:
       redis-host: rdb.jmqtt.com
       redis-port: 56379
-      redis-password: zhibo@2020
+      redis-password: jmqtt@2020
       database: 11
       max-wait-mills: 60000
       max-idle: 50
