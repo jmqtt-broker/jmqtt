@@ -126,10 +126,10 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
                     }
                     break;
                 case AT_LEAST_ONCE:
-                    processQos1(ctx, innerMsg, reasonCode);
+                    processQos1(ctx, innerMsg, reasonCode, clientSession);
                     break;
                 case EXACTLY_ONCE:
-                    processQos2(ctx, innerMsg, reasonCode);
+                    processQos2(ctx, innerMsg, reasonCode, clientSession);
                     break;
                 default:
                     LogUtil.warn(log, "[PubMessage] -> Wrong mqtt message,clientId={}", clientId);
@@ -144,10 +144,10 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
         }
     }
 
-    private void processQos2(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode) {
+    private void processQos2(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode, ClientSession clientSession) {
         int originMessageId = innerMsg.getMsgId();
         if (Mqtt5Utils.isOk(reasonCode)) {
-            if (noSubscribers(innerMsg)) {
+            if (clientSession.isMqtt5() && noSubscribers(innerMsg)) {
                 LogUtil.warn(log, "[PubMessage] -> No matching subscribers,clientId={}", innerMsg.getClientId());
                 reasonCode = 0x10;
             }
@@ -162,10 +162,10 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
         ctx.writeAndFlush(pubRecMessage);
     }
 
-    private void processQos1(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode) {
+    private void processQos1(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode, ClientSession clientSession) {
         int originMessageId = innerMsg.getMsgId();
         if (Mqtt5Utils.isOk(reasonCode)) {
-            if (noSubscribers(innerMsg)) {
+            if (clientSession.isMqtt5() && noSubscribers(innerMsg)) {
                 LogUtil.warn(log, "[PubMessage] -> No matching subscribers,clientId={}", innerMsg.getClientId());
                 reasonCode = 0x10;
             }

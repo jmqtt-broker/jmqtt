@@ -90,20 +90,77 @@
           cluster-nodes:
             - 127.0.0.1:25251
             - 127.0.0.1:25252
+# 以上配置均为可选，意味着引入依赖后直接启动项目即可，真正做到开箱即用。
 ```
 
-3.以上配置均为可选，意味着引入依赖后直接启动项目即可，真正做到开箱即用。
-
-4.集群环境下
+3.集群环境下
 + 如果选择关系型数据库（store=rdb）作为存储，那么所有节点都必须连接到同一个数据库；
 + 如果选择redis作为存储（store=redis），所有节点也必须连接到同一个redis；
 + 选择内存存储时（store=mem），要开启akka，此时性能是最高的；
 + 选择rdb或者redis时同样可以开启akka；
 + 单节点环境下开启akka无意义。
++ 单节点环境下开启akka无意义。
+
+4.网关
+
+```
+可以使用nginx作为网关，利用upstream实现对外只暴露一个ip和端口，请求路由到后置服务不同jmqtt broker节点。
+
+stream {
+ 
+ upstream jmqtt_tcp_nodes {
+    # 默认负载策略是轮询，这样同一个客户端每次连接可能负载到后置不同的节点，造成session被接管，此时需要清理上一个
+    # 连接节点的session，当前节点再重新创建session，造成资源浪费。个人建议使用hash，这样能保证客户端每次都能连接
+    # 到同一个服务，频繁重连情况下可以避免后端集群出现session被接管的情况。
+    # least_conn;最小连接数，请求分发到连接最少的节点
+    # 根据实际情况选择合适的负载策略。
+    ip_hash;
+    server dev1.jmqtt.com:1884;
+    server dev2.jmqtt.com:1884;
+    server dev3.jmqtt.com:1884;
+  }
+
+  server {
+    listen 8883 ssl;
+    ssl_session_timeout 30m;
+    ssl_certificate /home/root/nginx/conf/server.pem;
+    ssl_certificate_key /home/root/nginx/conf/server.key;
+
+    proxy_pass jmqtt_tcp_nodes;
+
+  }
+}
+
+同理websocket代理配置如下：
+
+http {
+  upstream jmqtt_websocket_nodes {
+    ip_hash;
+    server dev1.jmqtt.com:8884;
+    server dev2.jmqtt.com:8884;
+    server dev3.jmqtt.com:8884;
+  }
+
+  server {
+    listen 443 ssl;
+    ssl_session_timeout 30m;
+    ssl_certificate /home/root/nginx/conf/server.pem;
+    ssl_certificate_key /home/root/nginx/conf/server.key;
+
+    location /mqtt {
+        proxy_pass http://jmqtt_websocket_nodes;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+    }
+  }
+}
+
+```
 
 5.Mqtt5
 
-支持mqtt5所有功能。
+    支持mqtt5所有功能。
 
 6.Future
 + 管理页面
