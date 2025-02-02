@@ -10,6 +10,12 @@ public enum EventCode {
     DISPATCHER_CLIENT_MESSAGE(2,"DISPATCHER_CLIENT_MESSAGE","向集群分发客户端发送的消息"),
 
     DISPATCHER_WILL_MESSAGE(3,"DISPATCHER_WILL_MESSAGE","向集群分发will消息"),
+
+    CLUSTER_NODE_STATUS(4, "CLUSTER_NODE_STATUS", "集群节点上下线通知"),
+
+    CLUSTER_NODE_KEEPALIVE(5, "CLUSTER_NODE_KEEPALIVE", "集群节点上报心跳"),
+
+    CLUSTER_NODE_REPORT(6, "CLUSTER_NODE_REPORT", "上报当前集群节点信息"),
     ;
 
     private int code;

@@ -112,33 +112,31 @@ public class SubscribeProcessor implements RequestProcessor {
             // TODO 这里需要优化，不能一次获取所有retain消息，retain消息太多可能导致broker crash或者hang住
             Collection<Message> retainMessages = messageStore.getAllRetainMsg();
             retainMessages.forEach(retainMsg -> {
-                if (retainMsg.alive() > 0) {
-                    String pubTopic = TopicAliasManager.getRealTopic(retainMsg);
-                    if (subscriptionMatcher.isMatch(pubTopic, subscription.getTopic())) {
-                        int minQos = MessageUtil.getMinQos((int) retainMsg.getHeader(MessageHeader.QOS), topic.getQos());
-                        retainMsg.putHeader(MessageHeader.QOS, minQos);
-                        if (clientSession.isMqtt5()) {
-                            if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
-                                    (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRs)) {
-                                if (retainMsg.validity()) {
-                                    if (retainMsg.alive() > 0) {
-                                        MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
-                                        clientSession.getCtx().writeAndFlush(publishMessage);
-                                    }
-                                } else {
+                String pubTopic = TopicAliasManager.getRealTopic(retainMsg);
+                if (subscriptionMatcher.isMatch(pubTopic, subscription.getTopic())) {
+                    int minQos = MessageUtil.getMinQos((int) retainMsg.getHeader(MessageHeader.QOS), topic.getQos());
+                    retainMsg.putHeader(MessageHeader.QOS, minQos);
+                    if (clientSession.isMqtt5()) {
+                        if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
+                                (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRs)) {
+                            if (retainMsg.validity()) {
+                                if (retainMsg.alive() > 0) {
                                     MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
                                     clientSession.getCtx().writeAndFlush(publishMessage);
+                                } else {
+                                    // retain消息过期了，删除
+                                    log.info("[Subscribe] -> retain message expired, delete.");
+                                    messageStore.clearRetainMessage((String) retainMsg.getHeader(MessageHeader.TOPIC));
                                 }
+                            } else {
+                                MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
+                                clientSession.getCtx().writeAndFlush(publishMessage);
                             }
-                        } else {
-                            MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
-                            clientSession.getCtx().writeAndFlush(publishMessage);
                         }
+                    } else {
+                        MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
+                        clientSession.getCtx().writeAndFlush(publishMessage);
                     }
-                } else {
-                    // retain消息过期了，删除
-                    log.info("[Subscribe] -> retain message expired, delete.");
-                    messageStore.clearRetainMessage((String) retainMsg.getHeader(MessageHeader.TOPIC));
                 }
             });
             this.sessionStore.storeSubscription(clientSession.getClientId(), subscription);

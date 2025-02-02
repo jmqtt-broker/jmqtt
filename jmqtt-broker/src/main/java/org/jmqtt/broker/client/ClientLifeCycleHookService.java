@@ -15,7 +15,6 @@ import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.netty.ChannelEventListener;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
-import org.jmqtt.broker.remoting.util.MessageUtil;
 import org.jmqtt.broker.remoting.util.NettyUtil;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionState;
@@ -58,7 +57,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                 sessionStore.clearSession(clientId, false);
             } else {
                 offlineSession(session);
-                TimerManager.startSessionTimeout(clientId, (k, v) -> {
+                TimerManager.startSessionTimeout(clientId, timerBO -> {
                     log.info("session expired. clientId: {}", clientId);
                     sessionStore.clearSession(clientId, false);
                 });
@@ -69,7 +68,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
             if (normalDisconnection) {
                 if ((Boolean) Optional.ofNullable(channel.attr(
                         AttributeKey.valueOf("PUBLISH_WILL")).get()).orElse(false)) {
-                    // 正常断开连接，但是收到的DISCONNECT中ReasonCode为0x04，表示即使是正常断开也需要发布遗嘱
+                    // 正常断开连接，但是收到的DISCONNECT中ReasonCode为0x04，表示客户端希望即使是正常断开也需要发布遗嘱
                     publishWill(session);
                     messageStore.clearWillMessage(clientId);
                 } else {
@@ -102,8 +101,8 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                 });
             };
             if (session.isMqtt5()) {
-                TimerManager.startWillTimeout(clientId, willMessage, (k, v) -> {
-                    consumer.accept((Message) v);
+                TimerManager.startWillTimeout(clientId, willMessage, timerBO -> {
+                    consumer.accept((Message) timerBO.getData());
                 });
             } else {
                 consumer.accept(willMessage);

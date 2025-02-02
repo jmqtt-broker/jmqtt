@@ -1,5 +1,6 @@
 package org.jmqtt.broker;
 
+import com.alibaba.fastjson.JSONObject;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,18 +9,18 @@ import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
-import org.jmqtt.broker.common.helper.BrokerContext;
-import org.jmqtt.broker.common.helper.MixAll;
-import org.jmqtt.broker.common.helper.RejectHandler;
-import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
+import org.jmqtt.broker.common.helper.*;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
+import org.jmqtt.broker.common.model.ClusterNodeInfo;
 import org.jmqtt.broker.processor.RequestProcessor;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.DefaultDispatcherInnerMessage;
 import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.processor.dispatcher.akka.AkkaClusterEventHandler;
+import org.jmqtt.broker.processor.dispatcher.event.Event;
+import org.jmqtt.broker.processor.dispatcher.event.EventCode;
 import org.jmqtt.broker.processor.dispatcher.mem.MemEventHandler;
 import org.jmqtt.broker.processor.dispatcher.rdb.RDBClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.redis.RedisClusterEventHandler;
@@ -31,6 +32,7 @@ import org.jmqtt.broker.remoting.netty.NettyRemotingServer;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
+import org.jmqtt.broker.store.cluster.ClusterManager;
 import org.jmqtt.broker.store.mem.MemMessageStore;
 import org.jmqtt.broker.store.mem.MemSessionStore;
 import org.jmqtt.broker.store.rdb.RDBMessageStore;
@@ -205,7 +207,7 @@ public class BrokerController {
         this.clusterEventHandler.start(brokerConfig);
 
         // 2. start cluster
-        if (!this.akkaEnable) {
+        if (!this.akkaEnable && !JmqttConst.REDIS.equals(this.brokerConfig.getStore())) {
             this.eventConsumeHandler.start();
         }
 
@@ -256,6 +258,13 @@ public class BrokerController {
         }
         LogUtil.info(log, "JMqtt Server start success.");
 
+        // 向集群广播本节点上线消息
+        TimerBO delay = new TimerBO();
+        delay.setTimerId(BrokerContext.getBrokerId());
+        delay.setExpire(3);
+        delay.setType(TimerManager.TimerType.DEFAULT);
+        delay.setTimeoutConsumer(timerBO -> brokerOnline());
+        ScheduleManager.addDelay(delay);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
             public void run() {
@@ -319,6 +328,21 @@ public class BrokerController {
 
     public RequestProcessor getProcessor(Class<? extends RequestProcessor> clazz) {
         return this.requestProcessorMap.get(clazz);
+    }
+
+    private void brokerOnline() {
+        ClusterManager.start();
+        String currNode = JSONObject.toJSONString(new ClusterNodeInfo(BrokerContext.getBrokerId(), true));
+        // 向集群中广播本节点状态信息
+        Event eventStatus = new Event(EventCode.CLUSTER_NODE_STATUS.getCode(),
+                currNode,
+                System.currentTimeMillis(), currentIp);
+        this.clusterEventHandler.sendEvent(eventStatus);
+        // 让集群中其他节点广播状态信息
+        Event eventReport = new Event(EventCode.CLUSTER_NODE_REPORT.getCode(),
+                currNode,
+                System.currentTimeMillis(), currentIp);
+        this.clusterEventHandler.sendEvent(eventReport);
     }
 
 }

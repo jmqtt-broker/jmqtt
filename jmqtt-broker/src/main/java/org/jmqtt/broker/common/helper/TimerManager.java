@@ -2,15 +2,12 @@ package org.jmqtt.broker.common.helper;
 
 import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @Slf4j
 public class TimerManager {
@@ -19,7 +16,7 @@ public class TimerManager {
         CaffeineUtil.addRemoveListener((k, v) -> {
             if (v != null && (v.getData() instanceof TimerBO)) {
                 TimerBO bo = (TimerBO) v.getData();
-                Optional.ofNullable(bo.getExpiredFunc()).ifPresent(func -> func.accept(k, bo.getData()));
+                bo.process();
             }
         });
     }
@@ -28,17 +25,24 @@ public class TimerManager {
         String key = task.getType() + ":" + task.getTimerId();
         int expire = task.getExpire();
         log.info("start delay task: {}, expire: {}", key, expire);
-        CaffeineUtil.put(key, task, expire);
+        // CaffeineUtil.put(key, task, expire);
+        ScheduleManager.addDelay(task);
     }
 
-    public static void stop(String key) {
+    public static void stop(TimerBO task) {
+        boolean cancel = ScheduleManager.cancel(task);
+        if (cancel) {
+            String key = task.getType().name() + ":" + task.getTimerId();
+            log.info("stop delay task:{}", key);
+        }
+        /*String key = task.getType().name() + ":" + task.getTimerId();
         if (CaffeineUtil.get(key) != null) {
             log.info("stop delay task:{}", key);
             CaffeineUtil.del(key);
-        }
+        }*/
     }
 
-    public static void startSessionTimeout(String clientId, BiConsumer<String, Object> consumer) {
+    public static void startSessionTimeout(String clientId, Consumer<TimerBO> consumer) {
         int expire = Mqtt5Utils.timeoutSecond(clientId);
         if (expire > 0) {
             TimerBO task = new TimerBO(clientId, TimerType.SESSION, clientId, expire, consumer);
@@ -47,10 +51,10 @@ public class TimerManager {
     }
 
     public static void stopSessionTimeout(String clientId) {
-        stop(TimerType.SESSION.name() + ":" + clientId);
+        stop(new TimerBO(clientId, TimerType.SESSION));
     }
 
-    public static void startWillTimeout(String clientId, Message will, BiConsumer<String, Object> consumer) {
+    public static void startWillTimeout(String clientId, Message will, Consumer<TimerBO> consumer) {
         Map<Integer, Object> properties = will.getProperties();
         int willDelay = 0;
         if (properties != null && !properties.isEmpty()) {
@@ -61,15 +65,16 @@ public class TimerManager {
     }
 
     public static void stopWillTimeout(String clientId) {
-        stop(TimerType.WILL.name() + ":" + clientId);
+        stop(new TimerBO(clientId, TimerType.WILL));
     }
 
     public static void sendWillImmediately(String clientId) {
-        String key = TimerType.WILL.name() + ":" + clientId;
+        ScheduleManager.executeImmediately(new TimerBO(clientId, TimerType.WILL));
+        /*String key = TimerType.WILL.name() + ":" + clientId;
         Object val = CaffeineUtil.get(key);
         if (val != null) {
             CaffeineUtil.put(key, val, 0);
-        }
+        }*/
     }
 
     public enum TimerType {
@@ -79,7 +84,11 @@ public class TimerManager {
          */
         SESSION,
         RETAIN,
-        WILL;
+        WILL,
+        BROKER_KEEPALIVE,
+        BROKER_KEEPALIVE_DETECT,
+        DEFAULT
+        ;
 
     }
 

@@ -1,8 +1,11 @@
 package org.jmqtt.broker.common.helper;
 
 import org.jmqtt.broker.BrokerController;
+import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
+import org.jmqtt.broker.processor.dispatcher.event.Event;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
@@ -13,16 +16,21 @@ public class BrokerContext {
 
     private static BrokerController brokerController;
 
-    private static AtomicBoolean ready = new AtomicBoolean(false);
+    private static AtomicBoolean READY = new AtomicBoolean(false);
 
     public static BrokerController getBrokerController() {
         return brokerController;
     }
 
     public static void setBrokerController(BrokerController brokerController) {
-        if (ready.compareAndSet(false, true)) {
+        if (READY.compareAndSet(false, true)) {
             BrokerContext.brokerController = brokerController;
         }
+    }
+
+    public static String getBrokerId() {
+        BrokerController ctl = getBrokerController();
+        return JmqttConst.PROJECT + "@" + getBrokerController().getCurrentIp() + ":" + ctl.getNettyConfig().getTcpPort();
     }
 
     public static SessionStore getSessionStore() {
@@ -43,5 +51,13 @@ public class BrokerContext {
 
     public static SubscriptionMatcher getSubscriptionMatcher() {
         return brokerController.getSubscriptionMatcher();
+    }
+
+    public static void sendEvent(Event event) {
+        brokerController.getClusterEventHandler().sendEvent(event);
+    }
+
+    public static String getCurrentIp() {
+        return getBrokerController().getCurrentIp();
     }
 }

@@ -246,6 +246,7 @@ public class ConnectProcessor implements RequestProcessor {
         message.setStoreTime(System.currentTimeMillis());
         message.setClientId(clientId);
         messageStore.storeWillMessage(clientId, message);
+        messageStore.clearRetainMessage(willTopic);
         LogUtil.info(log, "[WillMessageStore] : {} store will message:{}", clientId, message);
     }
 

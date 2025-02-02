@@ -20,8 +20,8 @@
     </licenses>
 
     <scm>
-        <url>https://github.com/zt422680855/jmqtt</url>
-        <connection>https://github.com/zt422680855/jmqtt.git</connection>
+        <url>https://github.com/jmqtt-broker/jmqtt.git</url>
+        <connection>https://github.com/jmqtt-broker/jmqtt.git</connection>
     </scm>
 
     <developers>

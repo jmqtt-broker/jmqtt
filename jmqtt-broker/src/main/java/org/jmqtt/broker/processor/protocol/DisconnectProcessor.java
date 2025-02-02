@@ -42,7 +42,7 @@ public class DisconnectProcessor implements RequestProcessor {
             MqttReasonCodeAndPropertiesVariableHeader header = (MqttReasonCodeAndPropertiesVariableHeader) mqttMessage.variableHeader();
             if (session.isMqtt5() && header.reasonCode() == 0x04) {
                 // Disconnect with Will Message
-                //客户端主动正常断开连接，但希望服务端发布遗嘱消息，默认情况下只有异常断开连接时才发布遗嘱
+                // 客户端主动正常断开连接，但希望服务端发布遗嘱消息，默认情况下只有异常断开连接时才发布遗嘱
                 ctx.channel().attr(AttributeKey.valueOf("PUBLISH_WILL")).set(true);
             }
             ctx.close();

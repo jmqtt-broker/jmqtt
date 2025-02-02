@@ -33,7 +33,7 @@ public class Subscriber extends AbstractBehavior<Event> {
     }
 
     private Behavior<Event> onReceive(Event event) {
-        LogUtil.info(log, "[Subscriber:{}] onReceive:{}",getContext().getSelf().path(), event);
+        LogUtil.debug(log, "[Subscriber:{}] onReceive:{}",getContext().getSelf().path(), event);
         this.eventConsumeHandler.consumeEvent(event);
         return this;
     }

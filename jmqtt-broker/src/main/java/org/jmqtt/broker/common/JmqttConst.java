@@ -2,6 +2,8 @@ package org.jmqtt.broker.common;
 
 public interface JmqttConst {
 
+    String PROJECT = "JMQTT";
+
     String MEM = "mem";
     String RDB = "rdb";
     String REDIS = "redis";

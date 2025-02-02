@@ -2,15 +2,19 @@ package org.jmqtt.broker.processor.dispatcher;
 
 import com.alibaba.fastjson.JSONObject;
 import org.jmqtt.broker.BrokerController;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
+import org.jmqtt.broker.common.model.ClusterNodeInfo;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.processor.dispatcher.event.Event;
+import org.jmqtt.broker.processor.dispatcher.event.EventCode;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.SessionStore;
+import org.jmqtt.broker.store.cluster.ClusterManager;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
@@ -56,6 +60,15 @@ public class EventConsumeHandler {
                 break;
             case 3:
                 dispatcherMessage(event);
+                break;
+            case 4:
+                brokerStatus(event);
+                break;
+            case 5:
+                brokerKeepalive(event);
+                break;
+            case 6:
+                brokerReport(event);
                 break;
             default:
                 LogUtil.warn(log, "[EventConsumeHandler] consume event is not supported,event:{}", event);
@@ -109,6 +122,27 @@ public class EventConsumeHandler {
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
         clientSession.getCtx().close();
         sessionStore.clearSession(clientId, false);
+    }
+
+    private void brokerStatus(Event event) {
+        ClusterNodeInfo node = JSONObject.parseObject(event.getBody(), ClusterNodeInfo.class);
+        LogUtil.info(log, "cluster node status changed: {}, {}", node.getNodeId(), node.getStatus());
+        ClusterManager.saveNode(node);
+    }
+
+    private void brokerKeepalive(Event event) {
+        ClusterManager.keepalive(event.getBody());
+    }
+
+    private void brokerReport(Event event) {
+        ClusterNodeInfo node = JSONObject.parseObject(event.getBody(), ClusterNodeInfo.class);
+        ClusterNodeInfo currentNode = ClusterManager.getCurrentNode();
+        if (!currentNode.equals(node)) {
+            Event eventReport = new Event(EventCode.CLUSTER_NODE_STATUS.getCode(),
+                    JSONObject.toJSONString(currentNode),
+                    System.currentTimeMillis(), currentIp);
+            this.clusterEventHandler.sendEvent(eventReport);
+        }
     }
 
 }
