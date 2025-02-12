@@ -37,6 +37,22 @@ public class AkkaConfig {
         }
         akka.put("remote", remote);
         akka.put("cluster", cluster);
+        JSONObject actor = new JSONObject();
+        actor.put("provider", "cluster");
+        actor.put("allow-java-serialization", "on");
+        actor.put("warn-about-java-serializer-usage", "off");
+        akka.put("actor", actor);
+        /*JSONObject serializationIdentifiers = new JSONObject();
+        JSONObject serializers = new JSONObject();
+        JSONObject serializationBindings = new JSONObject();
+        serializationIdentifiers.put("java", 1);
+        serializationIdentifiers.put("json", 2);
+        serializers.put("java", "akka.serialization.JavaSerializer");
+        serializers.put("json", "akka.serialization.jackson.JacksonJsonSerializer");
+        serializationBindings.put("org.jmqtt.broker.processor.dispatcher.event.Event", "json");
+        actor.put("serialization-identifiers", serializationIdentifiers);
+        actor.put("serializers", serializers);
+        actor.put("serialization-bindings", serializationBindings);*/
         return wrap.toJSONString();
     }
 

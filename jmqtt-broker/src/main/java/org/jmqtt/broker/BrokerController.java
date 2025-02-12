@@ -35,6 +35,7 @@ import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.store.cluster.ClusterManager;
 import org.jmqtt.broker.store.mem.MemMessageStore;
 import org.jmqtt.broker.store.mem.MemSessionStore;
+import org.jmqtt.broker.store.local.LocalStore;
 import org.jmqtt.broker.store.rdb.RDBMessageStore;
 import org.jmqtt.broker.store.rdb.RDBSessionStore;
 import org.jmqtt.broker.store.redis.RedisMessageStore;
@@ -108,7 +109,7 @@ public class BrokerController {
         this.subscriptionMatcher = subscriptionMatcher != null ? subscriptionMatcher : new DefaultSubscriptionTreeMatcher();
         this.clusterEventHandler = clusterEventHandler;
         this.innerMessageDispatcher = innerMessageDispatcher != null ? innerMessageDispatcher :new DefaultDispatcherInnerMessage(brokerConfig.isHighPerformance(),
-                sessionStore, messageStore, brokerConfig.getPollThreadNum(), this.subscriptionMatcher, this.clusterEventHandler);
+                sessionStore, messageStore, brokerConfig.getPollThreadNum(), this.subscriptionMatcher);
         this.authValid = authValid != null ? authValid : MixAll.pluginInit(brokerConfig.getAuthValidClass());
 
         this.connectQueue = new LinkedBlockingQueue<>(100000);
@@ -118,7 +119,7 @@ public class BrokerController {
         this.currentIp = MixAll.getLocalIp();
 
         this.channelEventListener = channelEventListener != null ? channelEventListener : MixAll.pluginInit(brokerConfig.getChannelEventListener(),
-                new Class[]{SessionStore.class, MessageStore.class, SubscriptionMatcher.class, InnerMessageDispatcher.class},
+                new Class[]{SessionStore.class, MessageStore.class, InnerMessageDispatcher.class},
                 new Object[]{sessionStore, messageStore, subscriptionMatcher, innerMessageDispatcher});
         this.remotingServer = new NettyRemotingServer(brokerConfig, nettyConfig, channelEventListener);
 
@@ -197,6 +198,7 @@ public class BrokerController {
 
 
     public void start() {
+        LocalStore.getInstance().start(brokerConfig);
         BrokerContext.setBrokerController(this);
         MixAll.printProperties(log, brokerConfig);
         MixAll.printProperties(log, nettyConfig);
@@ -207,7 +209,7 @@ public class BrokerController {
         this.clusterEventHandler.start(brokerConfig);
 
         // 2. start cluster
-        if (!this.akkaEnable && !JmqttConst.REDIS.equals(this.brokerConfig.getStore())) {
+        if (JmqttConst.RDB.equals(this.brokerConfig.getStore())) {
             this.eventConsumeHandler.start();
         }
 
@@ -259,12 +261,12 @@ public class BrokerController {
         LogUtil.info(log, "JMqtt Server start success.");
 
         // 向集群广播本节点上线消息
-        TimerBO delay = new TimerBO();
+        /*TimerBO delay = new TimerBO();
         delay.setTimerId(BrokerContext.getBrokerId());
         delay.setExpire(3);
         delay.setType(TimerManager.TimerType.DEFAULT);
         delay.setTimeoutConsumer(timerBO -> brokerOnline());
-        ScheduleManager.addDelay(delay);
+        ScheduleManager.addDelay(delay);*/
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
             public void run() {
@@ -336,12 +338,12 @@ public class BrokerController {
         // 向集群中广播本节点状态信息
         Event eventStatus = new Event(EventCode.CLUSTER_NODE_STATUS.getCode(),
                 currNode,
-                System.currentTimeMillis(), currentIp);
+                System.currentTimeMillis(), BrokerContext.getBrokerId());
         this.clusterEventHandler.sendEvent(eventStatus);
         // 让集群中其他节点广播状态信息
         Event eventReport = new Event(EventCode.CLUSTER_NODE_REPORT.getCode(),
                 currNode,
-                System.currentTimeMillis(), currentIp);
+                System.currentTimeMillis(), BrokerContext.getBrokerId());
         this.clusterEventHandler.sendEvent(eventReport);
     }
 

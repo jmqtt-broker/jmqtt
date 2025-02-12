@@ -2,11 +2,13 @@ package org.jmqtt.broker.remoting.session;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttVersion;
+import io.netty.util.AttributeKey;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -47,6 +49,16 @@ public class ClientSession {
 
     public boolean isMqtt5() {
         return this.version == MqttVersion.MQTT_5.protocolLevel();
+    }
+
+    public boolean normalDisconnection() {
+        return (boolean) Optional.ofNullable(ctx.channel().attr(
+                AttributeKey.valueOf("NORMAL_DISCONNECTION")).get()).orElse(false);
+    }
+
+    public boolean publishWill() {
+        return (boolean) Optional.ofNullable(ctx.channel().attr(
+                AttributeKey.valueOf("PUBLISH_WILL")).get()).orElse(false);
     }
 
 }

@@ -1,19 +1,29 @@
 package org.jmqtt.broker.store.mem;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.common.model.SubscriptionOption;
+import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
+import org.jmqtt.broker.store.local.LocalStore;
+import org.jmqtt.broker.store.local.mapper.LocalOfflineMessageMapper;
+import org.jmqtt.broker.store.local.mapper.LocalSubscriptionMapper;
+import org.jmqtt.broker.store.rdb.daoobject.OfflineMessageDO;
+import org.jmqtt.broker.store.rdb.daoobject.SubscriptionDO;
 import org.slf4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 
 public class MemSessionStore extends AbstractMemStore implements SessionStore {
@@ -74,7 +84,18 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public boolean storeSubscription(String clientId, Subscription subscription) {
-        ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
+        LocalStore.getInstance().operate(sqlSession -> {
+            SubscriptionDO subscriptionDO = new SubscriptionDO();
+            subscriptionDO.setId(IdWorker.getId());
+            subscriptionDO.setClientId(clientId);
+            subscriptionDO.setTopic(subscription.getTopic());
+            subscriptionDO.setQos(subscription.getQos());
+            Optional.ofNullable(subscription.getOption()).ifPresent(opt -> {
+                subscriptionDO.setOpt(JSON.toJSONString(opt));
+            });
+            return sqlSession.getMapper(LocalSubscriptionMapper.class).storeSubscription(subscriptionDO);
+        });
+        /*ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
         if (v == null) {
             synchronized (subscriptionCache) {
                 v = subscriptionCache.get(clientId);
@@ -84,35 +105,53 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
                 }
             }
         }
-        v.putIfAbsent(subscription.getTopic(), subscription);
+        v.putIfAbsent(subscription.getTopic(), subscription);*/
         return true;
     }
 
     @Override
     public boolean delSubscription(String clientId, String topic) {
-        ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
+        LocalStore.getInstance().operate(sqlSession ->
+            sqlSession.getMapper(LocalSubscriptionMapper.class).delSubscription(clientId, topic)
+        );
+        /*ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
         if (v != null) {
             v.remove(topic);
         } else {
             LogUtil.warn(log, "[MemStore] -> Client:{} does not have a subscription for this topic:{}", clientId, topic);
-        }
+        }*/
         return true;
     }
 
     @Override
     public boolean clearSubscription(String clientId) {
-        subscriptionCache.remove(clientId);
+        LocalStore.getInstance().operate(sqlSession ->
+                sqlSession.getMapper(LocalSubscriptionMapper.class).clearSubscription(clientId)
+        );
+        // subscriptionCache.remove(clientId);
         return true;
     }
 
     @Override
     public Set<Subscription> getSubscriptions(String clientId) {
-        ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
+        List<SubscriptionDO> subscriptionDOList = (List<SubscriptionDO>) LocalStore.getInstance().operate(sqlSession ->
+                sqlSession.getMapper(LocalSubscriptionMapper.class).querySubscription(clientId)
+        );
+        Set<Subscription> set = new HashSet<>();
+        for (SubscriptionDO item : subscriptionDOList) {
+            Subscription subscription = new Subscription(item.getClientId(), item.getTopic(), item.getQos());
+            Optional.ofNullable(item.getOpt()).ifPresent(opt -> {
+                subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
+            });
+            set.add(subscription);
+        }
+        return set;
+        /*ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
         if (v == null) {
             return new HashSet<>();
         }
         Collection<Subscription> sub = v.values();
-        return new HashSet<>(sub);
+        return new HashSet<>(sub);*/
     }
 
     @Override
@@ -251,7 +290,15 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public boolean storeOfflineMsg(String clientId, Message message) {
-        BlockingQueue<Message> off = offlineTable.get(clientId);
+        LocalStore.getInstance().operate(sqlSession -> {
+            OfflineMessageDO offlineMessageDO = new OfflineMessageDO();
+            offlineMessageDO.setId(IdWorker.getId());
+            offlineMessageDO.setClientId(clientId);
+            offlineMessageDO.setContent(JSONObject.toJSONString(message));
+            offlineMessageDO.setGmtCreate(message.getStoreTime());
+            return sqlSession.getMapper(LocalOfflineMessageMapper.class).storeOfflineMessage(offlineMessageDO);
+        });
+        /*BlockingQueue<Message> off = offlineTable.get(clientId);
         if (off == null) {
             synchronized (offlineTable) {
                 off = offlineTable.get(clientId);
@@ -261,22 +308,29 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
                 }
             }
         }
-        off.add(message);
+        off.add(message);*/
         return true;
     }
 
     @Override
     public Collection<Message> getAllOfflineMsg(String clientId) {
-        BlockingQueue<Message> off = offlineTable.get(clientId);
+        List<OfflineMessageDO> offlineMessageDOList = (List<OfflineMessageDO>) LocalStore.getInstance().operate(sqlSession ->
+            sqlSession.getMapper(LocalOfflineMessageMapper.class).getAllOfflineMessage(clientId)
+        );
+        return offlineMessageDOList.stream().map(off -> JSONObject.parseObject(off.getContent(), Message.class)).collect(Collectors.toList());
+        /*BlockingQueue<Message> off = offlineTable.get(clientId);
         if (off == null) {
             return new ArrayList<>();
         }
-        return off;
+        return off;*/
     }
 
     @Override
     public boolean clearOfflineMsg(String clientId) {
-        offlineTable.remove(clientId);
+        LocalStore.getInstance().operate(sqlSession ->
+                sqlSession.getMapper(LocalOfflineMessageMapper.class).clearOfflineMessage(clientId)
+        );
+        // offlineTable.remove(clientId);
         return true;
     }
 }

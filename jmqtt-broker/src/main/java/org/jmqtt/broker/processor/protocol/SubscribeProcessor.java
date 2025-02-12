@@ -105,43 +105,39 @@ public class SubscribeProcessor implements RequestProcessor {
 
     private void subscribe(ClientSession clientSession, List<Topic> validTopicList) {
         for (Topic topic : validTopicList) {
-            Subscription subscription = new Subscription(clientSession.getClientId(), topic.getTopicName(), topic.getQos());
+            String subTopic = topic.getTopicName();
+            Subscription subscription = new Subscription(clientSession.getClientId(), subTopic, topic.getQos());
             SubscriptionOption option = topic.getOption();
             subscription.setOption(option);
             boolean subRs = this.subscriptionMatcher.subscribe(subscription);
-            // TODO 这里需要优化，不能一次获取所有retain消息，retain消息太多可能导致broker crash或者hang住
-            Collection<Message> retainMessages = messageStore.getAllRetainMsg();
+            Collection<Message> retainMessages = messageStore.getRetainMsg(subTopic);
             retainMessages.forEach(retainMsg -> {
-                String pubTopic = TopicAliasManager.getRealTopic(retainMsg);
-                if (subscriptionMatcher.isMatch(pubTopic, subscription.getTopic())) {
-                    int minQos = MessageUtil.getMinQos((int) retainMsg.getHeader(MessageHeader.QOS), topic.getQos());
-                    retainMsg.putHeader(MessageHeader.QOS, minQos);
-                    if (clientSession.isMqtt5()) {
-                        if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
-                                (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRs)) {
-                            if (retainMsg.validity()) {
-                                if (retainMsg.alive() > 0) {
-                                    MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
-                                    clientSession.getCtx().writeAndFlush(publishMessage);
-                                } else {
-                                    // retain消息过期了，删除
-                                    log.info("[Subscribe] -> retain message expired, delete.");
-                                    messageStore.clearRetainMessage((String) retainMsg.getHeader(MessageHeader.TOPIC));
-                                }
-                            } else {
+                int minQos = MessageUtil.getMinQos((int) retainMsg.getHeader(MessageHeader.QOS), topic.getQos());
+                retainMsg.putHeader(MessageHeader.QOS, minQos);
+                if (clientSession.isMqtt5()) {
+                    if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
+                            (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRs)) {
+                        if (retainMsg.validity()) {
+                            if (retainMsg.alive() > 0) {
                                 MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
                                 clientSession.getCtx().writeAndFlush(publishMessage);
+                            } else {
+                                // retain消息过期了，删除
+                                log.info("[Subscribe] -> retain message expired, delete.");
+                                messageStore.clearRetainMessage((String) retainMsg.getHeader(MessageHeader.TOPIC));
                             }
+                        } else {
+                            MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
+                            clientSession.getCtx().writeAndFlush(publishMessage);
                         }
-                    } else {
-                        MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
-                        clientSession.getCtx().writeAndFlush(publishMessage);
                     }
+                } else {
+                    MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
+                    clientSession.getCtx().writeAndFlush(publishMessage);
                 }
             });
             this.sessionStore.storeSubscription(clientSession.getClientId(), subscription);
         }
-        // return needDispatcher;
     }
 
     /**
@@ -152,7 +148,7 @@ public class SubscribeProcessor implements RequestProcessor {
         for (MqttTopicSubscription subscription : subscriptions) {
             if (!authValid.subscribeVerify(clientSession.getClientId(), subscription.topicName())) {
                 LogUtil.warn(log, "[SubPermission] this clientId:{} have no permission to subscribe this topic:{}", clientSession.getClientId(), subscription.topicName());
-                clientSession.getCtx().close();
+                Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x87);
                 return null;
             }
             Topic topic = new Topic(subscription.topicName(), subscription.qualityOfService().value());

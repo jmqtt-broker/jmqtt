@@ -2,6 +2,7 @@ package org.jmqtt.broker.processor.dispatcher.rdb;
 
 import org.apache.ibatis.session.SqlSession;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
@@ -50,7 +51,7 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
     public boolean sendEvent(Event event) {
         EventDO eventDO = new EventDO();
         eventDO.setId(IdWorker.getId());
-        eventDO.setJmqttIp(MixAll.getLocalIp());
+        eventDO.setJmqttIp(BrokerContext.getBrokerId());
         eventDO.setContent(event.getBody());
         eventDO.setEventCode(event.getEventCode());
         eventDO.setGmtCreate(event.getSendTime());
@@ -73,7 +74,7 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
         }
         List<Event> events = new ArrayList<>();
         for (EventDO eventDO : eventDOList) {
-            Event event = new Event(eventDO.getEventCode(),eventDO.getContent(),eventDO.getGmtCreate(),currentIp);
+            Event event = new Event(eventDO.getEventCode(),eventDO.getContent(),eventDO.getGmtCreate(),eventDO.getJmqttIp());
             events.add(event);
         }
 

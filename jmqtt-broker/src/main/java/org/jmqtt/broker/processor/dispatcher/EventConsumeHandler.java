@@ -11,6 +11,7 @@ import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.processor.dispatcher.event.Event;
 import org.jmqtt.broker.processor.dispatcher.event.EventCode;
+import org.jmqtt.broker.processor.dispatcher.event.EventHandler;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.SessionStore;
@@ -19,7 +20,9 @@ import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -30,13 +33,13 @@ public class EventConsumeHandler {
     private static final Logger log = JmqttLogger.eventLog;
 
     private InnerMessageDispatcher innerMessageDispatcher;
-    private ClusterEventHandler    clusterEventHandler;
-    private AtomicBoolean          pollStoped = new AtomicBoolean(false);
-    private int                    maxPollNum;
-    private int                    pollWaitInterval;
-    private String                 currentIp;
-    private SessionStore           sessionStore;
-    private SubscriptionMatcher    subscriptionMatcher;
+    private ClusterEventHandler clusterEventHandler;
+    private AtomicBoolean pollStoped = new AtomicBoolean(false);
+    private int maxPollNum;
+    private int pollWaitInterval;
+    private String currentIp;
+    private SessionStore sessionStore;
+    private Map<Integer, EventHandler> eventHandlerMap = new ConcurrentHashMap<>();
 
     public EventConsumeHandler(BrokerController brokerController) {
         this.innerMessageDispatcher = brokerController.getInnerMessageDispatcher();
@@ -46,32 +49,21 @@ public class EventConsumeHandler {
         this.pollWaitInterval = brokerController.getBrokerConfig().getPollWaitInterval();
         this.currentIp = brokerController.getCurrentIp();
         this.sessionStore = brokerController.getSessionStore();
-        this.subscriptionMatcher = brokerController.getSubscriptionMatcher();
+        eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
+        eventHandlerMap.put(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), this::dispatcherMessage);
+        eventHandlerMap.put(EventCode.DISPATCHER_WILL_MESSAGE.getCode(), this::dispatcherMessage);
+        // eventHandlerMap.put(EventCode.CLUSTER_NODE_STATUS.getCode(), this::brokerStatus);
+        // eventHandlerMap.put(EventCode.CLUSTER_NODE_KEEPALIVE.getCode(), this::brokerKeepalive);
+        // eventHandlerMap.put(EventCode.CLUSTER_NODE_REPORT.getCode(), this::brokerReport);
     }
 
     // 集群方式1: consume event from cluster
     public void consumeEvent(Event event) {
-        switch (event.getEventCode()) {
-            case 1:
-                clearClientSession(event);
-                break;
-            case 2:
-                dispatcherMessage(event);
-                break;
-            case 3:
-                dispatcherMessage(event);
-                break;
-            case 4:
-                brokerStatus(event);
-                break;
-            case 5:
-                brokerKeepalive(event);
-                break;
-            case 6:
-                brokerReport(event);
-                break;
-            default:
-                LogUtil.warn(log, "[EventConsumeHandler] consume event is not supported,event:{}", event);
+        EventHandler eventHandler = eventHandlerMap.get(event.getEventCode());
+        if (eventHandler != null) {
+            eventHandler.handle(event);
+        } else {
+            LogUtil.warn(log, "[EventConsumeHandler] consume event is not supported,event:{}", event);
         }
     }
 
@@ -111,7 +103,7 @@ public class EventConsumeHandler {
 
     void clearClientSession(Event event) {
         // if event from current node, ignore the event
-        if (currentIp.equals(event.getFromIp())) {
+        if (BrokerContext.getBrokerId().equals(event.getFromIp())) {
             LogUtil.debug(log, "Event from current node,ignore the event,fromIp:{}", event.getFromIp());
             return;
         }
@@ -140,7 +132,7 @@ public class EventConsumeHandler {
         if (!currentNode.equals(node)) {
             Event eventReport = new Event(EventCode.CLUSTER_NODE_STATUS.getCode(),
                     JSONObject.toJSONString(currentNode),
-                    System.currentTimeMillis(), currentIp);
+                    System.currentTimeMillis(), BrokerContext.getBrokerId());
             this.clusterEventHandler.sendEvent(eventReport);
         }
     }

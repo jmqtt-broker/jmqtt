@@ -162,7 +162,10 @@ http {
     支持mqtt5所有功能。
 
 6.Future
-+ 管理页面
++ 集群环境下订阅树
++ 集群共享订阅，目前只支持本地共享订阅
++ 选择合适的序列化工具（比如Kryo），目前简单粗暴转为字符串
++ JMQTT Keeper
 + $sys、$file
 + mqtt5 reasonCode完善
 + 升级JDK21，将线程池替换为虚拟线程（类似go中的协程）

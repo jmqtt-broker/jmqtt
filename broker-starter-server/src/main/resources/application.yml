@@ -10,24 +10,24 @@ spring:
     name: jmqtt-test
   datasource:
     # mysql
-#    url: ${RDB_URL:jdbc:mysql://dev.jmqtt.com:3366/jmqtt?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
+#    url: ${RDB_URL:jdbc:mysql://dev.jmqtt.com:3366/jz_aj_player?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
 #    username: ${RDB_USERNAME:root}
-#    password: ${RDB_PASSWORD:jmqtt2022}
+#    password: ${RDB_PASSWORD:zhibo2022}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
     # postgres
-#    url: ${RDB_URL:jdbc:postgresql://dev.jmqtt.com:5432/jmqtt}
+#    url: ${RDB_URL:jdbc:postgresql://dev.jmqtt.com:5432/zb_iot}
 #    username: ${RDB_USERNAME:postgres}
 #    password: ${RDB_PASSWORD:123456}
 #    driver-class-name: org.postgresql.Driver
     # oracle
-    url: ${RDB_URL:jdbc:oracle:thin:@odb.jmqtt.com:1521:jmqtt}
-    username: ${RDB_USERNAME:jmqtt}
-    password: ${RDB_PASSWORD:jmqtt2023}
+    url: ${RDB_URL:jdbc:oracle:thin:@odb.jmqtt.com:1521:helowin}
+    username: ${RDB_USERNAME:zhibo}
+    password: ${RDB_PASSWORD:zhibo2023}
     driverClassName: oracle.jdbc.driver.OracleDriver
   redis:
     host: ${REDIS_HOST:dev.jmqtt.com}
     port: ${REDIS_PORT:56379}
-    password: ${REDIS_PASSWORD:jmqtt2022}
+    password: ${REDIS_PASSWORD:zhibo2022}
     database: 11
     jedis:
       pool:
@@ -74,13 +74,13 @@ jmqtt:
       driver: com.mysql.cj.jdbc.Driver
       url: jdbc:mysql://rdb.jmqtt.com:3306/jmqtt?characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false&useSSL=false&serverTimezone=Asia/Shanghai
       username: root
-      password: jmqtt@2020
+      password: zhibo@2020
     # redis数据源，逻辑同rdb
     useDefaultRedis: false
     redis:
       redis-host: rdb.jmqtt.com
       redis-port: 56379
-      redis-password: jmqtt@2020
+      redis-password: zhibo@2020
       database: 11
       max-wait-mills: 60000
       max-idle: 50
@@ -101,7 +101,7 @@ jmqtt:
       # 是否开启Akka，开启后提高吞吐，集群环境下建议开启
       # Akka作用是将一个broker节点的消息同步到其他broker节点
       # 集群环境下，store为mem时，Akka必须开启
-      enable: false
+      enable: true
       # 当前Akka集群系统名称
       system-name: JMqttDispatcherSystem
       # 当前节点在集群中的ip和端口
@@ -110,6 +110,6 @@ jmqtt:
       # akka集群中所有节点，可以只配置集群中任意非当前节点。
       cluster-nodes:
         - 127.0.0.1:25251
-#        - 127.0.0.1:25252
+        - 127.0.0.1:25252
 #        - 127.0.0.1:25253
 

@@ -38,6 +38,9 @@ public interface RetainMessageMapper {
     @Select("SELECT id,topic,content FROM jmqtt_retain_message")
     List<RetainMessageDO> getAllRetainMessage();
 
+    @Select("SELECT id,topic,content FROM jmqtt_retain_message where topic like #{topicRegx}")
+    List<RetainMessageDO> getRetainMessage(String topicRegx);
+
     @Delete("DELETE FROM jmqtt_retain_message WHERE topic = #{topic}")
     Integer delRetainMessage(String topic);
 }

@@ -37,4 +37,6 @@ public interface SubscriptionMatcher {
      * @return  return
      */
     boolean isMatch(String pubTopic,String subTopic);
+
+    String getPubTopic(String subTopic);
 }

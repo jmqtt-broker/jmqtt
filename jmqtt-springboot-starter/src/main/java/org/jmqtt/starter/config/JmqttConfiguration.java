@@ -2,6 +2,7 @@ package org.jmqtt.starter.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jmqtt.broker.common.JmqttConst;
 import org.jmqtt.broker.common.config.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -15,7 +16,7 @@ public class JmqttConfiguration {
     private String pwd = "admin";
     private Boolean highPerformance = true;
 
-    private String store = "mem";
+    private String store = JmqttConst.MEM;
     private Boolean useDefaultRdb = true;
     private Boolean useDefaultRedis = true;
 

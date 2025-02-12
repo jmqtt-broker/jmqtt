@@ -30,7 +30,16 @@ public class BrokerContext {
 
     public static String getBrokerId() {
         BrokerController ctl = getBrokerController();
-        return JmqttConst.PROJECT + "@" + getBrokerController().getCurrentIp() + ":" + ctl.getNettyConfig().getTcpPort();
+        return JmqttConst.PROJECT + "@" + ctl.getCurrentIp() + ":" + ctl.getNettyConfig().getTcpPort();
+    }
+
+    /**
+     * 非内存存储使用的是db或redis中央存储，每个节点访问的是同一份数据，
+     * 内存存储条件下，每个节点访问的是本地存储数据
+     * @return boolean
+     */
+    public static boolean centerStore() {
+        return !JmqttConst.MEM.equals(getBrokerConfig().getStore());
     }
 
     public static SessionStore getSessionStore() {
@@ -57,7 +66,4 @@ public class BrokerContext {
         brokerController.getClusterEventHandler().sendEvent(event);
     }
 
-    public static String getCurrentIp() {
-        return getBrokerController().getCurrentIp();
-    }
 }

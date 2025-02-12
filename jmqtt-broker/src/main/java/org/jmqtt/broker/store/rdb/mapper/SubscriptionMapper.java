@@ -17,7 +17,7 @@ public interface SubscriptionMapper {
             " #{qos} AS QOS, #{opt} AS OPT FROM DUAL) b " +
             "ON (a.CLIENT_ID = b.CLIENT_ID AND a.TOPIC = b.TOPIC) " +
             "WHEN MATCHED THEN " +
-            "UPDATE SET OPT = b.OPT " +
+            "UPDATE SET QOS = b.QOS, OPT = b.OPT " +
             "WHEN NOT MATCHED THEN " +
             "INSERT (ID, CLIENT_ID, TOPIC, QOS, OPT) VALUES " +
             "(b.ID, b.CLIENT_ID, b.TOPIC, b.QOS, b.OPT)" +
@@ -25,10 +25,10 @@ public interface SubscriptionMapper {
             "<if test=\"'${dbType}' != 'oracle'\">" +
             "INSERT INTO jmqtt_subscription(id, client_id,topic,qos,opt) VALUES(#{id},#{clientId},#{topic},#{qos},#{opt})" +
             "<if test=\"'${dbType}' == 'mysql'\">" +
-            "  on DUPLICATE key update opt = #{opt}" +
+            "  on DUPLICATE key update qos = #{qos},opt = #{opt}" +
             "</if>" +
             "<if test=\"'${dbType}' == 'postgresql'\">" +
-            "on conflict(client_id, topic) do update set opt = #{opt}" +
+            "on conflict(client_id, topic) do update set qos = #{qos},opt = #{opt}" +
             "</if>" +
             "</if>" +
             "</script>"

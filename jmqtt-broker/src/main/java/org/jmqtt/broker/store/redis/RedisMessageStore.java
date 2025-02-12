@@ -2,7 +2,9 @@ package org.jmqtt.broker.store.redis;
 
 import com.alibaba.fastjson.JSONObject;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.Message;
+import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.redis.support.*;
 
@@ -56,5 +58,13 @@ public class RedisMessageStore implements MessageStore {
     public Collection<Message> getAllRetainMsg() {
         Map<String,String> retainMessages = redisOperator.hgetAll(RedisKeySupport.RETAIN);
         return retainMessages.values().stream().map(val->JSONObject.parseObject(val,Message.class)).collect(Collectors.toList());
+    }
+
+    @Override
+    public Collection<Message> getRetainMsg(String topic) {
+        return getAllRetainMsg().stream().filter(msg -> {
+            String pubTopic = TopicAliasManager.getRealTopic(msg);
+            return BrokerContext.getSubscriptionMatcher().isMatch(pubTopic, topic);
+        }).collect(Collectors.toList());
     }
 }

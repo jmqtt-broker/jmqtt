@@ -30,7 +30,7 @@ public class ClusterManager {
             ScheduleManager.addScheduled(new TimerBO(brokerId, TimerManager.TimerType.BROKER_KEEPALIVE,
                     brokerId, BROKER_EXPIRE, timerBO -> {
                 Event event = new Event(EventCode.CLUSTER_NODE_KEEPALIVE.getCode(),
-                        brokerId, System.currentTimeMillis(), BrokerContext.getCurrentIp());
+                        brokerId, System.currentTimeMillis(), brokerId);
                 BrokerContext.sendEvent(event);
             }));
             // 定时检查所有节点的keepalive状态，如果超过keepalive 1.5倍时间未收到keepalive广播，认为该节点离线

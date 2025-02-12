@@ -6,6 +6,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.helper.TimerManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
@@ -35,7 +36,6 @@ import org.slf4j.Logger;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.*;
@@ -182,7 +182,7 @@ public class ConnectProcessor implements RequestProcessor {
                 SessionState ss = new SessionState(SessionState.StateEnum.ONLINE, mqttVersion);
                 if (mqtt5) {
                     // 返回服务端可选功能
-                    optionalServers(responseProperties);
+                    optionalService(responseProperties);
                     Map<Integer, Object> propertyMap = Mqtt5Utils.propertyMap(variableHeader.properties());
                     if (!propertyMap.isEmpty()) {
                         ss.setPropertyMap(propertyMap);
@@ -191,7 +191,8 @@ public class ConnectProcessor implements RequestProcessor {
                 // 存储 session 会话
                 sessionStore.storeSession(clientId, ss);
                 if (notifyClearOtherSession) {
-                    Event event = new Event(EventCode.CLEAR_SESSION.getCode(), clientId, System.currentTimeMillis(), MixAll.getLocalIp());
+                    Event event = new Event(EventCode.CLEAR_SESSION.getCode(), clientId,
+                            System.currentTimeMillis(), BrokerContext.getBrokerId());
                     clusterEventHandler.sendEvent(event);
                 }
                 NettyUtil.setClientId(ctx.channel(), clientId);
@@ -293,7 +294,7 @@ public class ConnectProcessor implements RequestProcessor {
         return false;
     }
 
-    public void optionalServers(MqttProperties properties) {
+    public void optionalService(MqttProperties properties) {
         // 服务端能同时处理的非qos0最大消息数，暂定int最大值，后面放到配置里
         properties.add(new MqttProperties.IntegerProperty(
                 MqttProperties.MqttPropertyType.RECEIVE_MAXIMUM.value(),

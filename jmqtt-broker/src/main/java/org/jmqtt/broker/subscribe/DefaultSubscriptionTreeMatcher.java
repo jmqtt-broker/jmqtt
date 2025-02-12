@@ -18,6 +18,8 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
     private static final Logger log = JmqttLogger.messageTraceLog;
 
     private static final String GROUP_STR = JmqttConst.SHARE_IDENTIFIERS;
+    private static final String SYS_STR = JmqttConst.SYS_IDENTIFIERS;
+    private static final String FILE_STR = JmqttConst.FILE_IDENTIFIERS;
     private static final Pattern SHARE_PATTERN = Pattern.compile("(\\" + GROUP_STR + ")(/\\w+)/(\\S+)");
     private final Object lock = new Object();
     private TreeNode root = new TreeNode(new Token("root"));
@@ -295,5 +297,16 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
             }
             return null;
         }
+    }
+
+    @Override
+    public String getPubTopic(String subTopic) {
+        if (subTopic.startsWith(GROUP_STR)) {
+            Matcher m = SHARE_PATTERN.matcher(subTopic);
+            if (m.find()) {
+                return m.group(3);
+            }
+        }
+        return subTopic;
     }
 }

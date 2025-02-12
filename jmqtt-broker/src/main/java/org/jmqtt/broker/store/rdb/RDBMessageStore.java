@@ -9,10 +9,12 @@ import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.rdb.daoobject.RetainMessageDO;
 import org.jmqtt.broker.store.rdb.daoobject.WillMessageDO;
+import org.jmqtt.broker.store.rdb.mapper.RetainMessageMapper;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RDBMessageStore extends AbstractDBStore implements MessageStore {
 
@@ -34,23 +36,23 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
         willMessageDO.setClientId(clientId);
         willMessageDO.setContent(JSONObject.toJSONString(message));
         willMessageDO.setGmtCreate(message.getStoreTime());
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession,willMessageMapperClass).storeWillMessage(willMessageDO));
+        Long id = (Long) operate(sqlSession -> getMapper(sqlSession, willMessageMapperClass).storeWillMessage(willMessageDO));
         return id != 0;
     }
 
     @Override
     public boolean clearWillMessage(String clientId) {
-        operate(sqlSession -> getMapper(sqlSession,willMessageMapperClass).delWillMessage(clientId));
+        operate(sqlSession -> getMapper(sqlSession, willMessageMapperClass).delWillMessage(clientId));
         return true;
     }
 
     @Override
     public Message getWillMessage(String clientId) {
-        WillMessageDO willMessageDO = (WillMessageDO) operate(sqlSession -> getMapper(sqlSession,willMessageMapperClass).getWillMessage(clientId));
+        WillMessageDO willMessageDO = (WillMessageDO) operate(sqlSession -> getMapper(sqlSession, willMessageMapperClass).getWillMessage(clientId));
         if (willMessageDO == null) {
             return null;
         }
-        return JSONObject.parseObject(willMessageDO.getContent(),Message.class);
+        return JSONObject.parseObject(willMessageDO.getContent(), Message.class);
     }
 
     @Override
@@ -62,7 +64,7 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
         Long id = (Long) operate(new DBCallback() {
             @Override
             public Object operate(SqlSession sqlSession) {
-                return getMapper(sqlSession,retainMessageMapperClass).storeRetainMessage(retainMessageDO);
+                return getMapper(sqlSession, retainMessageMapperClass).storeRetainMessage(retainMessageDO);
             }
         });
         return id != 0;
@@ -70,21 +72,29 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
 
     @Override
     public boolean clearRetainMessage(String topic) {
-        operate(sqlSession -> getMapper(sqlSession,retainMessageMapperClass).delRetainMessage(topic));
+        operate(sqlSession -> getMapper(sqlSession, retainMessageMapperClass).delRetainMessage(topic));
         return true;
     }
 
     @Override
     public Collection<Message> getAllRetainMsg() {
-        List<RetainMessageDO> messageList = (List<RetainMessageDO>) operate(sqlSession -> getMapper(sqlSession,retainMessageMapperClass).getAllRetainMessage());
+        List<RetainMessageDO> messageList = (List<RetainMessageDO>) operate(sqlSession -> getMapper(sqlSession, retainMessageMapperClass).getAllRetainMessage());
         if (MixAll.isEmpty(messageList)) {
             return null;
         }
         List<Message> mqttMessages = new ArrayList<>(messageList.size());
         for (RetainMessageDO retainMessageDO : messageList) {
-            Message message = JSONObject.parseObject(retainMessageDO.getContent(),Message.class);
+            Message message = JSONObject.parseObject(retainMessageDO.getContent(), Message.class);
             mqttMessages.add(message);
         }
         return mqttMessages;
+    }
+
+    @Override
+    public Collection<Message> getRetainMsg(String topic) {
+        List<RetainMessageDO> messageList = (List<RetainMessageDO>) DBUtils.getInstance().operate(sqlSession ->
+                sqlSession.getMapper(RetainMessageMapper.class).getRetainMessage(topic.replace("+", "%").replace("#", "%"))
+        );
+        return messageList.stream().map(messageDo -> JSONObject.parseObject(messageDo.getContent(), Message.class)).collect(Collectors.toList());
     }
 }

@@ -1,12 +1,15 @@
 
 package org.jmqtt.broker.store;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
+import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 设备消息处理：
@@ -73,4 +76,33 @@ public interface MessageStore {
      * @return  return
      */
     Collection<Message> getAllRetainMsg();
+
+    /**
+     * 根据订阅topic查询符合订阅的保留消息
+     * @return  return
+     */
+    default Collection<Message> getRetainMsg(String topic) {
+        return getAllRetainMsg();
+    }
+
+    default void retainHandle(Message message) {
+        boolean retain = (boolean) message.getHeader(MessageHeader.RETAIN);
+        if (retain) {
+            CompletableFuture.runAsync(() -> {
+                int qos = (int) message.getHeader(MessageHeader.QOS);
+                byte[] payload = message.getPayload();
+                String topic = (String) message.getHeader(MessageHeader.TOPIC);
+                if (StringUtils.isBlank(topic)) {
+                    topic = TopicAliasManager.getRealTopic(message);
+                    message.putHeader(MessageHeader.TOPIC, topic);
+                }
+                // qos == 0 or payload is none,then clear previous retain message
+                if (qos == 0 || payload == null || payload.length == 0) {
+                    clearRetainMessage(topic);
+                } else {
+                    storeRetainMessage(topic, message);
+                }
+            });
+        }
+    }
 }

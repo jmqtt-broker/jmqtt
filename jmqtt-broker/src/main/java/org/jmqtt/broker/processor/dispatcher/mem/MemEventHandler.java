@@ -21,6 +21,8 @@ public class MemEventHandler extends AbstractMemStore implements ClusterEventHan
     private static final Logger log = JmqttLogger.eventLog;
     private ConcurrentLinkedDeque<Event> events = new ConcurrentLinkedDeque<Event>();
     private AtomicLong size = new AtomicLong(0);
+    private long maxCap = 100000;
+    private EventConsumeHandler eventConsumeHandler;
 
     @Override
     public void start(BrokerConfig brokerConfig) {
@@ -34,19 +36,19 @@ public class MemEventHandler extends AbstractMemStore implements ClusterEventHan
 
     @Override
     public boolean sendEvent(Event event) {
-        long maxCap = 100000;
-        if (size.getAndAdd(1) > maxCap){
-            LogUtil.warn(log,"event queue capacity exceeds {}", maxCap);
-        }
-        return events.offerLast(event);
+        eventConsumeHandler.consumeEvent(event);
+        // if (size.getAndAdd(1) > maxCap){
+        //     LogUtil.warn(log,"event queue capacity exceeds {}", maxCap);
+        // }
+        // return events.offerLast(event);
+        return true;
     }
 
     @Override
     public void setEventConsumeHandler(EventConsumeHandler eventConsumeHandler) {
-
+        this.eventConsumeHandler = eventConsumeHandler;
     }
 
-    // TODO 这里考虑能否批量拉取，降低事件复杂度
     @Override
     public List<Event> pollEvent(int maxPollNum) {
         List<Event> e = new LinkedList<Event>();

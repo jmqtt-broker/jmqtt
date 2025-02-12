@@ -3,7 +3,7 @@
     "loglevel": "debug",
     "actor": {
       "provider": "cluster",
-      "allow-java-serialization": "on"
+      "allow-java-serialization": "off"
     },
     "remote": {
       "artery": {

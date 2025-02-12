@@ -1,8 +1,11 @@
 package org.jmqtt.broker.processor.dispatcher.event;
 
+import lombok.Getter;
+
 /**
  * 集群消息事件码
  */
+@Getter
 public enum EventCode {
 
     CLEAR_SESSION(1,"CLEAR_SESSION","清理本节点客户端会话缓存"),
@@ -28,14 +31,4 @@ public enum EventCode {
         this.desc = desc;
     }
 
-    public int getCode() {
-        return code;
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    public String getDesc() {
-        return desc;
-    }}
+}

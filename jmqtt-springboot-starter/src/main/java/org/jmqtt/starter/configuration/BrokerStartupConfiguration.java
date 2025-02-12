@@ -135,10 +135,12 @@ public class BrokerStartupConfiguration {
     }
 
     @Bean
-    public InnerMessageDispatcher innerMessageDispatcher(BrokerConfig brokerConfig, SessionStore sessionStore, MessageStore messageStore,
-                                                         SubscriptionMatcher subscriptionMatcher, ClusterEventHandler clusterEventHandler) {
+    public InnerMessageDispatcher innerMessageDispatcher(BrokerConfig brokerConfig,
+                                                         SessionStore sessionStore,
+                                                         MessageStore messageStore,
+                                                         SubscriptionMatcher subscriptionMatcher) {
         return new DefaultDispatcherInnerMessage(brokerConfig.isHighPerformance(),
-                sessionStore, messageStore, brokerConfig.getPollThreadNum(), subscriptionMatcher, clusterEventHandler);
+                sessionStore, messageStore, brokerConfig.getPollThreadNum(), subscriptionMatcher);
     }
 
     @Bean
@@ -151,9 +153,8 @@ public class BrokerStartupConfiguration {
     @ConditionalOnMissingBean(ChannelEventListener.class)
     public ChannelEventListener clientLifeCycleHookService(SessionStore sessionStore,
                                                            MessageStore messageStore,
-                                                           SubscriptionMatcher subscriptionMatcher,
                                                            InnerMessageDispatcher innerMessageDispatcher) {
-        return new ClientLifeCycleHookService(sessionStore, messageStore, subscriptionMatcher, innerMessageDispatcher);
+        return new ClientLifeCycleHookService(sessionStore, messageStore, innerMessageDispatcher);
     }
 
     @Bean

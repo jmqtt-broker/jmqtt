@@ -157,7 +157,6 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
                 LogUtil.warn(log, "[PubMessage] -> cache qos2 pub message failure,clientId={}", innerMsg.getClientId());
             }
         }
-        // MqttMessage pubRecMessage = MessageUtil.getPubRecMessage(originMessageId);
         MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(originMessageId, MqttMessageType.PUBREC, reasonCode, null, false);
         ctx.writeAndFlush(pubRecMessage);
     }

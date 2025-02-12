@@ -23,6 +23,7 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
     private static final Logger log = JmqttLogger.eventLog;
     private ActorRef<Command<Event>> topic;
     private ActorRef<Event> subscriber;
+    private ActorSystem<Void> system;
     private EventConsumeHandler eventConsumeHandler;
 
     public AkkaClusterEventHandler() {
@@ -50,8 +51,8 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                     topic.tell(Topic.subscribe(subscriber));
                     return Behaviors.empty();
                 });
-        ActorSystem<Void> system = ActorSystem.create(initBehavior, systemName, config);
-        log.info("akka system create finished");
+        system = ActorSystem.create(initBehavior, systemName, config);
+        log.info("akka system created.");
     }
 
     @Override

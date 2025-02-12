@@ -1,10 +1,16 @@
 package org.jmqtt.broker.processor.dispatcher.event;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.jmqtt.broker.common.helper.BrokerContext;
+
 import java.io.Serializable;
 
 /**
  * cluster event model
  */
+@Getter
+@Setter
 public class Event implements Serializable {
 
     private static final long serialVersionUID = -12893791131231231L;
@@ -27,36 +33,11 @@ public class Event implements Serializable {
         this.fromIp = fromIp;
     }
 
-    public int getEventCode() {
-        return eventCode;
-    }
-
-    public void setEventCode(int eventCode) {
+    public Event(int eventCode, String body,long sendTime) {
         this.eventCode = eventCode;
-    }
-
-    public String getBody() {
-        return body;
-    }
-
-    public void setBody(String body) {
         this.body = body;
-    }
-
-    public long getSendTime() {
-        return sendTime;
-    }
-
-    public void setSendTime(long sendTime) {
         this.sendTime = sendTime;
-    }
-
-    public String getFromIp() {
-        return fromIp;
-    }
-
-    public void setFromIp(String fromIp) {
-        this.fromIp = fromIp;
+        this.fromIp = BrokerContext.getBrokerId();
     }
 
     @Override
