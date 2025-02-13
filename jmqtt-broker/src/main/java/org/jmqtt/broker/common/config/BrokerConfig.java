@@ -3,7 +3,7 @@ package org.jmqtt.broker.common.config;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import lombok.Getter;
 import lombok.Setter;
-import org.jmqtt.broker.common.JmqttConst;
+import org.jmqtt.common.config.JmqttConst;
 
 import java.io.File;
 

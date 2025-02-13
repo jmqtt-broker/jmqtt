@@ -2,7 +2,7 @@ package org.jmqtt.starter.config;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.jmqtt.broker.common.JmqttConst;
+import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

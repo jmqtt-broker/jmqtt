@@ -3,6 +3,7 @@ package org.jmqtt.broker.common.config;
 import com.alibaba.fastjson.JSONObject;
 import lombok.Getter;
 import lombok.Setter;
+import org.jmqtt.common.serializer.kryo.KryoSerializer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,20 +40,20 @@ public class AkkaConfig {
         akka.put("cluster", cluster);
         JSONObject actor = new JSONObject();
         actor.put("provider", "cluster");
-        actor.put("allow-java-serialization", "on");
+        actor.put("allow-java-serialization", "off");
         actor.put("warn-about-java-serializer-usage", "off");
         akka.put("actor", actor);
-        /*JSONObject serializationIdentifiers = new JSONObject();
+        JSONObject serializationIdentifiers = new JSONObject();
         JSONObject serializers = new JSONObject();
         JSONObject serializationBindings = new JSONObject();
-        serializationIdentifiers.put("java", 1);
-        serializationIdentifiers.put("json", 2);
-        serializers.put("java", "akka.serialization.JavaSerializer");
-        serializers.put("json", "akka.serialization.jackson.JacksonJsonSerializer");
-        serializationBindings.put("org.jmqtt.broker.processor.dispatcher.event.Event", "json");
+        serializationIdentifiers.put("customkryo", KryoSerializer.IDENTIFIER);
+        // serializationIdentifiers.put("json", 456);
+        serializers.put("customkryo", "org.jmqtt.common.serializer.kryo.KryoSerializer");
+        // serializers.put("json", "akka.serialization.jackson.JacksonJsonSerializer");
+        serializationBindings.put("org.jmqtt.common.event.Event", "customkryo");
         actor.put("serialization-identifiers", serializationIdentifiers);
         actor.put("serializers", serializers);
-        actor.put("serialization-bindings", serializationBindings);*/
+        actor.put("serialization-bindings", serializationBindings);
         return wrap.toJSONString();
     }
 

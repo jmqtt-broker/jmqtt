@@ -1,0 +1,23 @@
+server:
+  port: 8085
+
+logging:
+  config: classpath:logback-boot.xml
+
+spring:
+  application:
+    name: jmqtt-keeper
+  datasource:
+    url: ${RDB_URL:jdbc:mysql://dev.jmqtt.com:3366/jmqtt_keeper?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
+    username: ${RDB_USERNAME:root}
+    password: ${RDB_PASSWORD:zhibo2022}
+
+jmqtt:
+  keeper:
+    akka:
+      system-name: JMqttKeeperSystem
+      host: 127.0.0.1
+      port: 25250
+      cluster-nodes:
+        - 127.0.0.1:25250
+

@@ -1,4 +1,4 @@
-package org.jmqtt.broker.common.helper;
+package org.jmqtt.common.helper;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;

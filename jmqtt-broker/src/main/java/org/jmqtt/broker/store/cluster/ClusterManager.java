@@ -6,8 +6,8 @@ import org.jmqtt.broker.common.helper.ScheduleManager;
 import org.jmqtt.broker.common.helper.TimerBO;
 import org.jmqtt.broker.common.helper.TimerManager;
 import org.jmqtt.broker.common.model.ClusterNodeInfo;
-import org.jmqtt.broker.processor.dispatcher.event.Event;
-import org.jmqtt.broker.processor.dispatcher.event.EventCode;
+import org.jmqtt.common.event.Event;
+import org.jmqtt.common.event.EventCode;
 
 import java.util.Map;
 import java.util.Optional;

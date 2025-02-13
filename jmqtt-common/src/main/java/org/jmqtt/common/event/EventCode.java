@@ -1,4 +1,4 @@
-package org.jmqtt.broker.processor.dispatcher.event;
+package org.jmqtt.common.event;
 
 import lombok.Getter;
 

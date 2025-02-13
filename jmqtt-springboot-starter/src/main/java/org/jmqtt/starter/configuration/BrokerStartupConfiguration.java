@@ -6,7 +6,7 @@ import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
 import org.jmqtt.broker.acl.impl.DefaultAuthValid;
 import org.jmqtt.broker.client.ClientLifeCycleHookService;
-import org.jmqtt.broker.common.JmqttConst;
+import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.MixAll;

@@ -1,6 +1,6 @@
 package org.jmqtt.broker.subscribe;
 
-import org.jmqtt.broker.common.JmqttConst;
+import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Subscription;

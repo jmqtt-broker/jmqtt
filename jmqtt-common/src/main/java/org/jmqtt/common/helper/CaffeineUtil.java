@@ -1,15 +1,12 @@
-package org.jmqtt.broker.common.helper;
+package org.jmqtt.common.helper;
 
 import com.github.benmanes.caffeine.cache.*;
-import lombok.Getter;
-import lombok.Setter;
 import org.checkerframework.checker.index.qual.NonNegative;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 public class CaffeineUtil {
@@ -71,22 +68,4 @@ public class CaffeineUtil {
         LISTENERS.add(listener);
     }
 
-    @Getter
-    @Setter
-    static class CacheObject {
-
-        private static Long defaultExpire = 1800L;
-        Object data;
-        long expire;
-
-        public CacheObject(Object data, long second) {
-            this.data = data;
-            this.expire = TimeUnit.SECONDS.toNanos(second);
-        }
-
-        public CacheObject(Object data) {
-            this.data = data;
-            this.expire = TimeUnit.SECONDS.toNanos(defaultExpire);
-        }
-    }
 }

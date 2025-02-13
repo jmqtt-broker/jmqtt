@@ -3,9 +3,8 @@ package org.jmqtt.broker.processor.dispatcher;
 import com.alibaba.fastjson.JSON;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
-import org.jmqtt.broker.common.helper.BrokerContext;
-import org.jmqtt.broker.common.helper.RejectHandler;
-import org.jmqtt.broker.common.helper.ThreadFactoryImpl;
+import org.jmqtt.common.helper.RejectHandler;
+import org.jmqtt.common.helper.ThreadFactoryImpl;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
@@ -118,13 +117,6 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
             if (Objects.nonNull(messages)) {
                 for (Message message : messages) {
                     try {
-                        if (!BrokerContext.centerStore()) {
-                            messageStore.retainHandle(message);
-                        }
-                        byte[] payload = message.getPayload();
-                        if (payload != null && payload.length > 0) {
-                            continue;
-                        }
                         String pubClientId = message.getClientId();
                         String topic = TopicAliasManager.getRealTopic(message);
                         Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);

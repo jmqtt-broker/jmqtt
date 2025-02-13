@@ -1,4 +1,4 @@
-package org.jmqtt.broker.common;
+package org.jmqtt.common.config;
 
 public interface JmqttConst {
 

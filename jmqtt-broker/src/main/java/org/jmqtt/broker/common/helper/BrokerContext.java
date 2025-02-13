@@ -1,11 +1,10 @@
 package org.jmqtt.broker.common.helper;
 
 import org.jmqtt.broker.BrokerController;
-import org.jmqtt.broker.common.JmqttConst;
+import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
-import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
-import org.jmqtt.broker.processor.dispatcher.event.Event;
+import org.jmqtt.common.event.Event;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
@@ -34,7 +33,7 @@ public class BrokerContext {
     }
 
     /**
-     * 非内存存储使用的是db或redis中央存储，每个节点访问的是同一份数据，
+     * 非内存存储使用的是rdb或redis中央存储，每个节点访问的是同一份数据，
      * 内存存储条件下，每个节点访问的是本地存储数据
      * @return boolean
      */

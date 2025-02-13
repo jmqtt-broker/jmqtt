@@ -1,8 +1,8 @@
-package org.jmqtt.broker.processor.dispatcher.event;
+package org.jmqtt.common.event;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.jmqtt.broker.common.helper.BrokerContext;
 
 import java.io.Serializable;
 
@@ -11,6 +11,7 @@ import java.io.Serializable;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 public class Event implements Serializable {
 
     private static final long serialVersionUID = -12893791131231231L;
@@ -26,18 +27,11 @@ public class Event implements Serializable {
 
     private String fromIp;
 
-    public Event(int eventCode, String body,long sendTime,String fromIp) {
+    public Event(int eventCode, String body, long sendTime, String fromIp) {
         this.eventCode = eventCode;
         this.body = body;
         this.sendTime = sendTime;
         this.fromIp = fromIp;
-    }
-
-    public Event(int eventCode, String body,long sendTime) {
-        this.eventCode = eventCode;
-        this.body = body;
-        this.sendTime = sendTime;
-        this.fromIp = BrokerContext.getBrokerId();
     }
 
     @Override
@@ -47,4 +41,5 @@ public class Event implements Serializable {
                 ", body='" + body + '\'' +
                 '}';
     }
+
 }

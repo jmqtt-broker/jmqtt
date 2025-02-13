@@ -6,14 +6,13 @@ import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
-import org.jmqtt.broker.processor.dispatcher.event.Event;
+import org.jmqtt.common.event.Event;
 import org.jmqtt.broker.store.redis.support.RedisKeySupport;
 import org.jmqtt.broker.store.redis.support.RedisOperator;
 import org.jmqtt.broker.store.redis.support.RedisUtils;
 import org.slf4j.Logger;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 public class RedisClusterEventHandler implements ClusterEventHandler {
