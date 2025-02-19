@@ -121,11 +121,7 @@ public class ConnectProcessor implements RequestProcessor {
                 if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
                     ClientSession previousClient = ConnectManager.getInstance().getClient(clientId);
                     if (previousClient != null) {
-                        if (previousClient.isMqtt5()) {
-                            Mqtt5Utils.sendDisconnectAndClose(previousClient, (byte) 0x8E);
-                        } else {
-                            previousClient.getCtx().close();
-                        }
+                        Mqtt5Utils.sendDisconnectAndClose(previousClient, (byte) 0x8E);
                         this.sessionStore.clearSession(clientId, true);
                         notifyClearOtherSession = false;
                     }
@@ -133,12 +129,12 @@ public class ConnectProcessor implements RequestProcessor {
                 if (sessionState.getState() == SessionState.StateEnum.NULL) {
                     clientSession = new ClientSession(clientId, cleanSession, mqttVersion, ctx);
                     sessionPresent = false;
-                    notifyClearOtherSession = false;
+                    // notifyClearOtherSession = false;
                 } else {
                     if (cleanSession) {
                         clientSession = createNewClientSession(clientId, mqttVersion, ctx);
                         sessionPresent = false;
-                        notifyClearOtherSession = false;
+                        // notifyClearOtherSession = false;
                     } else {
                         clientSession = reloadClientSession(ctx, clientId, mqttVersion);
                         sessionPresent = true;

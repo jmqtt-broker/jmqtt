@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
@@ -14,15 +15,16 @@ import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.store.local.LocalStore;
 import org.jmqtt.broker.store.local.mapper.LocalOfflineMessageMapper;
+import org.jmqtt.broker.store.local.mapper.LocalSessionMapper;
 import org.jmqtt.broker.store.local.mapper.LocalSubscriptionMapper;
 import org.jmqtt.broker.store.rdb.daoobject.OfflineMessageDO;
+import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
 import org.jmqtt.broker.store.rdb.daoobject.SubscriptionDO;
 import org.slf4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 
@@ -65,7 +67,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public SessionState getSession(String clientId) {
-        if (StringUtils.isBlank(clientId)) {
+        /*if (StringUtils.isBlank(clientId)) {
             return null;
         }
         SessionState s = sessionTable.get(clientId);
@@ -73,12 +75,37 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
             // 从未连接过
             return new SessionState(SessionState.StateEnum.NULL);
         }
-        return s;
+        return s;*/
+        if (StringUtils.isBlank(clientId)) {
+            return null;
+        }
+        SessionDO sessionDO = (SessionDO) LocalStore.getInstance().operate(sqlSession -> sqlSession.getMapper(LocalSessionMapper.class).getSession(clientId));
+        if (sessionDO == null) {
+            return new SessionState(SessionState.StateEnum.NULL);
+        }
+        String property = sessionDO.getProperty();
+        if (StringUtils.isNotBlank(property)) {
+            return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
+                    sessionDO.getOfflineTime(), new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)), sessionDO.getVersion());
+        }
+        return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
+                sessionDO.getOfflineTime(), sessionDO.getVersion());
     }
 
     @Override
     public boolean storeSession(String clientId, SessionState sessionState) {
-        sessionTable.put(clientId, sessionState);
+        LocalStore.getInstance().operate(sqlSession -> {
+            SessionDO sessionDO = new SessionDO();
+            sessionDO.setId(IdWorker.getId());
+            sessionDO.setBrokerId(BrokerContext.getBrokerId());
+            sessionDO.setClientId(clientId);
+            sessionDO.setState(sessionState.getState().getCode());
+            sessionDO.setOfflineTime(sessionState.getOfflineTime());
+            sessionDO.setVersion(sessionState.getVersion());
+            Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> sessionDO.setProperty(JSON.toJSONString(p)));
+            return sqlSession.getMapper(LocalSessionMapper.class).storeSession(sessionDO);
+        });
+        // sessionTable.put(clientId, sessionState);
         return true;
     }
 
@@ -112,7 +139,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     @Override
     public boolean delSubscription(String clientId, String topic) {
         LocalStore.getInstance().operate(sqlSession ->
-            sqlSession.getMapper(LocalSubscriptionMapper.class).delSubscription(clientId, topic)
+                sqlSession.getMapper(LocalSubscriptionMapper.class).delSubscription(clientId, topic)
         );
         /*ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
         if (v != null) {
@@ -315,7 +342,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     @Override
     public Collection<Message> getAllOfflineMsg(String clientId) {
         List<OfflineMessageDO> offlineMessageDOList = (List<OfflineMessageDO>) LocalStore.getInstance().operate(sqlSession ->
-            sqlSession.getMapper(LocalOfflineMessageMapper.class).getAllOfflineMessage(clientId)
+                sqlSession.getMapper(LocalOfflineMessageMapper.class).getAllOfflineMessage(clientId)
         );
         return offlineMessageDOList.stream().map(off -> JSONObject.parseObject(off.getContent(), Message.class)).collect(Collectors.toList());
         /*BlockingQueue<Message> off = offlineTable.get(clientId);

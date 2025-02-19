@@ -3,6 +3,7 @@ package org.jmqtt.broker.common.config;
 import com.alibaba.fastjson.JSONObject;
 import lombok.Getter;
 import lombok.Setter;
+import org.jmqtt.common.akka.AkkaConst;
 import org.jmqtt.common.serializer.kryo.KryoSerializer;
 
 import java.util.ArrayList;
@@ -14,9 +15,10 @@ import java.util.stream.Collectors;
 public class AkkaConfig {
 
     private Boolean enable = false;
-    private String systemName = "JMqttDispatcherSystem";
+    private String systemName = AkkaConst.SYSTEM_NAME;
     private String host;
     private String port;
+    private List<String> roles;
     private List<String> clusterNodes;
 
     public String configStr() {
@@ -36,6 +38,11 @@ public class AkkaConfig {
                     .map(n -> "akka://" + this.systemName + "@" + n)
                     .collect(Collectors.toList()));
         }
+        if (this.roles != null) {
+            cluster.put("roles", this.roles);
+        }
+        cluster.put("downing-provider-class", "akka.cluster.sbr.SplitBrainResolverProvider");
+        // cluster.put("configuration-compatibility-check", new JSONObject(){{put("enforce-on-join", "off");}});
         akka.put("remote", remote);
         akka.put("cluster", cluster);
         JSONObject actor = new JSONObject();

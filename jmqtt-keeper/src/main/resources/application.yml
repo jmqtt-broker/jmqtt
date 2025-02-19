@@ -15,9 +15,10 @@ spring:
 jmqtt:
   keeper:
     akka:
-      system-name: JMqttKeeperSystem
+      system-name: JMqttDispatcherSystem
       host: 127.0.0.1
       port: 25250
+      roles: [keeper]
       cluster-nodes:
         - 127.0.0.1:25250
 

@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
@@ -51,6 +52,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
     public boolean storeSession(String clientId, SessionState sessionState) {
         SessionDO sessionDO = new SessionDO();
         sessionDO.setId(IdWorker.getId());
+        sessionDO.setBrokerId(BrokerContext.getBrokerId());
         sessionDO.setClientId(clientId);
         sessionDO.setState(sessionState.getState().getCode());
         sessionDO.setOfflineTime(sessionState.getOfflineTime());

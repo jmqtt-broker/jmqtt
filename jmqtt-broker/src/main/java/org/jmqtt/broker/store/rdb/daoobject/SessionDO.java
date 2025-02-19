@@ -14,6 +14,8 @@ public class SessionDO implements Serializable {
 
     private Long id;
 
+    private String brokerId;
+
     private String clientId;
 
     private String state;

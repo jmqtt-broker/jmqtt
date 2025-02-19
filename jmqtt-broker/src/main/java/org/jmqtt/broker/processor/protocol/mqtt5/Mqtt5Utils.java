@@ -46,7 +46,9 @@ public class Mqtt5Utils {
 
     public static void sendDisconnectAndClose(ClientSession session, byte reasonCode) {
         ChannelHandlerContext ctx = session.getCtx();
-        ctx.writeAndFlush(MessageUtil.getDisconnectMessage(reasonCode));
+        if (session.isMqtt5()) {
+            ctx.writeAndFlush(MessageUtil.getDisconnectMessage(reasonCode));
+        }
         ctx.close();
     }
 

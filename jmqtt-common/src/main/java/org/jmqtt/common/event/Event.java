@@ -1,5 +1,6 @@
 package org.jmqtt.common.event;
 
+import com.alibaba.fastjson.JSONObject;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,30 +17,24 @@ public class Event implements Serializable {
 
     private static final long serialVersionUID = -12893791131231231L;
 
-    /**
-     * {@link EventCode}
-     */
     private int eventCode;
 
     private String body;
 
     private long sendTime;
 
-    private String fromIp;
+    private String fromBroker;
 
-    public Event(int eventCode, String body, long sendTime, String fromIp) {
+    public Event(int eventCode, String body, long sendTime, String fromBroker) {
         this.eventCode = eventCode;
         this.body = body;
         this.sendTime = sendTime;
-        this.fromIp = fromIp;
+        this.fromBroker = fromBroker;
     }
 
     @Override
     public String toString() {
-        return "Event{" +
-                "eventCode=" + eventCode +
-                ", body='" + body + '\'' +
-                '}';
+        return JSONObject.toJSONString(this);
     }
 
 }

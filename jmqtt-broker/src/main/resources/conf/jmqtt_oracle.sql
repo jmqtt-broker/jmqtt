@@ -97,6 +97,7 @@ COMMENT ON TABLE "JMQTT_RETAIN_MESSAGE" IS '保留消息表';
 -- ----------------------------
 CREATE TABLE "JMQTT_SESSION" (
                                  "ID" NUMBER(20,0) NOT NULL,
+                                 "BROKER_ID" NVARCHAR2(100) NOT NULL,
                                  "CLIENT_ID" NVARCHAR2(64) NOT NULL,
                                  "STATE" NVARCHAR2(12) NOT NULL,
                                  "OFFLINE_TIME" NUMBER(20,0),
@@ -104,6 +105,7 @@ CREATE TABLE "JMQTT_SESSION" (
                                  "VERSION" NUMBER(11,0)
 );
 COMMENT ON COLUMN "JMQTT_SESSION"."ID" IS '主键';
+COMMENT ON COLUMN "JMQTT_SESSION"."CLIENT_ID" IS 'brokerId';
 COMMENT ON COLUMN "JMQTT_SESSION"."CLIENT_ID" IS '客户端id';
 COMMENT ON COLUMN "JMQTT_SESSION"."STATE" IS '状态：ONLINE,OFFLINE两种';
 COMMENT ON COLUMN "JMQTT_SESSION"."OFFLINE_TIME" IS 'OFFLINE状态时对应的离线时间戳（只有cleanStart为0时候离线才有该数据）';

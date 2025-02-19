@@ -8,6 +8,7 @@ import org.jmqtt.common.helper.ThreadFactoryImpl;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 @Slf4j
 public class ScheduleManager {
@@ -24,7 +25,8 @@ public class ScheduleManager {
 
     /**
      * 添加定时任务
-     * @param timerBO   任务
+     *
+     * @param timerBO 任务
      */
     public static void addScheduled(TimerBO timerBO) {
         Timeout expired = SCHEDULER.newTimeout(timeout -> {
@@ -41,7 +43,8 @@ public class ScheduleManager {
 
     /**
      * 添加延时任务
-     * @param timerBO   任务
+     *
+     * @param timerBO 任务
      */
     public static void addDelay(TimerBO timerBO) {
         Timeout expired = SCHEDULER.newTimeout(timeout -> {
@@ -51,10 +54,15 @@ public class ScheduleManager {
         CALLBACK_MAP.put(timerBO, expired);
     }
 
+    public static void addSimpleDelay(Consumer<Timeout> execute, long seconds) {
+        SCHEDULER.newTimeout(execute::accept, seconds, TimeUnit.SECONDS);
+    }
+
     /**
      * 取消任务
+     *
      * @param timerBO 任务
-     * @return  成功失败
+     * @return 成功失败
      */
     public static boolean cancel(TimerBO timerBO) {
         Timeout timeout = CALLBACK_MAP.remove(timerBO);

@@ -6,15 +6,14 @@ import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
-import org.jmqtt.broker.common.model.ClusterNodeInfo;
 import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.common.event.Event;
-import org.jmqtt.common.event.EventCode;
 import org.jmqtt.broker.processor.dispatcher.event.EventHandler;
+import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.SessionStore;
-import org.jmqtt.broker.store.cluster.ClusterManager;
+import org.jmqtt.common.event.Event;
+import org.jmqtt.common.event.EventCode;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -49,9 +48,6 @@ public class EventConsumeHandler {
         eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
         eventHandlerMap.put(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), this::dispatcherMessage);
         eventHandlerMap.put(EventCode.DISPATCHER_WILL_MESSAGE.getCode(), this::dispatcherMessage);
-        // eventHandlerMap.put(EventCode.CLUSTER_NODE_STATUS.getCode(), this::brokerStatus);
-        // eventHandlerMap.put(EventCode.CLUSTER_NODE_KEEPALIVE.getCode(), this::brokerKeepalive);
-        // eventHandlerMap.put(EventCode.CLUSTER_NODE_REPORT.getCode(), this::brokerReport);
     }
 
     // 集群方式1: consume event from cluster
@@ -100,8 +96,8 @@ public class EventConsumeHandler {
 
     void clearClientSession(Event event) {
         // if event from current node, ignore the event
-        if (BrokerContext.getBrokerId().equals(event.getFromIp())) {
-            LogUtil.debug(log, "Event from current node,ignore the event,fromIp:{}", event.getFromIp());
+        if (BrokerContext.getBrokerId().equals(event.getFromBroker())) {
+            LogUtil.debug(log, "Event from current node,ignore the event,fromBroker:{}", event.getFromBroker());
             return;
         }
         String clientId = event.getBody();
@@ -109,29 +105,8 @@ public class EventConsumeHandler {
             return;
         }
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
-        clientSession.getCtx().close();
+        Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E);
         sessionStore.clearSession(clientId, false);
-    }
-
-    private void brokerStatus(Event event) {
-        ClusterNodeInfo node = JSONObject.parseObject(event.getBody(), ClusterNodeInfo.class);
-        LogUtil.info(log, "cluster node status changed: {}, {}", node.getNodeId(), node.getStatus());
-        ClusterManager.saveNode(node);
-    }
-
-    private void brokerKeepalive(Event event) {
-        ClusterManager.keepalive(event.getBody());
-    }
-
-    private void brokerReport(Event event) {
-        ClusterNodeInfo node = JSONObject.parseObject(event.getBody(), ClusterNodeInfo.class);
-        ClusterNodeInfo currentNode = ClusterManager.getCurrentNode();
-        if (!currentNode.equals(node)) {
-            Event eventReport = new Event(EventCode.CLUSTER_NODE_STATUS.getCode(),
-                    JSONObject.toJSONString(currentNode),
-                    System.currentTimeMillis(), BrokerContext.getBrokerId());
-            this.clusterEventHandler.sendEvent(eventReport);
-        }
     }
 
 }

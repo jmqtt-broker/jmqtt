@@ -33,6 +33,11 @@
       "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
     },
     {
+      "name": "jmqtt.broker.akka.roles",
+      "type": "java.lang.String[]",
+      "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
+    },
+    {
       "name": "jmqtt.broker.akka.cluster-nodes",
       "type": "java.lang.String[]",
       "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"

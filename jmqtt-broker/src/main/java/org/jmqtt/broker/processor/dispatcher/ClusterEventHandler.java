@@ -42,4 +42,8 @@ public interface ClusterEventHandler {
      * @return  return
      */
     List<Event> pollEvent(int maxPollNum);
+
+    default void sendTokeeper(Event event) {
+
+    }
 }

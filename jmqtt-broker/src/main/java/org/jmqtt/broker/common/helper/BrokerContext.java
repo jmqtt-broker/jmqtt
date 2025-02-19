@@ -1,6 +1,7 @@
 package org.jmqtt.broker.common.helper;
 
 import org.jmqtt.broker.BrokerController;
+import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
@@ -29,6 +30,10 @@ public class BrokerContext {
 
     public static String getBrokerId() {
         BrokerController ctl = getBrokerController();
+        AkkaConfig akka = getBrokerConfig().getAkka();
+        if (akka != null && akka.getEnable()) {
+            return JmqttConst.PROJECT + "@" + ctl.getCurrentIp() + ":" + akka.getPort();
+        }
         return JmqttConst.PROJECT + "@" + ctl.getCurrentIp() + ":" + ctl.getNettyConfig().getTcpPort();
     }
 

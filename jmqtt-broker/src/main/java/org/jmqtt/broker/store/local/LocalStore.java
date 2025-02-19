@@ -13,10 +13,7 @@ import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
-import org.jmqtt.broker.store.local.mapper.LocalOfflineMessageMapper;
-import org.jmqtt.broker.store.local.mapper.LocalRetainMessageMapper;
-import org.jmqtt.broker.store.local.mapper.LocalSubscriptionMapper;
-import org.jmqtt.broker.store.local.mapper.LocalWillMessageMapper;
+import org.jmqtt.broker.store.local.mapper.*;
 import org.jmqtt.broker.store.rdb.DBCallback;
 import org.slf4j.Logger;
 
@@ -85,6 +82,7 @@ public class LocalStore {
             configuration.addMapper(LocalWillMessageMapper.class);
             configuration.addMapper(LocalOfflineMessageMapper.class);
             configuration.addMapper(LocalSubscriptionMapper.class);
+            configuration.addMapper(LocalSessionMapper.class);
             configuration.setMapUnderscoreToCamelCase(true);
             this.sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
             LogUtil.info(log, "localStore store start success...");

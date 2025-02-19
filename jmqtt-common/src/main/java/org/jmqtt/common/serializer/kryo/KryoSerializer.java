@@ -15,11 +15,9 @@ public class KryoSerializer extends SerializerWithStringManifest {
 
     public static final int IDENTIFIER = 123;
 
-    private final Kryo kryo;
     private final Pool<Kryo> kryoPool;
 
     public KryoSerializer() {
-        this.kryo = new Kryo();
         this.kryoPool = new Pool<Kryo>(true, false, 8) {
             @Override
             protected Kryo create() {

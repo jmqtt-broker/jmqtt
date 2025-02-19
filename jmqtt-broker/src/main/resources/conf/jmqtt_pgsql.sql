@@ -115,6 +115,7 @@ COMMENT ON TABLE "jmqtt_retain_message" IS '保留消息表';
 CREATE TABLE IF NOT EXISTS "jmqtt_session"
 (
     "id" int8 NOT NULL,
+    "broker_id" varchar(100) COLLATE "pg_catalog"."default" NOT NULL,
     "client_id" varchar(64) COLLATE "pg_catalog"."default" NOT NULL,
     "state"     varchar(12) COLLATE "pg_catalog"."default" NOT NULL,
     "offline_time" int8,
@@ -124,6 +125,7 @@ CREATE TABLE IF NOT EXISTS "jmqtt_session"
 )
 ;
 COMMENT ON COLUMN "jmqtt_session"."id" IS '主键';
+COMMENT ON COLUMN "jmqtt_session"."broker_id" IS 'brokerId';
 COMMENT ON COLUMN "jmqtt_session"."client_id" IS '客户端id';
 COMMENT ON COLUMN "jmqtt_session"."state" IS '状态：ONLINE,OFFLINE两种';
 COMMENT ON COLUMN "jmqtt_session"."offline_time" IS 'OFFLINE状态时对应的离线时间戳（只有cleanStart为0时候离线才有该数据）';
