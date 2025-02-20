@@ -1,6 +1,5 @@
 package org.jmqtt.broker;
 
-import com.alibaba.fastjson.JSONObject;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,6 +12,8 @@ import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.helper.ScheduleManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
+import org.jmqtt.broker.store.local.LocalStore;
+import org.jmqtt.broker.store.local.LocalStoreImpl;
 import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.broker.processor.RequestProcessor;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
@@ -31,7 +32,7 @@ import org.jmqtt.broker.remoting.netty.NettyRemotingServer;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
-import org.jmqtt.broker.store.local.LocalStore;
+import org.jmqtt.broker.store.local.LocalDB;
 import org.jmqtt.broker.store.mem.MemMessageStore;
 import org.jmqtt.broker.store.mem.MemSessionStore;
 import org.jmqtt.broker.store.rdb.RDBMessageStore;
@@ -81,6 +82,7 @@ public class BrokerController {
     private SubscriptionMatcher subscriptionMatcher;
     private AuthValid authValid;
     private ReSendMessageService reSendMessageService;
+    private LocalStore localStore;
     private SessionStore sessionStore;
     private MessageStore messageStore;
     private ClusterEventHandler clusterEventHandler;
@@ -107,6 +109,7 @@ public class BrokerController {
                             AuthValid authValid) {
         this.brokerConfig = brokerConfig;
         this.nettyConfig = nettyConfig;
+        this.localStore = new LocalStoreImpl();
         this.sessionStore = sessionStore;
         this.messageStore = messageStore;
         this.subscriptionMatcher = subscriptionMatcher != null ? subscriptionMatcher : new DefaultSubscriptionTreeMatcher();
@@ -201,12 +204,12 @@ public class BrokerController {
 
 
     public void start() {
-        LocalStore.getInstance().start(brokerConfig);
         BrokerContext.setBrokerController(this);
         MixAll.printProperties(log, brokerConfig);
         MixAll.printProperties(log, nettyConfig);
 
         // 1. start store
+        this.localStore.start();
         this.sessionStore.start(brokerConfig);
         this.messageStore.start(brokerConfig);
         this.clusterEventHandler.start(brokerConfig);
@@ -263,14 +266,9 @@ public class BrokerController {
         }
         LogUtil.info(log, "JMqtt Server start success.");
 
-        // 向集群广播本节点上线消息
-        ScheduleManager.addSimpleDelay(timeout -> brokerOnline(), 3);
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                shutdown();
-            }
-        }));
+        // 向keeper节点广播本节点上线消息
+        ScheduleManager.simpleDelay(timeout -> brokerOnline(), 3);
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
     }
 
     public void shutdown() {
@@ -343,7 +341,7 @@ public class BrokerController {
         brokerInfo.setOnlineAt(System.currentTimeMillis());
         // 向集群中广播本节点状态信息
         Event brokerOnline = new Event(EventCode.CLUSTER_NODE_STATUS.getCode(),
-                JSONObject.toJSONString(brokerInfo),
+                brokerInfo,
                 System.currentTimeMillis(), BrokerContext.getBrokerId());
         this.clusterEventHandler.sendTokeeper(brokerOnline);
     }

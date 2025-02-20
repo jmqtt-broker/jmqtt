@@ -35,21 +35,27 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         if (StringUtils.isBlank(clientId)) {
             return null;
         }
-        SessionDO sessionDO = (SessionDO) operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).getSession(clientId));
-        if (sessionDO == null) {
-            return new SessionState(SessionState.StateEnum.NULL);
+        SessionState s = sessionTable.get(clientId);
+        if (s == null) {
+            SessionDO sessionDO = (SessionDO) operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).getSession(clientId));
+            if (sessionDO == null) {
+                return new SessionState(SessionState.StateEnum.NULL);
+            }
+            String property = sessionDO.getProperty();
+            if (StringUtils.isNotBlank(property)) {
+                s = new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
+                        sessionDO.getOfflineTime(), new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)), sessionDO.getVersion());
+            } else {
+                s = new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
+                        sessionDO.getOfflineTime(), sessionDO.getVersion());
+            }
         }
-        String property = sessionDO.getProperty();
-        if (StringUtils.isNotBlank(property)) {
-            return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
-                    sessionDO.getOfflineTime(), new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)), sessionDO.getVersion());
-        }
-        return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
-                sessionDO.getOfflineTime(), sessionDO.getVersion());
+        return s;
     }
 
     @Override
     public boolean storeSession(String clientId, SessionState sessionState) {
+        sessionTable.remove(clientId);
         SessionDO sessionDO = new SessionDO();
         sessionDO.setId(IdWorker.getId());
         sessionDO.setBrokerId(BrokerContext.getBrokerId());

@@ -15,9 +15,7 @@ import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
-import org.jmqtt.common.akka.AkkaClusterEventListener;
 import org.jmqtt.common.akka.AkkaConst;
-import org.jmqtt.common.akka.KeeperSubscriber;
 import org.jmqtt.common.event.Event;
 import org.slf4j.Logger;
 

@@ -90,8 +90,7 @@ public class EventConsumeHandler {
     }
 
     void dispatcherMessage(Event event) {
-        Message message = JSONObject.parseObject(event.getBody(), Message.class);
-        this.innerMessageDispatcher.appendMessage(message);
+        this.innerMessageDispatcher.appendMessage((Message) event.getBody());
     }
 
     void clearClientSession(Event event) {
@@ -100,7 +99,7 @@ public class EventConsumeHandler {
             LogUtil.debug(log, "Event from current node,ignore the event,fromBroker:{}", event.getFromBroker());
             return;
         }
-        String clientId = event.getBody();
+        String clientId = (String) event.getBody();
         if (!ConnectManager.getInstance().containClient(clientId)) {
             return;
         }

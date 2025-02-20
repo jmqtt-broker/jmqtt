@@ -1,18 +1,16 @@
 package org.jmqtt.broker.processor.protocol;
 
-import com.alibaba.fastjson.JSONObject;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.processor.HighPerformanceMessageHandler;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
+import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
-import org.jmqtt.broker.store.MessageStore;
 
 /**
  * 通用消息分发处理器
- * TODO mqtt5实现
  */
 public abstract class AbstractMessageProcessor extends HighPerformanceMessageHandler {
 
@@ -42,7 +40,7 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
      */
     private void sendMessage2Cluster(Message message) {
         Event event = new Event(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(),
-                JSONObject.toJSONString(message), System.currentTimeMillis(),
+                message, System.currentTimeMillis(),
                 BrokerContext.getBrokerId());
         this.clusterEventHandler.sendEvent(event);
     }

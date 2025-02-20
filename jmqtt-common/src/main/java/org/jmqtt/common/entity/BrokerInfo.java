@@ -1,5 +1,6 @@
 package org.jmqtt.common.entity;
 
+import com.alibaba.fastjson.JSONObject;
 import lombok.*;
 
 @Getter
@@ -24,4 +25,8 @@ public class BrokerInfo {
 
     private Long offLineAt;
 
+    @Override
+    public String toString() {
+        return JSONObject.toJSONString(this);
+    }
 }

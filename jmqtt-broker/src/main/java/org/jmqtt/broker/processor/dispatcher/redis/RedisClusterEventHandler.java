@@ -30,7 +30,22 @@ public class RedisClusterEventHandler implements ClusterEventHandler {
         new Thread(() -> {
             this.redisOperator.subscribe(INSTANCE_CHANNEL_PATTERN, (channel, message) -> {
                 try {
-                    eventConsumeHandler.consumeEvent(JSONObject.parseObject(message, Event.class));
+                    Event event = JSONObject.parseObject(message, Event.class);
+                    JSONObject body = (JSONObject) event.getBody();
+                    String className = body.getString("type");
+                    Object data = body.get("data");
+                    if (className != null && data != null) {
+                        Object content;
+                        if (data instanceof String) {
+                            content = data;
+                        } else {
+                            content = ((JSONObject) data).toJavaObject(Class.forName(className));
+                        }
+                        event.setBody(content);
+                        eventConsumeHandler.consumeEvent(event);
+                    } else {
+                        log.warn("event exception.");
+                    }
                 } catch (Exception e) {
                     LogUtil.error(log,"Receive redis event error,e:{}",e);
                 }
@@ -45,6 +60,11 @@ public class RedisClusterEventHandler implements ClusterEventHandler {
 
     @Override
     public boolean sendEvent(Event event) {
+        Object body = event.getBody();
+        JSONObject desc = new JSONObject();
+        desc.put("type", body.getClass().getName());
+        desc.put("data", body);
+        event.setBody(desc);
         return redisOperator.publish(INSTANCE_CHANNEL_ID, JSONObject.toJSONString(event));
     }
 

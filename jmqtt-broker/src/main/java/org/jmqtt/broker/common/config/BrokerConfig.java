@@ -63,12 +63,6 @@ public class BrokerConfig {
     // 是否启用高性能模式，高性能模式下：入栈消息，出栈消息等过程消息都会默认采用内存缓存，若为false，则会用具体实现的存储缓存这一阶段的消息
     private boolean highPerformance = true;
 
-    /* 本地存储相关配置 */
-    private String localStoreDriver   = "org.h2.Driver";
-    private String localStoreUrl = "jdbc:h2:file:~/jmqtt;AUTO_SERVER=true;MODE=MYSQL";
-    private String localStoreUsername = "root";
-    private String localStorePassword = "123456";
-
     /* processor support plugins */
     private String connectProcessorClass = "org.jmqtt.broker.processor.protocol.ConnectProcessor";
     private String disconnectProcessorClass = "org.jmqtt.broker.processor.protocol.DisconnectProcessor";

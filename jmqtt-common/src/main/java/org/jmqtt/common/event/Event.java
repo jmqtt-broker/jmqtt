@@ -19,13 +19,13 @@ public class Event implements Serializable {
 
     private int eventCode;
 
-    private String body;
+    private Object body;
 
     private long sendTime;
 
     private String fromBroker;
 
-    public Event(int eventCode, String body, long sendTime, String fromBroker) {
+    public Event(int eventCode, Object body, long sendTime, String fromBroker) {
         this.eventCode = eventCode;
         this.body = body;
         this.sendTime = sendTime;

@@ -13,6 +13,7 @@ import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 存储客户端会话信息
@@ -25,6 +26,11 @@ import java.util.*;
  *
  */
 public interface SessionStore {
+
+    /**
+     * session
+     */
+    Map<String, SessionState> sessionTable = new ConcurrentHashMap<>();
 
     void start(BrokerConfig brokerConfig);
 
@@ -226,4 +232,5 @@ public interface SessionStore {
     default void clearClientProperty(String clientId) {
         CaffeineUtil.del(JmqttConst.CLIENT_PROPERTIES + clientId);
     }
+
 }

@@ -1,5 +1,8 @@
 package org.jmqtt.broker.processor.dispatcher.rdb;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import lombok.SneakyThrows;
 import org.apache.ibatis.session.SqlSession;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
@@ -52,7 +55,11 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
         EventDO eventDO = new EventDO();
         eventDO.setId(IdWorker.getId());
         eventDO.setJmqttIp(BrokerContext.getBrokerId());
-        eventDO.setContent(event.getBody());
+        Object body = event.getBody();
+        JSONObject desc = new JSONObject();
+        desc.put("type", body.getClass().getName());
+        desc.put("data", body);
+        eventDO.setContent(desc.toJSONString());
         eventDO.setEventCode(event.getEventCode());
         eventDO.setGmtCreate(event.getSendTime());
         Long id = (Long) operate(sqlSession -> getMapper(sqlSession,eventMapperClass).sendEvent(eventDO));
@@ -65,6 +72,7 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
     }
 
     @Override
+    @SneakyThrows
     public List<Event> pollEvent(int maxPollNum) {
         // offset: min -> max
         long currentOffset = offset.get();
@@ -74,7 +82,20 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
         }
         List<Event> events = new ArrayList<>();
         for (EventDO eventDO : eventDOList) {
-            Event event = new Event(eventDO.getEventCode(),eventDO.getContent(),eventDO.getGmtCreate(),eventDO.getJmqttIp());
+            JSONObject contentObj = JSONObject.parseObject(eventDO.getContent());
+            String className = contentObj.getString("type");
+            Object data = contentObj.get("data");
+            if (className == null || data == null) {
+                log.warn("event exception.");
+                continue;
+            }
+            Object body;
+            if (data instanceof String) {
+                body = data;
+            } else {
+                body = ((JSONObject) data).toJavaObject(Class.forName(className));
+            }
+            Event event = new Event(eventDO.getEventCode(),body,eventDO.getGmtCreate(),eventDO.getJmqttIp());
             events.add(event);
         }
 

@@ -2,6 +2,7 @@ package org.jmqtt.broker.common.helper;
 
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.config.AkkaConfig;
+import org.jmqtt.broker.store.local.LocalStore;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
@@ -52,6 +53,10 @@ public class BrokerContext {
 
     public static MessageStore getMessageStore() {
         return brokerController.getMessageStore();
+    }
+
+    public static LocalStore getLocalStore() {
+        return brokerController.getLocalStore();
     }
 
     public static BrokerConfig getBrokerConfig() {

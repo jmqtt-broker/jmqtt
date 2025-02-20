@@ -54,7 +54,7 @@ public class ScheduleManager {
         CALLBACK_MAP.put(timerBO, expired);
     }
 
-    public static void addSimpleDelay(Consumer<Timeout> execute, long seconds) {
+    public static void simpleDelay(Consumer<Timeout> execute, long seconds) {
         SCHEDULER.newTimeout(execute::accept, seconds, TimeUnit.SECONDS);
     }
 

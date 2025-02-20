@@ -79,7 +79,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE IF NOT EXISTS `jmqtt_broker`
 (
-    `id`           bigint       NOT NULL COMMENT '主键',
+    `id`           bigint(20)       NOT NULL COMMENT '主键',
     `broker_id`    varchar(100) NOT NULL COMMENT 'broker唯一标识',
     `ip`           varchar(20)  NOT NULL COMMENT 'ip地址',
     `tcp_port`     int          NOT NULL COMMENT 'tcp端口',
@@ -87,15 +87,15 @@ CREATE TABLE IF NOT EXISTS `jmqtt_broker`
     `ws_port`      int          NOT NULL COMMENT 'websocket端口',
     `ws_port_ssl`  int          NOT NULL COMMENT 'websocket ssl端口',
     `status`       tinyint      NULL COMMENT '是否在线',
-    `online_at`    bigint     NULL COMMENT '上线时间',
-    `offline_at`   bigint     NULL COMMENT '离线时间',
+    `online_at`    bigint(20)     NULL COMMENT '上线时间',
+    `offline_at`   bigint(20)     NULL COMMENT '离线时间',
     PRIMARY KEY (`id`),
     UNIQUE INDEX `IDX_BROKER_ID` (`broker_id`) USING BTREE
 );
 
 CREATE TABLE IF NOT EXISTS `broker_config`
 (
-    `id`        bigint       NOT NULL COMMENT '主键',
+    `id`        bigint(20)       NOT NULL COMMENT '主键',
     `broker_id` varchar(100) NOT NULL COMMENT 'broker唯一标识',
     `config`    json         NOT NULL COMMENT '配置详情',
     PRIMARY KEY (`id`)

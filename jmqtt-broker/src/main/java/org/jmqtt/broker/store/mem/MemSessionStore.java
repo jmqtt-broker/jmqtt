@@ -13,7 +13,7 @@ import org.jmqtt.broker.common.model.SubscriptionOption;
 import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
-import org.jmqtt.broker.store.local.LocalStore;
+import org.jmqtt.broker.store.local.LocalDB;
 import org.jmqtt.broker.store.local.mapper.LocalOfflineMessageMapper;
 import org.jmqtt.broker.store.local.mapper.LocalSessionMapper;
 import org.jmqtt.broker.store.local.mapper.LocalSubscriptionMapper;
@@ -49,7 +49,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     /**
      * session
      */
-    private Map<String, SessionState> sessionTable = new ConcurrentHashMap<>();
+    // private Map<String, SessionState> sessionTable = new ConcurrentHashMap<>();
     /**
      * sub
      */
@@ -79,22 +79,29 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         if (StringUtils.isBlank(clientId)) {
             return null;
         }
-        SessionDO sessionDO = (SessionDO) LocalStore.getInstance().operate(sqlSession -> sqlSession.getMapper(LocalSessionMapper.class).getSession(clientId));
-        if (sessionDO == null) {
-            return new SessionState(SessionState.StateEnum.NULL);
+        SessionState s = sessionTable.get(clientId);
+        if (s == null) {
+            SessionDO sessionDO = (SessionDO) LocalDB.getInstance().operate(sqlSession -> sqlSession.getMapper(LocalSessionMapper.class).getSession(clientId));
+            if (sessionDO == null) {
+                return new SessionState(SessionState.StateEnum.NULL);
+            }
+            String property = sessionDO.getProperty();
+
+            if (StringUtils.isNotBlank(property)) {
+                s = new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
+                        sessionDO.getOfflineTime(), new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)), sessionDO.getVersion());
+            } else {
+                s = new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
+                        sessionDO.getOfflineTime(), sessionDO.getVersion());
+            }
         }
-        String property = sessionDO.getProperty();
-        if (StringUtils.isNotBlank(property)) {
-            return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
-                    sessionDO.getOfflineTime(), new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)), sessionDO.getVersion());
-        }
-        return new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
-                sessionDO.getOfflineTime(), sessionDO.getVersion());
+        return s;
     }
 
     @Override
     public boolean storeSession(String clientId, SessionState sessionState) {
-        LocalStore.getInstance().operate(sqlSession -> {
+        sessionTable.remove(clientId);
+        LocalDB.getInstance().operate(sqlSession -> {
             SessionDO sessionDO = new SessionDO();
             sessionDO.setId(IdWorker.getId());
             sessionDO.setBrokerId(BrokerContext.getBrokerId());
@@ -111,7 +118,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public boolean storeSubscription(String clientId, Subscription subscription) {
-        LocalStore.getInstance().operate(sqlSession -> {
+        LocalDB.getInstance().operate(sqlSession -> {
             SubscriptionDO subscriptionDO = new SubscriptionDO();
             subscriptionDO.setId(IdWorker.getId());
             subscriptionDO.setClientId(clientId);
@@ -138,7 +145,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public boolean delSubscription(String clientId, String topic) {
-        LocalStore.getInstance().operate(sqlSession ->
+        LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalSubscriptionMapper.class).delSubscription(clientId, topic)
         );
         /*ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
@@ -152,7 +159,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public boolean clearSubscription(String clientId) {
-        LocalStore.getInstance().operate(sqlSession ->
+        LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalSubscriptionMapper.class).clearSubscription(clientId)
         );
         // subscriptionCache.remove(clientId);
@@ -161,7 +168,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public Set<Subscription> getSubscriptions(String clientId) {
-        List<SubscriptionDO> subscriptionDOList = (List<SubscriptionDO>) LocalStore.getInstance().operate(sqlSession ->
+        List<SubscriptionDO> subscriptionDOList = (List<SubscriptionDO>) LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalSubscriptionMapper.class).querySubscription(clientId)
         );
         Set<Subscription> set = new HashSet<>();
@@ -317,7 +324,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public boolean storeOfflineMsg(String clientId, Message message) {
-        LocalStore.getInstance().operate(sqlSession -> {
+        LocalDB.getInstance().operate(sqlSession -> {
             OfflineMessageDO offlineMessageDO = new OfflineMessageDO();
             offlineMessageDO.setId(IdWorker.getId());
             offlineMessageDO.setClientId(clientId);
@@ -341,7 +348,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public Collection<Message> getAllOfflineMsg(String clientId) {
-        List<OfflineMessageDO> offlineMessageDOList = (List<OfflineMessageDO>) LocalStore.getInstance().operate(sqlSession ->
+        List<OfflineMessageDO> offlineMessageDOList = (List<OfflineMessageDO>) LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalOfflineMessageMapper.class).getAllOfflineMessage(clientId)
         );
         return offlineMessageDOList.stream().map(off -> JSONObject.parseObject(off.getContent(), Message.class)).collect(Collectors.toList());
@@ -354,10 +361,11 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public boolean clearOfflineMsg(String clientId) {
-        LocalStore.getInstance().operate(sqlSession ->
+        LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalOfflineMessageMapper.class).clearOfflineMessage(clientId)
         );
         // offlineTable.remove(clientId);
         return true;
     }
+
 }

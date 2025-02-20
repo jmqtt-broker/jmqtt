@@ -5,7 +5,7 @@ import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.MessageStore;
-import org.jmqtt.broker.store.local.LocalStore;
+import org.jmqtt.broker.store.local.LocalDB;
 import org.jmqtt.broker.store.local.mapper.LocalRetainMessageMapper;
 import org.jmqtt.broker.store.local.mapper.LocalWillMessageMapper;
 import org.jmqtt.broker.store.rdb.daoobject.RetainMessageDO;
@@ -41,7 +41,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public boolean storeWillMessage(String clientId, Message message) {
-        LocalStore.getInstance().operate(sqlSession -> {
+        LocalDB.getInstance().operate(sqlSession -> {
             WillMessageDO willMessageDO = new WillMessageDO();
             willMessageDO.setId(IdWorker.getId());
             willMessageDO.setClientId(clientId);
@@ -55,7 +55,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public boolean clearWillMessage(String clientId) {
-        LocalStore.getInstance().operate(sqlSession ->
+        LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalWillMessageMapper.class).delWillMessage(clientId)
         );
         // willTable.remove(clientId);
@@ -64,7 +64,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public Message getWillMessage(String clientId) {
-        WillMessageDO msg = (WillMessageDO) LocalStore.getInstance().operate(sqlSession ->
+        WillMessageDO msg = (WillMessageDO) LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalWillMessageMapper.class).getWillMessage(clientId)
         );
         if (msg != null) {
@@ -76,7 +76,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
     @Override
     public boolean storeRetainMessage(String topic, Message message) {
         // retain消息存放在H2中，缓解内存压力
-        LocalStore.getInstance().operate(sqlSession -> {
+        LocalDB.getInstance().operate(sqlSession -> {
             RetainMessageDO retainMessageDO = new RetainMessageDO();
             retainMessageDO.setId(IdWorker.getId());
             retainMessageDO.setTopic(topic);
@@ -89,7 +89,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public boolean clearRetainMessage(String topic) {
-        LocalStore.getInstance().operate(sqlSession ->
+        LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalRetainMessageMapper.class).delRetainMessage(topic)
         );
         // retainTable.remove(topic);
@@ -98,7 +98,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public Collection<Message> getAllRetainMsg() {
-        List<RetainMessageDO> messageList = (List<RetainMessageDO>) LocalStore.getInstance().operate(sqlSession ->
+        List<RetainMessageDO> messageList = (List<RetainMessageDO>) LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalRetainMessageMapper.class).getAllRetainMessage()
         );
         List<Message> mqttMessages = new ArrayList<>(messageList.size());
@@ -112,7 +112,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public Collection<Message> getRetainMsg(String topic) {
-        List<RetainMessageDO> messageList = (List<RetainMessageDO>) LocalStore.getInstance().operate(sqlSession ->
+        List<RetainMessageDO> messageList = (List<RetainMessageDO>) LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalRetainMessageMapper.class).getRetainMessage(topic.replace("+", "%").replace("#", "%"))
         );
         return messageList.stream().map(messageDo -> JSONObject.parseObject(messageDo.getContent(), Message.class)).collect(Collectors.toList());

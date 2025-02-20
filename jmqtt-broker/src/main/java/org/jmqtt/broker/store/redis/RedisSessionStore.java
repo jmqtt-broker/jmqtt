@@ -36,18 +36,21 @@ public class RedisSessionStore implements SessionStore {
         if (StringUtils.isBlank(clientId)) {
             return null;
         }
-        String sessionStr = redisOperator.get(RedisKeySupport.SESSION + clientId);
-        SessionState sessionState;
-        if (sessionStr == null) {
-            return new SessionState(SessionState.StateEnum.NULL);
-        } else {
-            sessionState = JSONObject.parseObject(sessionStr, SessionState.class);
+        SessionState s = sessionTable.get(clientId);
+        if (s == null) {
+            String sessionStr = redisOperator.get(RedisKeySupport.SESSION + clientId);
+            if (sessionStr == null) {
+                s = new SessionState(SessionState.StateEnum.NULL);
+            } else {
+                s = JSONObject.parseObject(sessionStr, SessionState.class);
+            }
         }
-        return sessionState;
+        return s;
     }
 
     @Override
     public boolean storeSession(String clientId, SessionState sessionState) {
+        sessionTable.remove(clientId);
         return redisOperator.set(RedisKeySupport.SESSION + clientId, JSONObject.toJSONString(sessionState));
     }
 
@@ -160,4 +163,5 @@ public class RedisSessionStore implements SessionStore {
     public boolean clearOfflineMsg(String clientId) {
         return redisOperator.del(RedisKeySupport.OFFLINE + clientId);
     }
+
 }

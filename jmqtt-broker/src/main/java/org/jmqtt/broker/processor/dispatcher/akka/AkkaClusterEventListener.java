@@ -1,21 +1,15 @@
-package org.jmqtt.common.akka;
+package org.jmqtt.broker.processor.dispatcher.akka;
 
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Receive;
 import akka.cluster.ClusterEvent;
-import akka.cluster.Member;
-import akka.cluster.typed.Cluster;
-import akka.cluster.typed.Subscribe;
 
 public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.ClusterDomainEvent> {
 
     public AkkaClusterEventListener(ActorContext<ClusterEvent.ClusterDomainEvent> context) {
         super(context);
-        // 订阅集群事件
-        // Cluster cluster = Cluster.get(context.getSystem());
-        // cluster.subscriptions().tell(Subscribe.create(context.getSelf(), ClusterEvent.ClusterDomainEvent.class));
     }
 
     @Override
