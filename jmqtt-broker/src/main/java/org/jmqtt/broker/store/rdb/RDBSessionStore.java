@@ -42,13 +42,11 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
                 return new SessionState(SessionState.StateEnum.NULL);
             }
             String property = sessionDO.getProperty();
-            if (StringUtils.isNotBlank(property)) {
-                s = new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
-                        sessionDO.getOfflineTime(), new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)), sessionDO.getVersion());
-            } else {
-                s = new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
-                        sessionDO.getOfflineTime(), sessionDO.getVersion());
-            }
+            s = new SessionState(sessionDO.getBrokerId(), clientId, SessionState.StateEnum.valueOf(sessionDO.getState()),
+                    sessionDO.getOfflineTime(),
+                    StringUtils.isNotBlank(property) ? new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)) : null,
+                    sessionDO.getVersion());
+            sessionTable.put(clientId, s);
         }
         return s;
     }
@@ -58,7 +56,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         sessionTable.remove(clientId);
         SessionDO sessionDO = new SessionDO();
         sessionDO.setId(IdWorker.getId());
-        sessionDO.setBrokerId(BrokerContext.getBrokerId());
+        sessionDO.setBrokerId(sessionState.getBrokerId());
         sessionDO.setClientId(clientId);
         sessionDO.setState(sessionState.getState().getCode());
         sessionDO.setOfflineTime(sessionState.getOfflineTime());

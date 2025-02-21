@@ -1,5 +1,6 @@
 package org.jmqtt.broker.store.local;
 
+import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 
 import java.util.List;
@@ -15,4 +16,6 @@ public interface LocalStore {
     List<BrokerDO> getAll();
 
     boolean del(String brokerId);
+
+    boolean storeSession(SessionState sessionState);
 }

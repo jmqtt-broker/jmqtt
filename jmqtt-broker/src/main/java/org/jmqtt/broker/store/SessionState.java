@@ -1,9 +1,11 @@
 
 package org.jmqtt.broker.store;
 
+import com.alibaba.fastjson.JSON;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.jmqtt.broker.common.helper.BrokerContext;
 
 import java.util.Map;
 
@@ -15,6 +17,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class SessionState {
 
+    private String brokerId = BrokerContext.getBrokerId();
+
+    private String clientId;
 
     private StateEnum state;
 
@@ -37,6 +42,18 @@ public class SessionState {
         this.state = state;
         this.offlineTime = offlineTime;
         this.version = version;
+    }
+
+    public SessionState(StateEnum state, long offlineTime, Map<Integer, Object> propertyMap, Integer version) {
+        this.state = state;
+        this.offlineTime = offlineTime;
+        this.propertyMap = propertyMap;
+        this.version = version;
+    }
+
+    @Override
+    public String toString() {
+        return JSON.toJSONString(this);
     }
 
     @Getter

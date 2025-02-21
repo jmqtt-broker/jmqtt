@@ -29,7 +29,7 @@ public class LocalDB {
     private static final Logger log = JmqttLogger.storeLog;
 
     private String localStoreDriver = "org.h2.Driver";
-    private String localStoreUrl = "jdbc:h2:file:~/jmqtt;AUTO_SERVER=true;MODE=MYSQL";
+    private String localStoreUrl = "jdbc:h2:file:~/broker/jmqtt;AUTO_SERVER=true;MODE=MYSQL";
     private String localStoreUsername = "root";
     private String localStorePassword = "123456";
 

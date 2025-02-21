@@ -32,7 +32,6 @@ import org.jmqtt.broker.remoting.netty.NettyRemotingServer;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
-import org.jmqtt.broker.store.local.LocalDB;
 import org.jmqtt.broker.store.mem.MemMessageStore;
 import org.jmqtt.broker.store.mem.MemSessionStore;
 import org.jmqtt.broker.store.rdb.RDBMessageStore;
@@ -340,7 +339,7 @@ public class BrokerController {
         brokerInfo.setStatus(true);
         brokerInfo.setOnlineAt(System.currentTimeMillis());
         // 向集群中广播本节点状态信息
-        Event brokerOnline = new Event(EventCode.CLUSTER_NODE_STATUS.getCode(),
+        Event brokerOnline = new Event(EventCode.BROKER_STATE.getCode(),
                 brokerInfo,
                 System.currentTimeMillis(), BrokerContext.getBrokerId());
         this.clusterEventHandler.sendTokeeper(brokerOnline);

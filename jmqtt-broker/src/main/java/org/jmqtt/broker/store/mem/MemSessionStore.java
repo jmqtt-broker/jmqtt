@@ -67,15 +67,6 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public SessionState getSession(String clientId) {
-        /*if (StringUtils.isBlank(clientId)) {
-            return null;
-        }
-        SessionState s = sessionTable.get(clientId);
-        if (s == null) {
-            // 从未连接过
-            return new SessionState(SessionState.StateEnum.NULL);
-        }
-        return s;*/
         if (StringUtils.isBlank(clientId)) {
             return null;
         }
@@ -86,14 +77,11 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
                 return new SessionState(SessionState.StateEnum.NULL);
             }
             String property = sessionDO.getProperty();
-
-            if (StringUtils.isNotBlank(property)) {
-                s = new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
-                        sessionDO.getOfflineTime(), new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)), sessionDO.getVersion());
-            } else {
-                s = new SessionState(SessionState.StateEnum.valueOf(sessionDO.getState()),
-                        sessionDO.getOfflineTime(), sessionDO.getVersion());
-            }
+            s = new SessionState(sessionDO.getBrokerId(), clientId, SessionState.StateEnum.valueOf(sessionDO.getState()),
+                    sessionDO.getOfflineTime(),
+                    StringUtils.isNotBlank(property) ? new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)) : null,
+                    sessionDO.getVersion());
+            sessionTable.put(clientId, s);
         }
         return s;
     }
@@ -104,7 +92,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         LocalDB.getInstance().operate(sqlSession -> {
             SessionDO sessionDO = new SessionDO();
             sessionDO.setId(IdWorker.getId());
-            sessionDO.setBrokerId(BrokerContext.getBrokerId());
+            sessionDO.setBrokerId(sessionState.getBrokerId());
             sessionDO.setClientId(clientId);
             sessionDO.setState(sessionState.getState().getCode());
             sessionDO.setOfflineTime(sessionState.getOfflineTime());
@@ -112,7 +100,8 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
             Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> sessionDO.setProperty(JSON.toJSONString(p)));
             return sqlSession.getMapper(LocalSessionMapper.class).storeSession(sessionDO);
         });
-        // sessionTable.put(clientId, sessionState);
+        sessionState.setClientId(clientId);
+        BrokerContext.reportSessionToKeeper(sessionState);
         return true;
     }
 

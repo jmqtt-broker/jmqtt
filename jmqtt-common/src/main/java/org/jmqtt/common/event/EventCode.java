@@ -14,11 +14,11 @@ public enum EventCode {
 
     DISPATCHER_WILL_MESSAGE(3,"DISPATCHER_WILL_MESSAGE","向集群分发will消息"),
 
-    CLUSTER_NODE_STATUS(4, "CLUSTER_NODE_STATUS", "集群节点上下线通知"),
+    BROKER_STATE(4, "CLUSTER_NODE_STATUS", "集群节点上下线通知"),
 
-    CLUSTER_NODE_KEEPALIVE(5, "CLUSTER_NODE_KEEPALIVE", "集群节点上报心跳"),
+    SESSION_STATE(5, "CLUSTER_SESSION_STATE", "集群客户端上下线"),
 
-    CLUSTER_NODE_REPORT(6, "CLUSTER_NODE_REPORT", "上报当前集群节点信息"),
+    SUBSCRIPTION_STATE(6, "CLUSTER_SUBSCRIPTION", "订阅/取消订阅"),
     ;
 
     private int code;

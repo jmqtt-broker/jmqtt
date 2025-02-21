@@ -44,6 +44,7 @@ public class RedisSessionStore implements SessionStore {
             } else {
                 s = JSONObject.parseObject(sessionStr, SessionState.class);
             }
+            sessionTable.put(clientId, s);
         }
         return s;
     }

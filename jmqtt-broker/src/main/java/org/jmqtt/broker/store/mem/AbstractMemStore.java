@@ -8,6 +8,8 @@ public abstract class AbstractMemStore {
 
     public void start(BrokerConfig brokerConfig) {
     }
+
     public void shutdown() {
     }
+
 }
