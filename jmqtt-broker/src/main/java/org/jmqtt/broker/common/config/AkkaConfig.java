@@ -58,6 +58,7 @@ public class AkkaConfig {
         serializers.put("customkryo", "org.jmqtt.common.serializer.kryo.KryoSerializer");
         // serializers.put("json", "akka.serialization.jackson.JacksonJsonSerializer");
         serializationBindings.put("org.jmqtt.common.event.Event", "customkryo");
+        serializationBindings.put("org.jmqtt.common.akka.Letter", "customkryo");
         actor.put("serialization-identifiers", serializationIdentifiers);
         actor.put("serializers", serializers);
         actor.put("serialization-bindings", serializationBindings);

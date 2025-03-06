@@ -65,6 +65,10 @@ public class TimerManager {
         start(task);
     }
 
+    public static void sessionTimeoutImmediately(String clientId) {
+        ScheduleManager.executeImmediately(new TimerBO(clientId, TimerType.SESSION));
+    }
+
     public static void stopWillTimeout(String clientId) {
         stop(new TimerBO(clientId, TimerType.WILL));
     }

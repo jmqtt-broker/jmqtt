@@ -23,4 +23,8 @@ public interface LocalSubscriptionMapper {
 
     @Select("SELECT client_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
     List<SubscriptionDO> querySubscription(String clientId);
+
+    @Select("SELECT client_id,topic,qos,opt FROM jmqtt_subscription " +
+            "WHERE client_id = #{clientId} and topic = #{topic}")
+    SubscriptionDO queryOneSubscription(@Param("clientId") String clientId,@Param("topic") String topic);
 }

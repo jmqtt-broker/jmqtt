@@ -1,12 +1,15 @@
 package org.jmqtt.broker.processor.dispatcher;
 
-import com.alibaba.fastjson.JSONObject;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
+import org.jmqtt.broker.common.helper.TimerManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
+import org.jmqtt.broker.common.model.MessageHeader;
+import org.jmqtt.broker.common.model.Topic;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.dispatcher.event.EventHandler;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.remoting.session.ClientSession;
@@ -89,11 +92,19 @@ public class EventConsumeHandler {
 
     }
 
-    void dispatcherMessage(Event event) {
-        this.innerMessageDispatcher.appendMessage((Message) event.getBody());
+    private void dispatcherMessage(Event event) {
+        Message message = (Message) event.getBody();
+        // 普通节点只保存来自本节点的保留消息，keeper保存集群中所有保留消息
+        if (BrokerContext.getBrokerId().equals(event.getFromBroker()) || ClusterHelper.isKeeper()) {
+            BrokerContext.getMessageStore().retainHandle(message);
+        }
+        byte[] payload = message.getPayload();
+        if (payload != null && payload.length > 0) {
+            this.innerMessageDispatcher.appendMessage(message);
+        }
     }
 
-    void clearClientSession(Event event) {
+    private void clearClientSession(Event event) {
         // if event from current node, ignore the event
         if (BrokerContext.getBrokerId().equals(event.getFromBroker())) {
             LogUtil.debug(log, "Event from current node,ignore the event,fromBroker:{}", event.getFromBroker());
@@ -101,6 +112,8 @@ public class EventConsumeHandler {
         }
         String clientId = (String) event.getBody();
         if (!ConnectManager.getInstance().containClient(clientId)) {
+            TimerManager.sessionTimeoutImmediately(clientId);
+            TimerManager.stopWillTimeout(clientId);
             return;
         }
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);

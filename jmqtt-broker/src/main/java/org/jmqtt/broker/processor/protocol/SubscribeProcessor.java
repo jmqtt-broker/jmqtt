@@ -4,6 +4,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.log.JmqttLogger;
@@ -90,7 +91,6 @@ public class SubscribeProcessor implements RequestProcessor {
         List<Integer> ackQos = getTopicQos(validTopicList);
         MqttMessage subAckMessage = MessageUtil.getSubAckMessage(variableHeader.messageId(), ackQos);
         ctx.writeAndFlush(subAckMessage);
-        // send retain messages
         subscribe(clientSession, validTopicList);
     }
 
@@ -103,39 +103,19 @@ public class SubscribeProcessor implements RequestProcessor {
     }
 
     private void subscribe(ClientSession clientSession, List<Topic> validTopicList) {
+        String clientId = clientSession.getClientId();
         for (Topic topic : validTopicList) {
             String subTopic = topic.getTopicName();
-            Subscription subscription = new Subscription(clientSession.getClientId(), subTopic, topic.getQos());
+            Subscription subscription = new Subscription(clientId, subTopic, topic.getQos());
             SubscriptionOption option = topic.getOption();
             subscription.setOption(option);
-            boolean subRs = this.subscriptionMatcher.subscribe(subscription);
-            Collection<Message> retainMessages = messageStore.getRetainMsg(subTopic);
-            retainMessages.forEach(retainMsg -> {
-                int minQos = MessageUtil.getMinQos((int) retainMsg.getHeader(MessageHeader.QOS), topic.getQos());
-                retainMsg.putHeader(MessageHeader.QOS, minQos);
-                if (clientSession.isMqtt5()) {
-                    if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
-                            (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRs)) {
-                        if (retainMsg.validity()) {
-                            if (retainMsg.alive() > 0) {
-                                MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
-                                clientSession.getCtx().writeAndFlush(publishMessage);
-                            } else {
-                                // retain消息过期了，删除
-                                log.info("[Subscribe] -> retain message expired, delete.");
-                                messageStore.clearRetainMessage((String) retainMsg.getHeader(MessageHeader.TOPIC));
-                            }
-                        } else {
-                            MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
-                            clientSession.getCtx().writeAndFlush(publishMessage);
-                        }
-                    }
-                } else {
-                    MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, subscription.getClientId());
-                    clientSession.getCtx().writeAndFlush(publishMessage);
-                }
-            });
-            this.sessionStore.storeSubscription(clientSession.getClientId(), subscription);
+            if (!ClusterHelper.reportSubscriptionToKeeper(subscription)) {
+                this.sessionStore.storeSubscription(clientId, subscription);
+                boolean subRs = this.subscriptionMatcher.subscribe(subscription);
+                Collection<Message> retainMessages = messageStore.getRetainMsg(subTopic);
+                SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMessages, subscription, subRs);
+                BrokerContext.getRetainMessageDispatcher().appendMessage(message);
+            }
         }
     }
 

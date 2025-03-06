@@ -2,6 +2,7 @@ package org.jmqtt.broker.common.model;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Objects;
@@ -12,6 +13,7 @@ import java.util.StringJoiner;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 @EqualsAndHashCode(of = {"clientId", "topic"})
 public class Subscription {
     private String clientId;

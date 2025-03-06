@@ -12,14 +12,11 @@ import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.helper.ScheduleManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
+import org.jmqtt.broker.processor.dispatcher.*;
 import org.jmqtt.broker.store.local.LocalStore;
 import org.jmqtt.broker.store.local.LocalStoreImpl;
 import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.broker.processor.RequestProcessor;
-import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
-import org.jmqtt.broker.processor.dispatcher.DefaultDispatcherInnerMessage;
-import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
-import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.processor.dispatcher.akka.AkkaClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.mem.MemEventHandler;
 import org.jmqtt.broker.processor.dispatcher.rdb.RDBClusterEventHandler;
@@ -78,6 +75,7 @@ public class BrokerController {
     private NettyRemotingServer remotingServer;
 
     private InnerMessageDispatcher innerMessageDispatcher;
+    private RetainMessageDispatcher retainMessageDispatcher;
     private SubscriptionMatcher subscriptionMatcher;
     private AuthValid authValid;
     private ReSendMessageService reSendMessageService;
@@ -115,6 +113,7 @@ public class BrokerController {
         this.clusterEventHandler = clusterEventHandler;
         this.innerMessageDispatcher = innerMessageDispatcher != null ? innerMessageDispatcher : new DefaultDispatcherInnerMessage(brokerConfig.isHighPerformance(),
                 sessionStore, messageStore, brokerConfig.getPollThreadNum(), this.subscriptionMatcher);
+        this.retainMessageDispatcher = new RetainMessageDispatcherImpl();
         this.authValid = authValid != null ? authValid : MixAll.pluginInit(brokerConfig.getAuthValidClass());
 
         this.connectQueue = new LinkedBlockingQueue<>(100000);
@@ -222,6 +221,7 @@ public class BrokerController {
         if (this.innerMessageDispatcher != null) {
             this.innerMessageDispatcher.start();
         }
+        this.retainMessageDispatcher.start();
         if (this.reSendMessageService != null) {
             this.reSendMessageService.start();
         }

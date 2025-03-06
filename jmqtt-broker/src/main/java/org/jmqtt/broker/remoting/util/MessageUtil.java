@@ -12,10 +12,7 @@ import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.common.model.SubscriptionOption;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * transfer message from Message and MqttMessage
@@ -92,8 +89,8 @@ public class MessageUtil {
                 if (k == MqttProperties.MqttPropertyType.USER_PROPERTY.value()) {
                     if (v instanceof ArrayList) {
                         ((ArrayList) v).forEach(p -> {
-                            MqttProperties.StringPair u = (MqttProperties.StringPair) p;
-                            properties.add(new MqttProperties.UserProperty(u.key, u.value));
+                            Map<String, String> u = (HashMap<String, String>) p;
+                            properties.add(new MqttProperties.UserProperty(u.get("key"), u.get("value")));
                         });
                     } else if (v instanceof JSONArray) {
                         ((JSONArray) v).forEach(pair -> {

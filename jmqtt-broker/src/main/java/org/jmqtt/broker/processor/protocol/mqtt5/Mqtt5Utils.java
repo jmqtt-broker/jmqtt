@@ -10,10 +10,8 @@ import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.util.MessageUtil;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class Mqtt5Utils {
@@ -23,6 +21,17 @@ public class Mqtt5Utils {
         properties.listAll().forEach(p -> {
             if (p instanceof MqttProperties.BinaryProperty) {
                 propertyMap.put(p.propertyId(), new String((byte[]) p.value()));
+            } else if (p instanceof MqttProperties.UserProperties) {
+                List<MqttProperties.StringPair> value = ((MqttProperties.UserProperties) p).value();
+                List<Map<String, String>> kvList = value.stream().map(pair -> {
+                    Map<String, String> kv = new HashMap<>();
+                    kv.put("key", pair.key);
+                    kv.put("value", pair.value);
+                    return kv;
+                }).collect(Collectors.toList());
+                if (!kvList.isEmpty()) {
+                    propertyMap.put(p.propertyId(), kvList);
+                }
             } else {
                 propertyMap.put(p.propertyId(), p.value());
             }

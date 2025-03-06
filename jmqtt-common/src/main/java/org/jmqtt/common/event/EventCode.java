@@ -14,11 +14,19 @@ public enum EventCode {
 
     DISPATCHER_WILL_MESSAGE(3,"DISPATCHER_WILL_MESSAGE","向集群分发will消息"),
 
-    BROKER_STATE(4, "CLUSTER_NODE_STATUS", "集群节点上下线通知"),
+    BROKER_STATE(4, "BROKER_STATE", "集群节点上下线通知"),
 
-    SESSION_STATE(5, "CLUSTER_SESSION_STATE", "集群客户端上下线"),
+    SESSION_STATE(5, "SESSION_STATE", "集群客户端上下线"),
+    SESSION_STATE_RESPONSE(6, "SESSION_STATE_RESPONSE", "客户端上下线，Keeper节点回复worker节点"),
 
-    SUBSCRIPTION_STATE(6, "CLUSTER_SUBSCRIPTION", "订阅/取消订阅"),
+    SUBSCRIPTION(7, "SUBSCRIPTION", "订阅"),
+    SUBSCRIPTION_RESPONSE(8, "SUBSCRIPTION_RESPONSE", "Keeper订阅后返回保留消息"),
+    UNSUBSCRIPTION(9, "UNSUBSCRIPTION", "取消订阅"),
+
+    STORE_RETAIN_MSG(21, "STORE_RETAIN_MSG", "保存保留消息"),
+    CLEAR_RETAIN_MSG(22, "CLEAR_RETAIN_MSG", "删除保留消息"),
+    GET_RETAIN_MSG(23, "GET_RETAIN_MSG", "查询Keeper中的保留消息"),
+    STORE_OFFLINE_MSG(24, "STORE_OFFLINE_MSG", "保存离线消息"),
     ;
 
     private int code;

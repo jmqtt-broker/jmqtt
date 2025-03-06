@@ -3,6 +3,7 @@ package org.jmqtt.broker.processor.dispatcher;
 import com.alibaba.fastjson.JSON;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.common.helper.RejectHandler;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
 import org.jmqtt.broker.common.log.JmqttLogger;
@@ -164,7 +165,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                     write(clientSession, subscription, message);
                                 }
                             } else {
-                                sessionStore.storeOfflineMsg(subscription.getClientId(), message);
+                                storeOffline(subscription.getClientId(), message);
                             }
                         }
                     } catch (Exception ex) {
@@ -181,8 +182,14 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
             session.getCtx().writeAndFlush(publishMessage);
         } else {
             if (!session.isCleanStart()) {
-                sessionStore.storeOfflineMsg(subscription.getClientId(), message);
+                storeOffline(subscription.getClientId(), message);
             }
+        }
+    }
+
+    private void storeOffline(String clientId, Message message) {
+        if (!ClusterHelper.reportOfflineMessageToKeeper(clientId, message)) {
+            sessionStore.storeOfflineMsg(clientId, message);
         }
     }
 

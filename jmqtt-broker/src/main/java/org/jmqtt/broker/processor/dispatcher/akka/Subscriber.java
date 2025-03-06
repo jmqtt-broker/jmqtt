@@ -11,6 +11,9 @@ import org.jmqtt.broker.processor.dispatcher.EventConsumeHandler;
 import org.jmqtt.common.event.Event;
 import org.slf4j.Logger;
 
+/**
+ * 从当前节点向集群所有节点广播
+ */
 public class Subscriber extends AbstractBehavior<Event> {
 
     private static final Logger log = JmqttLogger.eventLog;

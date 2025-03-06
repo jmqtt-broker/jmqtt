@@ -1,15 +1,25 @@
 package org.jmqtt.broker.processor.dispatcher.akka;
 
+import akka.actor.*;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.AbstractBehavior;
+import akka.actor.typed.javadsl.*;
 import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Receive;
 import akka.cluster.ClusterEvent;
+import akka.cluster.typed.Cluster;
+import akka.cluster.typed.Subscribe;
+import org.jmqtt.common.event.Event;
 
 public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.ClusterDomainEvent> {
 
     public AkkaClusterEventListener(ActorContext<ClusterEvent.ClusterDomainEvent> context) {
         super(context);
+        // 订阅集群事件
+        Cluster.get(context.getSystem()).subscriptions()
+                .tell(Subscribe.create(context.getSelf(), ClusterEvent.ClusterDomainEvent.class));
+    }
+
+    public static Behavior<ClusterEvent.ClusterDomainEvent> create() {
+        return Behaviors.setup(AkkaClusterEventListener::new);
     }
 
     @Override
@@ -24,6 +34,10 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
 
     private Behavior<ClusterEvent.ClusterDomainEvent> onMemberJoined(ClusterEvent.MemberJoined event) {
         getContext().getLog().info("Member joined: {}", event.member());
+        // Address address = event.member().address();
+        // ActorSelection selection = Adapter.toClassic(getContext().getSystem())
+        //         .actorSelection(address.toString() + "/user/KeeperSubscriber");
+        // selection.tell(new Event(), Adapter.toClassic(getContext().getSelf()));
         return this;
     }
 
@@ -41,4 +55,5 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
         getContext().getLog().info("Member unreachable: {}", event.member());
         return this;
     }
+
 }

@@ -4,12 +4,12 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.config.BrokerConfig;
-import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.common.model.SubscriptionOption;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
@@ -101,7 +101,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
             return sqlSession.getMapper(LocalSessionMapper.class).storeSession(sessionDO);
         });
         sessionState.setClientId(clientId);
-        BrokerContext.reportSessionToKeeper(sessionState);
+        ClusterHelper.reportSessionToKeeper(sessionState);
         return true;
     }
 
@@ -118,17 +118,6 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
             });
             return sqlSession.getMapper(LocalSubscriptionMapper.class).storeSubscription(subscriptionDO);
         });
-        /*ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
-        if (v == null) {
-            synchronized (subscriptionCache) {
-                v = subscriptionCache.get(clientId);
-                if (v == null) {
-                    v = new ConcurrentHashMap<>();
-                    subscriptionCache.put(clientId, v);
-                }
-            }
-        }
-        v.putIfAbsent(subscription.getTopic(), subscription);*/
         return true;
     }
 
@@ -137,12 +126,6 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalSubscriptionMapper.class).delSubscription(clientId, topic)
         );
-        /*ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
-        if (v != null) {
-            v.remove(topic);
-        } else {
-            LogUtil.warn(log, "[MemStore] -> Client:{} does not have a subscription for this topic:{}", clientId, topic);
-        }*/
         return true;
     }
 
@@ -169,12 +152,18 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
             set.add(subscription);
         }
         return set;
-        /*ConcurrentHashMap<String, Subscription> v = subscriptionCache.get(clientId);
-        if (v == null) {
-            return new HashSet<>();
-        }
-        Collection<Subscription> sub = v.values();
-        return new HashSet<>(sub);*/
+    }
+
+    @Override
+    public Subscription getOneSubscription(String clientId, String topic) {
+        SubscriptionDO subscriptionDO = (SubscriptionDO) LocalDB.getInstance().operate(sqlSession ->
+                sqlSession.getMapper(LocalSubscriptionMapper.class).queryOneSubscription(clientId, topic)
+        );
+        Subscription subscription = new Subscription(subscriptionDO.getClientId(), subscriptionDO.getTopic(), subscriptionDO.getQos());
+        Optional.ofNullable(subscriptionDO.getOpt()).ifPresent(opt -> {
+            subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
+        });
+        return subscription;
     }
 
     @Override

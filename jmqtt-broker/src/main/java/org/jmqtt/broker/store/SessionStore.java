@@ -116,6 +116,10 @@ public interface SessionStore {
      */
     Set<Subscription> getSubscriptions(String clientId);
 
+    default Subscription getOneSubscription(String clientId, String topic) {
+        return null;
+    }
+
     /**
      * 缓存qos2 publish报文消息-入栈消息
      * @param clientId  clientId

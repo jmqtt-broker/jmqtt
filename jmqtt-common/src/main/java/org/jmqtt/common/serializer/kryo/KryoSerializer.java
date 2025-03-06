@@ -6,6 +6,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.util.Pool;
 import lombok.extern.slf4j.Slf4j;
+import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
 
 import java.io.ByteArrayOutputStream;
@@ -18,12 +19,13 @@ public class KryoSerializer extends SerializerWithStringManifest {
     private final Pool<Kryo> kryoPool;
 
     public KryoSerializer() {
-        this.kryoPool = new Pool<Kryo>(true, false, 8) {
+        this.kryoPool = new Pool<Kryo>(true, false, 20) {
             @Override
             protected Kryo create() {
                 Kryo kryo = new Kryo();
                 kryo.setRegistrationRequired(false);
                 kryo.register(Event.class);
+                kryo.register(Letter.class);
                 return kryo;
             }
         };

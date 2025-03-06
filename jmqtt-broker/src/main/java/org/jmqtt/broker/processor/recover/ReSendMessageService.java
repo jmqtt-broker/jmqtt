@@ -5,6 +5,7 @@ import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.MixAll;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
@@ -153,16 +154,18 @@ public class ReSendMessageService extends HighPerformanceMessageHandler {
                 }
             }
 
-            // 出栈消息：离线消息，未分发的publish消息
-            Collection<Message> messages = sessionStore.getAllOfflineMsg(clientId);
-            if (!MixAll.isEmpty(messages)) {
-                for (Message message : messages) {
-                    if (!dispatcherMessage(clientId, message, publishMqttMsg)) {
-                        return false;
+            if (!ClusterHelper.lightning()) {
+                // 出栈消息：离线消息，未分发的publish消息
+                Collection<Message> messages = sessionStore.getAllOfflineMsg(clientId);
+                if (!MixAll.isEmpty(messages)) {
+                    for (Message message : messages) {
+                        if (!dispatcherMessage(clientId, message, publishMqttMsg)) {
+                            return false;
+                        }
                     }
                 }
+                sessionStore.clearOfflineMsg(clientId);
             }
-            sessionStore.clearOfflineMsg(clientId);
             return true;
         }
     }

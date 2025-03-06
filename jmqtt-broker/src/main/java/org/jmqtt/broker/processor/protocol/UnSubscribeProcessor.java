@@ -7,7 +7,9 @@ import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
 import io.netty.handler.codec.mqtt.MqttUnsubscribePayload;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
+import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.processor.RequestProcessor;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
@@ -15,7 +17,6 @@ import org.jmqtt.broker.remoting.util.NettyUtil;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -51,7 +52,11 @@ public class UnSubscribeProcessor implements RequestProcessor {
                 // 取消订阅没有发现匹配的订阅
                 reasonCode = 0x11;
             }
-            sessionStore.delSubscription(clientId, topic);
+            Subscription subscription = sessionStore.getOneSubscription(clientId, topic);
+            if (subscription != null) {
+                ClusterHelper.reportUnsubscriptionToKeeper(subscription);
+                sessionStore.delSubscription(clientId, topic);
+            }
         }
         MqttUnsubAckMessage unsubAckMessage = MessageUtil.getUnSubAckMessage(MessageUtil.getMessageId(mqttMessage), reasonCode);
         ctx.writeAndFlush(unsubAckMessage);
