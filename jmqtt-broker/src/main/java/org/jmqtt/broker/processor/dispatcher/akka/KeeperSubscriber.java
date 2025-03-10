@@ -36,7 +36,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unSubscription);
-        eventHandlerMap.put(EventCode.STORE_OFFLINE_MSG.getCode(), this::storeOffline);
     }
 
     public static Behavior<Letter> create() {
@@ -72,19 +71,20 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         Event event = letter.getMessage();
         Object body = event.getBody();
         log.info("keeper receive session status, {}", body);
-        if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
-            if (body instanceof SessionState) {
-                SessionState sessionState = (SessionState) body;
-                BrokerContext.getLocalStore().storeSession(sessionState);
-                if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
-                    // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回
-                    String clientId = sessionState.getClientId();
-                    Collection<Message> offlineList = BrokerContext.getSessionStore().getAllOfflineMsg(clientId);
-                    if (!offlineList.isEmpty()) {
-                        Letter res = new Letter(ClusterHelper.getEvent(EventCode.SESSION_STATE_RESPONSE,
-                                new OfflineMessageResponse(clientId, offlineList)), null);
-                        response(res, letter.getResponsePath());
-                    }
+        if (body instanceof SessionState) {
+            SessionState sessionState = (SessionState) body;
+            if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
+                BrokerContext.getSessionStore().storeSession(sessionState.getClientId(), sessionState);
+            }
+            if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
+                // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回
+                String clientId = sessionState.getClientId();
+                Collection<Message> offlineList = BrokerContext.getSessionStore().getAllOfflineMsg(clientId);
+                if (!offlineList.isEmpty()) {
+                    BrokerContext.getSessionStore().clearOfflineMsg(clientId);
+                    Letter res = new Letter(ClusterHelper.getEvent(EventCode.SESSION_STATE_RESPONSE,
+                            new OfflineMessageResponse(clientId, offlineList)), null);
+                    response(res, letter.getResponsePath());
                 }
             }
         }
@@ -135,16 +135,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             String topic = subscription.getTopic();
             BrokerContext.getSubscriptionMatcher().unSubscribe(topic, clientId);
             BrokerContext.getSessionStore().delSubscription(clientId, topic);
-        }
-    }
-
-    private void storeOffline(Letter letter) {
-        Object body = letter.getMessage().getBody();
-        if (body instanceof OfflineMessageDTO) {
-            OfflineMessageDTO dto = (OfflineMessageDTO) body;
-            String subClientId = dto.getSubClientId();
-            Message message = dto.getMessage();
-            BrokerContext.getSessionStore().storeOfflineMsg(subClientId, message);
         }
     }
 

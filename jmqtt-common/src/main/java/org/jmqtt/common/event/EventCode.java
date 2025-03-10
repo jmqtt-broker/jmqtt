@@ -26,7 +26,6 @@ public enum EventCode {
     STORE_RETAIN_MSG(21, "STORE_RETAIN_MSG", "保存保留消息"),
     CLEAR_RETAIN_MSG(22, "CLEAR_RETAIN_MSG", "删除保留消息"),
     GET_RETAIN_MSG(23, "GET_RETAIN_MSG", "查询Keeper中的保留消息"),
-    STORE_OFFLINE_MSG(24, "STORE_OFFLINE_MSG", "保存离线消息"),
     ;
 
     private int code;

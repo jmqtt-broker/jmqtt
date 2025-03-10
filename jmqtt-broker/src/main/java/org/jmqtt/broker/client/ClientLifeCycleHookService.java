@@ -9,6 +9,7 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.netty.ChannelEventListener;
@@ -108,7 +109,11 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis(), clientSession.getVersion());
         SessionState exist = BrokerContext.getSessionStore().getSession(clientId);
         if (exist != null) {
+            sessionState.setClientId(clientId);
             sessionState.setPropertyMap(exist.getPropertyMap());
+            if (ClusterHelper.lightning()) {
+                ClusterHelper.reportSessionToKeeper(sessionState);
+            }
             sessionStore.storeSession(clientId, sessionState);
         }
     }

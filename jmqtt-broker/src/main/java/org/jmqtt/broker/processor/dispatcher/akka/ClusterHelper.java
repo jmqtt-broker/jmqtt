@@ -19,19 +19,28 @@ import java.util.List;
  */
 public class ClusterHelper {
 
-    public static boolean isKeeper() {
+    private static Boolean KEEPER;
+
+    private static Boolean LIGHTNING;
+
+    private static final BrokerConfig BROKER_CONFIG;
+
+    static {
+        BROKER_CONFIG = BrokerContext.getBrokerConfig();
         AkkaConfig akka = BrokerContext.getBrokerConfig().getAkka();
         if (akka != null && akka.getEnable()) {
             List<String> roles = akka.getRoles();
-            return roles != null && roles.contains(AkkaConst.KEEPER);
+            KEEPER = roles != null && roles.contains(AkkaConst.KEEPER);
+            LIGHTNING = JmqttConst.MEM.equals(BROKER_CONFIG.getStore());
         }
-        return false;
+    }
+
+    public static boolean isKeeper() {
+        return KEEPER;
     }
 
     public static boolean lightning() {
-        BrokerConfig brokerConfig = BrokerContext.getBrokerConfig();
-        AkkaConfig akka = brokerConfig.getAkka();
-        return JmqttConst.MEM.equals(brokerConfig.getStore()) && akka != null && akka.getEnable();
+        return LIGHTNING;
     }
 
     public static Event getEvent(EventCode code, Object body) {
@@ -39,11 +48,10 @@ public class ClusterHelper {
     }
 
     public static boolean sendToKeeper(Event event) {
-        boolean send = lightning();
-        if (send) {
+        if (LIGHTNING) {
             BrokerContext.getBrokerController().getClusterEventHandler().sendTokeeper(event);
         }
-        return send;
+        return LIGHTNING;
     }
 
     public static void sendToCluster(Event event) {
@@ -60,10 +68,6 @@ public class ClusterHelper {
 
     public static boolean reportSubscriptionToKeeper(Subscription subscription) {
         return sendToKeeper(getEvent(EventCode.SUBSCRIPTION, subscription));
-    }
-
-    public static boolean reportOfflineMessageToKeeper(String subClientId, Message message) {
-        return sendToKeeper(getEvent(EventCode.STORE_OFFLINE_MSG, new OfflineMessageDTO(subClientId, message)));
     }
 
 }

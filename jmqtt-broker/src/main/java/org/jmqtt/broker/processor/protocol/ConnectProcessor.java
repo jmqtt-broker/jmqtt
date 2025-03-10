@@ -16,6 +16,7 @@ import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.exception.BrokerException;
 import org.jmqtt.broker.processor.RequestProcessor;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
@@ -123,7 +124,7 @@ public class ConnectProcessor implements RequestProcessor {
                     if (previousClient != null) {
                         Mqtt5Utils.sendDisconnectAndClose(previousClient, (byte) 0x8E);
                         this.sessionStore.clearSession(clientId, true);
-                        notifyClearOtherSession = false;
+                        // notifyClearOtherSession = false;
                     }
                 }
                 if (sessionState.getState() == SessionState.StateEnum.NULL) {
@@ -185,6 +186,9 @@ public class ConnectProcessor implements RequestProcessor {
                 }
                 // 存储 session 会话
                 sessionStore.storeSession(clientId, ss);
+                if (ClusterHelper.lightning()) {
+                    ClusterHelper.reportSessionToKeeper(ss);
+                }
                 if (notifyClearOtherSession) {
                     Event event = new Event(EventCode.CLEAR_SESSION.getCode(), clientId,
                             System.currentTimeMillis(), BrokerContext.getBrokerId());
@@ -249,7 +253,7 @@ public class ConnectProcessor implements RequestProcessor {
     private ClientSession createNewClientSession(String clientId, int version, ChannelHandlerContext ctx) {
         ClientSession clientSession = new ClientSession(clientId, true, version, ctx);
         //clear previous sessions
-        this.sessionStore.clearSession(clientId, true);
+        this.sessionStore.clearSession(clientId, false);
         return clientSession;
     }
 

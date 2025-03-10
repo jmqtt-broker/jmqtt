@@ -17,5 +17,4 @@ public interface LocalStore {
 
     boolean del(String brokerId);
 
-    boolean storeSession(SessionState sessionState);
 }

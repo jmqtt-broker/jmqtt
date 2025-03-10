@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
+import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.common.helper.RejectHandler;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
 import org.jmqtt.broker.common.log.JmqttLogger;
@@ -165,7 +166,12 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                     write(clientSession, subscription, message);
                                 }
                             } else {
-                                storeOffline(subscription.getClientId(), message);
+                                CompletableFuture.runAsync(() -> {
+                                    SessionState session = sessionStore.getSession(subscription.getClientId());
+                                    if (session.getState() != SessionState.StateEnum.ONLINE) {
+                                        storeOffline(subscription.getClientId(), message);
+                                    }
+                                });
                             }
                         }
                     } catch (Exception ex) {
@@ -188,7 +194,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
     }
 
     private void storeOffline(String clientId, Message message) {
-        if (!ClusterHelper.reportOfflineMessageToKeeper(clientId, message)) {
+        if (!ClusterHelper.lightning() || ClusterHelper.isKeeper()) {
             sessionStore.storeOfflineMsg(clientId, message);
         }
     }

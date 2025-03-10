@@ -101,7 +101,6 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
             return sqlSession.getMapper(LocalSessionMapper.class).storeSession(sessionDO);
         });
         sessionState.setClientId(clientId);
-        ClusterHelper.reportSessionToKeeper(sessionState);
         return true;
     }
 
