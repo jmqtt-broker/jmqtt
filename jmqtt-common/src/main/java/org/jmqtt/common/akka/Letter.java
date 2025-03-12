@@ -21,6 +21,10 @@ public class Letter {
         this.responsePath = responsePath;
     }
 
+    public Letter(Event message) {
+        this.message = message;
+    }
+
     @Override
     public String toString() {
         return JSONObject.toJSONString(this);

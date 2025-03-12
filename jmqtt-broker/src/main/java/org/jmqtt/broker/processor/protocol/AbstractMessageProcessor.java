@@ -8,6 +8,8 @@ import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.common.event.EventCode;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * 通用消息分发处理器
  */
@@ -25,6 +27,11 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
     }
 
     protected void processMessage(Message message) {
+        if (ClusterHelper.lightning()) {
+            CompletableFuture.runAsync(() -> {
+                ClusterHelper.sendToKeeper(ClusterHelper.getEvent(EventCode.DISPATCHER_FOR_SHARE_SUBSCRIPTION, message));
+            });
+        }
         sendMessage2Cluster(message);
     }
 

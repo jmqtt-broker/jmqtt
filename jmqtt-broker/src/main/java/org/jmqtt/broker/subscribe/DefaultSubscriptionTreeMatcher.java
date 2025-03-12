@@ -6,11 +6,13 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Subscription;
 import org.slf4j.Logger;
 
+import javax.swing.tree.TreeNode;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
 public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
@@ -89,37 +91,56 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
 
     @Override
     public Set<Subscription> match(String topic, String clientId) {
+        return match(topic, clientId, false);
+    }
+
+    @Override
+    public Set<Subscription> match(String topic, String clientId, boolean excludeShareSubscription) {
         Set<Subscription> subscriptions = new HashSet<>();
         recursionMatch(topic, root, false, subscriptions);
         //过滤重复的共享订阅者
-        return filterSharedSub(subscriptions, clientId);
+        return filterSharedSub(subscriptions, null, clientId, excludeShareSubscription);
     }
 
-    private Set<Subscription> filterSharedSub(Set<Subscription> subscriptions, String clientId) {
+    @Override
+    public Set<Subscription> shareSubscription(String topic, String clientId) {
+        Set<Subscription> subscriptions = new HashSet<>();
+        Set<Subscription> shareSubscriptions = new HashSet<>();
+        recursionMatch(topic, root, false, subscriptions);
+        filterSharedSub(subscriptions, shareSubscriptions, clientId, false);
+        return shareSubscriptions;
+    }
+
+    private Set<Subscription> filterSharedSub(Set<Subscription> subscriptions, Set<Subscription> shareSubscriptions, String clientId, boolean excludeShareSubscription) {
         Map<String, Set<Subscription>> groupSharedSubs = new HashMap<>();
         Set<Subscription> filteredSubs = new HashSet<>();
         for (Subscription sub : subscriptions) {
             String topic = sub.getTopic();
             //共享订阅者按topic字串分组
             if (topic.startsWith(GROUP_STR)) {
-                //TODO 待定，不同topic字串但匹配同一topic
-                Set<Subscription> subs = groupSharedSubs.get(topic);
-                if (Objects.isNull(subs)) {
-                    subs = new HashSet<>();
-                    groupSharedSubs.put(topic, subs);
+                if (!excludeShareSubscription) {
+                    Set<Subscription> subs = groupSharedSubs.get(topic);
+                    if (Objects.isNull(subs)) {
+                        subs = new HashSet<>();
+                        groupSharedSubs.put(topic, subs);
+                    }
+                    subs.add(sub);
                 }
-                subs.add(sub);
             } else {
                 filteredSubs.add(sub);
             }
         }
-
-        //按策略从不同订阅组选取订阅者
-        Collection<Set<Subscription>> groups = groupSharedSubs.values();
-        for (Set<Subscription> group : groups) {
-            Subscription sub = selectOneByStrategy(group, clientId, "random");
-            if (sub != null) {
-                filteredSubs.add(sub);
+        if (!excludeShareSubscription) {
+            //按策略从不同订阅组选取订阅者
+            Collection<Set<Subscription>> groups = groupSharedSubs.values();
+            for (Set<Subscription> group : groups) {
+                Subscription sub = selectOneByStrategy(group, clientId, "random");
+                if (sub != null) {
+                    filteredSubs.add(sub);
+                    if (shareSubscriptions != null) {
+                        shareSubscriptions.add(sub);
+                    }
+                }
             }
         }
         return filteredSubs;
@@ -148,7 +169,6 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
             }
             return sub;
         } else {
-            // TODO hash
             return group.iterator().next();
         }
     }

@@ -62,7 +62,7 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                     if (Cluster.get(context.getSystem()).selfMember().hasRole(AkkaConst.KEEPER)) {
                         keeperSubscriber = context.spawn(KeeperSubscriber.create(), "KeeperSubscriber");
                         keeperTopic.tell(Topic.subscribe(keeperSubscriber));
-                        // clusterListener = context.spawn(Behaviors.setup(AkkaClusterEventListener::new), "ClusterListener");
+                        clusterListener = context.spawn(Behaviors.setup(AkkaClusterEventListener::new), "ClusterListener");
                     }
                     receiver = context.spawn(Receiver.create(), "AkkaReceiver");
                     Address address = new Address(AkkaConst.SYSTEM_PROTOCOL, akkaConfig.getSystemName(), akkaConfig.getHost(), Integer.parseInt(akkaConfig.getPort()));

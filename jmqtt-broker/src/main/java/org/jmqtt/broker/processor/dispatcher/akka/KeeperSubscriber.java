@@ -9,15 +9,19 @@ import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
+import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * 用于非keeper节点向keeper节点单向通知
@@ -36,6 +40,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unSubscription);
+        eventHandlerMap.put(EventCode.DISPATCHER_FOR_SHARE_SUBSCRIPTION.getCode(), this::dispatcherMsgForShareSubscription);
     }
 
     public static Behavior<Letter> create() {
@@ -83,7 +88,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
                 if (!offlineList.isEmpty()) {
                     BrokerContext.getSessionStore().clearOfflineMsg(clientId);
                     Letter res = new Letter(ClusterHelper.getEvent(EventCode.SESSION_STATE_RESPONSE,
-                            new OfflineMessageResponse(clientId, offlineList)), null);
+                            new OfflineMessageResponse(clientId, offlineList)));
                     response(res, letter.getResponsePath());
                 }
             }
@@ -121,7 +126,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             Collection<Message> retainMsgList = BrokerContext.getMessageStore().getRetainMsg(subscription.getTopic());
             if (!retainMsgList.isEmpty()) {
                 Letter res = new Letter(ClusterHelper.getEvent(EventCode.SUBSCRIPTION_RESPONSE,
-                        new SubscriptionRetainMessage(retainMsgList, subscription, subRes)), null);
+                        new SubscriptionRetainMessage(retainMsgList, subscription, subRes)));
                 response(res, responsePath);
             }
         }
@@ -138,7 +143,31 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         }
     }
 
+    private void dispatcherMsgForShareSubscription(Letter letter) {
+        Event event = letter.getMessage();
+        Object body = event.getBody();
+        if (body instanceof Message) {
+            Message message = (Message) body;
+            String topic = (String) message.getHeader(MessageHeader.TOPIC);
+            String clientId = message.getClientId();
+            Set<Subscription> shareSubscriptions = BrokerContext.getSubscriptionMatcher().shareSubscription(topic, clientId);
+            if (!shareSubscriptions.isEmpty()) {
+                Set<String> clientIds = shareSubscriptions.stream().map(Subscription::getClientId).collect(Collectors.toSet());
+                List<SessionDO> sessionList = BrokerContext.getSessionStore().getSessionList(clientIds);
+                Map<String, List<String>> clientMap = sessionList.stream().filter(s -> SessionState.StateEnum.ONLINE.getCode().equals(s.getState())).collect(
+                        Collectors.groupingBy(SessionDO::getBrokerId, Collectors.mapping(SessionDO::getClientId, Collectors.toList())));
+                clientMap.forEach((brokerId, clientIdList) -> {
+                    String responsePath = brokerId + "/user/AkkaReceiver";
+                    Letter res = new Letter(ClusterHelper.getEvent(EventCode.DISPATCHER_SHARE_SUBSCRIPTION_MSG,
+                            new ShareSubscriptionMsg(shareSubscriptions.stream().filter(s -> clientIdList.contains(s.getClientId())).collect(Collectors.toList()), message)));
+                    response(res, responsePath);
+                });
+            }
+        }
+    }
+
     private void response(Letter res, String responsePath) {
+        log.info("responsePath: {}", responsePath);
         ActorSelection selection = Adapter.toClassic(getContext().getSystem())
                 .actorSelection(responsePath);
         selection.tell(res, Adapter.toClassic(getContext().getSelf()));

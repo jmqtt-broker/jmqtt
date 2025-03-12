@@ -6,13 +6,11 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.log.LogUtil;
-import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.broker.common.model.OfflineMessageResponse;
-import org.jmqtt.broker.common.model.Subscription;
-import org.jmqtt.broker.common.model.SubscriptionRetainMessage;
+import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
@@ -21,6 +19,7 @@ import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -34,6 +33,7 @@ public class Receiver extends AbstractBehavior<Letter> {
         super(context);
         responseHandlerMap.put(EventCode.SESSION_STATE_RESPONSE.getCode(), this::onlineResponse);
         responseHandlerMap.put(EventCode.SUBSCRIPTION_RESPONSE.getCode(), this::subscriptionResponse);
+        responseHandlerMap.put(EventCode.DISPATCHER_SHARE_SUBSCRIPTION_MSG.getCode(), this::dispatcherShareSubscriptionMsg);
     }
 
     public static Behavior<Letter> create() {
@@ -87,6 +87,26 @@ public class Receiver extends AbstractBehavior<Letter> {
                 log.warn("The client offline again, put the message to the offline queue,clientId:{}", clientId);
             }
 
+        }
+    }
+
+    private void dispatcherShareSubscriptionMsg(Letter letter) {
+        Event event = letter.getMessage();
+        Object body = event.getBody();
+        if (body instanceof ShareSubscriptionMsg) {
+            ShareSubscriptionMsg msg = (ShareSubscriptionMsg) body;
+            List<Subscription> subscriptions = msg.getSubscriptions();
+            Message message = msg.getMessage();
+            subscriptions.forEach(subscription -> {
+                String clientId = subscription.getClientId();
+                ClientSession client = ConnectManager.getInstance().getClient(clientId);
+                if (client != null) {
+                    MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption(), clientId);
+                    client.getCtx().writeAndFlush(publishMessage);
+                } else {
+                    log.warn("share subscription msg dispatcher faild, subscription: {}, message: {}", subscription, message);
+                }
+            });
         }
     }
 }

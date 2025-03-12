@@ -87,6 +87,11 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     }
 
     @Override
+    public List<SessionDO> getSessionList(Collection<String> clientIds) {
+        return (List<SessionDO>) LocalDB.getInstance().operate(sqlSession -> sqlSession.getMapper(LocalSessionMapper.class).getSessionList(clientIds));
+    }
+
+    @Override
     public boolean storeSession(String clientId, SessionState sessionState) {
         sessionTable.remove(clientId);
         LocalDB.getInstance().operate(sqlSession -> {

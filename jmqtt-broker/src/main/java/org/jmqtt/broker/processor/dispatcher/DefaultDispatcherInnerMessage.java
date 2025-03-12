@@ -121,7 +121,12 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                     try {
                         String pubClientId = message.getClientId();
                         String topic = TopicAliasManager.getRealTopic(message);
-                        Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
+                        Set<Subscription> subscriptions;
+                        if (ClusterHelper.lightning()) {
+                            subscriptions = subscriptionMatcher.match(topic, pubClientId, true);
+                        } else {
+                            subscriptions = subscriptionMatcher.match(topic, pubClientId);
+                        }
                         for (Subscription subscription : subscriptions) {
                             String subClientId = subscription.getClientId();
                             if (ConnectManager.getInstance().containClient(subClientId)) {

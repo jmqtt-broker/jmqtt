@@ -124,7 +124,7 @@ public class ConnectProcessor implements RequestProcessor {
                     if (previousClient != null) {
                         Mqtt5Utils.sendDisconnectAndClose(previousClient, (byte) 0x8E);
                         this.sessionStore.clearSession(clientId, true);
-                        // notifyClearOtherSession = false;
+                        notifyClearOtherSession = false;
                     }
                 }
                 if (sessionState.getState() == SessionState.StateEnum.NULL) {
@@ -176,6 +176,7 @@ public class ConnectProcessor implements RequestProcessor {
                     }
                 }
                 SessionState ss = new SessionState(SessionState.StateEnum.ONLINE, mqttVersion);
+                ss.setClientId(clientId);
                 if (mqtt5) {
                     // 返回服务端可选功能
                     optionalService(responseProperties);

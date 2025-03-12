@@ -25,7 +25,9 @@ public enum EventCode {
 
     STORE_RETAIN_MSG(21, "STORE_RETAIN_MSG", "保存保留消息"),
     CLEAR_RETAIN_MSG(22, "CLEAR_RETAIN_MSG", "删除保留消息"),
-    GET_RETAIN_MSG(23, "GET_RETAIN_MSG", "查询Keeper中的保留消息"),
+
+    DISPATCHER_FOR_SHARE_SUBSCRIPTION(23, "DISPATCHER_FOR_SHARE_SUBSCRIPTION", "通知Keeper节点处理集群共享订阅消息"),
+    DISPATCHER_SHARE_SUBSCRIPTION_MSG(24, "DISPATCHER_SHARE_SUBSCRIPTION_MSG", "集群共享订阅消息分发"),
     ;
 
     private int code;

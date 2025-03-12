@@ -2,6 +2,7 @@
 package org.jmqtt.broker.store;
 
 import io.netty.handler.codec.mqtt.MqttVersion;
+import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
@@ -42,6 +43,10 @@ public interface SessionStore {
      * @return  return
      */
     SessionState getSession(String clientId);
+
+    default List<SessionDO> getSessionList(Collection<String> clientIds) {
+        return null;
+    }
 
     /**
      * 1. 保存会话到 Jmqtt集群

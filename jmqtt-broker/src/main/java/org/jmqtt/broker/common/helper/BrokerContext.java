@@ -17,7 +17,7 @@ public class BrokerContext {
 
     private static BrokerController brokerController;
 
-    private static AtomicBoolean READY = new AtomicBoolean(false);
+    private static final AtomicBoolean READY = new AtomicBoolean(false);
 
     public static BrokerController getBrokerController() {
         return brokerController;
@@ -33,7 +33,7 @@ public class BrokerContext {
         BrokerController ctl = getBrokerController();
         AkkaConfig akka = getBrokerConfig().getAkka();
         if (akka != null && akka.getEnable()) {
-            return JmqttConst.PROJECT + "@" + ctl.getCurrentIp() + ":" + akka.getPort();
+            return "akka://" + akka.getSystemName() + "@" + ctl.getCurrentIp() + ":" + akka.getPort();
         }
         return JmqttConst.PROJECT + "@" + ctl.getCurrentIp() + ":" + ctl.getNettyConfig().getTcpPort();
     }
