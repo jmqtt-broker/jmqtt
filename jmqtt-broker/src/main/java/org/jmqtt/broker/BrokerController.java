@@ -113,7 +113,7 @@ public class BrokerController {
         this.clusterEventHandler = clusterEventHandler;
         this.innerMessageDispatcher = innerMessageDispatcher != null ? innerMessageDispatcher : new DefaultDispatcherInnerMessage(brokerConfig.isHighPerformance(),
                 sessionStore, messageStore, brokerConfig.getPollThreadNum(), this.subscriptionMatcher);
-        this.retainMessageDispatcher = new RetainMessageDispatcherImpl();
+        this.retainMessageDispatcher = new RetainMessageDispatcherImpl(brokerConfig.isHighPerformance(), sessionStore);
         this.authValid = authValid != null ? authValid : MixAll.pluginInit(brokerConfig.getAuthValidClass());
 
         this.connectQueue = new LinkedBlockingQueue<>(100000);
@@ -342,7 +342,7 @@ public class BrokerController {
         Event brokerOnline = new Event(EventCode.BROKER_STATE.getCode(),
                 brokerInfo,
                 System.currentTimeMillis(), BrokerContext.getBrokerId());
-        this.clusterEventHandler.sendTokeeper(brokerOnline);
+        this.clusterEventHandler.sendToKeeper(brokerOnline);
     }
 
 }

@@ -42,6 +42,8 @@ public class AkkaConfig {
             cluster.put("roles", this.roles);
         }
         cluster.put("downing-provider-class", "akka.cluster.sbr.SplitBrainResolverProvider");
+        cluster.put("seed-node-timeout", "10s");
+        cluster.put("unsuccessful-join-after", "20s");
         // cluster.put("configuration-compatibility-check", new JSONObject(){{put("enforce-on-join", "off");}});
         akka.put("remote", remote);
         akka.put("cluster", cluster);
@@ -63,6 +65,10 @@ public class AkkaConfig {
         actor.put("serializers", serializers);
         actor.put("serialization-bindings", serializationBindings);
         return wrap.toJSONString();
+    }
+
+    public String nodeId() {
+        return "akka://" + this.systemName + "@" + this.host + ":" + this.port;
     }
 
 }

@@ -17,7 +17,9 @@
       "seed-nodes": [
         "akka://JMqttDispatcherSystem@127.0.0.1:25251"
       ],
-      "downing-provider-class": "akka.cluster.sbr.SplitBrainResolverProvider"
+      "downing-provider-class": "akka.cluster.sbr.SplitBrainResolverProvider",
+      "seed-node-timeout": "20s",
+      "unsuccessful-join-after": "20s"
     }
   }
 }

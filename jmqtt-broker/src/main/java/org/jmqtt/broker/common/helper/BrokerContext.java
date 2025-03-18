@@ -33,7 +33,7 @@ public class BrokerContext {
         BrokerController ctl = getBrokerController();
         AkkaConfig akka = getBrokerConfig().getAkka();
         if (akka != null && akka.getEnable()) {
-            return "akka://" + akka.getSystemName() + "@" + ctl.getCurrentIp() + ":" + akka.getPort();
+            return akka.nodeId();
         }
         return JmqttConst.PROJECT + "@" + ctl.getCurrentIp() + ":" + ctl.getNettyConfig().getTcpPort();
     }

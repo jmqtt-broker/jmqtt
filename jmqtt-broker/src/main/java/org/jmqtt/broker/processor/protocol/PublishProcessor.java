@@ -12,6 +12,7 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.processor.RequestProcessor;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
 import org.jmqtt.broker.remoting.session.ClientSession;
@@ -147,7 +148,7 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
     private void processQos2(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode, ClientSession clientSession) {
         int originMessageId = innerMsg.getMsgId();
         if (Mqtt5Utils.isOk(reasonCode)) {
-            if (clientSession.isMqtt5() && noSubscribers(innerMsg)) {
+            if (clientSession.isMqtt5() && noSubscribers(innerMsg) && ClusterHelper.lightning()) {
                 LogUtil.warn(log, "[PubMessage] -> No matching subscribers,clientId={}", innerMsg.getClientId());
                 reasonCode = 0x10;
             }
@@ -164,7 +165,7 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
     private void processQos1(ChannelHandlerContext ctx, Message innerMsg, byte reasonCode, ClientSession clientSession) {
         int originMessageId = innerMsg.getMsgId();
         if (Mqtt5Utils.isOk(reasonCode)) {
-            if (clientSession.isMqtt5() && noSubscribers(innerMsg)) {
+            if (clientSession.isMqtt5() && noSubscribers(innerMsg) && ClusterHelper.lightning()) {
                 LogUtil.warn(log, "[PubMessage] -> No matching subscribers,clientId={}", innerMsg.getClientId());
                 reasonCode = 0x10;
             }

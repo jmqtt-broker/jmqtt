@@ -36,7 +36,6 @@ public class EventConsumeHandler {
     private AtomicBoolean pollStoped = new AtomicBoolean(false);
     private int maxPollNum;
     private int pollWaitInterval;
-    private String currentIp;
     private SessionStore sessionStore;
     private Map<Integer, EventHandler> eventHandlerMap = new ConcurrentHashMap<>();
 
@@ -46,7 +45,6 @@ public class EventConsumeHandler {
         clusterEventHandler.setEventConsumeHandler(this);
         this.maxPollNum = brokerController.getBrokerConfig().getMaxPollEventNum();
         this.pollWaitInterval = brokerController.getBrokerConfig().getPollWaitInterval();
-        this.currentIp = brokerController.getCurrentIp();
         this.sessionStore = brokerController.getSessionStore();
         eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
         eventHandlerMap.put(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), this::dispatcherMessage);

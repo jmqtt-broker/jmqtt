@@ -10,6 +10,7 @@ import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
+import org.jmqtt.common.akka.AkkaConst;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.common.event.Event;
@@ -74,6 +75,9 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
 
     private void sessionState(Letter letter) {
         Event event = letter.getMessage();
+        if (letter.isSync() && BrokerContext.getBrokerId().equals(event.getFromBroker())) {
+            return;
+        }
         Object body = event.getBody();
         log.info("keeper receive session status, {}", body);
         if (body instanceof SessionState) {
@@ -81,17 +85,22 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
                 BrokerContext.getSessionStore().storeSession(sessionState.getClientId(), sessionState);
             }
-            if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
-                // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回
-                String clientId = sessionState.getClientId();
-                Collection<Message> offlineList = BrokerContext.getSessionStore().getAllOfflineMsg(clientId);
-                if (!offlineList.isEmpty()) {
-                    BrokerContext.getSessionStore().clearOfflineMsg(clientId);
-                    Letter res = new Letter(ClusterHelper.getEvent(EventCode.SESSION_STATE_RESPONSE,
-                            new OfflineMessageResponse(clientId, offlineList)));
-                    response(res, letter.getResponsePath());
+            String responsePath = letter.getResponsePath();
+            if (StringUtils.isBlank(responsePath)) {
+                if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
+                    // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回
+                    String clientId = sessionState.getClientId();
+                    Collection<Message> offlineList = BrokerContext.getSessionStore().getAllOfflineMsg(clientId);
+                    if (!offlineList.isEmpty()) {
+                        BrokerContext.getSessionStore().clearOfflineMsg(clientId);
+                        Letter res = new Letter(ClusterHelper.getEvent(EventCode.SESSION_STATE_RESPONSE,
+                                new OfflineMessageResponse(clientId, offlineList)));
+                        response(res, responsePath);
+                    }
                 }
             }
+            // 同步到其他keeper节点
+            ClusterHelper.syncToKeeper(letter);
         }
     }
 
@@ -117,6 +126,9 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
 
     private void subscription(Letter letter) {
         Event event = letter.getMessage();
+        if (letter.isSync() && BrokerContext.getBrokerId().equals(event.getFromBroker())) {
+            return;
+        }
         Subscription subscription = (Subscription) event.getBody();
         boolean subRes = BrokerContext.getSubscriptionMatcher().subscribe(subscription);
         BrokerContext.getSessionStore().storeSubscription(subscription.getClientId(), subscription);
@@ -129,6 +141,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
                         new SubscriptionRetainMessage(retainMsgList, subscription, subRes)));
                 response(res, responsePath);
             }
+            ClusterHelper.syncToKeeper(letter);
         }
     }
 
@@ -157,7 +170,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
                 Map<String, List<String>> clientMap = sessionList.stream().filter(s -> SessionState.StateEnum.ONLINE.getCode().equals(s.getState())).collect(
                         Collectors.groupingBy(SessionDO::getBrokerId, Collectors.mapping(SessionDO::getClientId, Collectors.toList())));
                 clientMap.forEach((brokerId, clientIdList) -> {
-                    String responsePath = brokerId + "/user/AkkaReceiver";
+                    String responsePath = brokerId + "/user/" + AkkaConst.AKKA_RECEIVER;
                     Letter res = new Letter(ClusterHelper.getEvent(EventCode.DISPATCHER_SHARE_SUBSCRIPTION_MSG,
                             new ShareSubscriptionMsg(shareSubscriptions.stream().filter(s -> clientIdList.contains(s.getClientId())).collect(Collectors.toList()), message)));
                     response(res, responsePath);

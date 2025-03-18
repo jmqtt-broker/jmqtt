@@ -1,6 +1,7 @@
 package org.jmqtt.broker.processor.dispatcher;
 
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
 
 import java.util.List;
@@ -46,7 +47,15 @@ public interface ClusterEventHandler {
      */
     List<Event> pollEvent(int maxPollNum);
 
-    default void sendTokeeper(Event event) {
+    default void sendToKeeper(Event event) {
+
+    }
+
+    default void sendToOneKeeper(Event event) {
+
+    }
+
+    default void syncToKeeper(Letter letter) {
 
     }
 

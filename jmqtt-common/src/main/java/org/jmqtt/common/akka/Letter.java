@@ -16,6 +16,9 @@ public class Letter {
     // 如果需要给回复，向这个actor回复
     private String responsePath;
 
+    // 这是一个从keeper节点同步过来的消息
+    private Boolean sync;
+
     public Letter(Event message, String responsePath) {
         this.message = message;
         this.responsePath = responsePath;
@@ -23,6 +26,10 @@ public class Letter {
 
     public Letter(Event message) {
         this.message = message;
+    }
+
+    public boolean isSync() {
+        return this.sync != null && sync;
     }
 
     @Override

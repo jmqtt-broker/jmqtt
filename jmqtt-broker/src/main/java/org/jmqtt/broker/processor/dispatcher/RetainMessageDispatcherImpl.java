@@ -7,9 +7,11 @@ import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.*;
+import org.jmqtt.broker.processor.HighPerformanceMessageHandler;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
+import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.common.helper.RejectHandler;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
 
@@ -23,11 +25,15 @@ import java.util.concurrent.*;
  * 分发集群retain、offline等定向消息
  */
 @Slf4j
-public class RetainMessageDispatcherImpl implements RetainMessageDispatcher {
+public class RetainMessageDispatcherImpl extends HighPerformanceMessageHandler implements RetainMessageDispatcher {
 
     private boolean stoped = false;
     private static final BlockingQueue<SubscriptionRetainMessage> messageQueue = new LinkedBlockingQueue<>(100000);
     private ThreadPoolExecutor pollThread;
+
+    public RetainMessageDispatcherImpl(boolean highPerformance, SessionStore sessionStore) {
+        super(highPerformance, sessionStore);
+    }
 
     @Override
     public void start() {
@@ -108,6 +114,12 @@ public class RetainMessageDispatcherImpl implements RetainMessageDispatcher {
                             retainList.forEach(retainMsg -> {
                                 int minQos = MessageUtil.getMinQos((int) retainMsg.getHeader(MessageHeader.QOS), subscription.getQos());
                                 retainMsg.putHeader(MessageHeader.QOS, minQos);
+                                int messageId = clientSession.generateMessageId();
+                                retainMsg.putHeader(MessageHeader.QOS, minQos);
+                                retainMsg.setMsgId(messageId);
+                                if (minQos > 0) {
+                                    cacheOutflowMsg(clientId, retainMsg);
+                                }
                                 if (clientSession.isMqtt5()) {
                                     if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
                                             (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRes)) {

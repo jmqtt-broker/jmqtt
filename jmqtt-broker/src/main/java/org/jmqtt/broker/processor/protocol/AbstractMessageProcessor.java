@@ -17,19 +17,17 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
 
     private MessageStore messageStore;
     private ClusterEventHandler clusterEventHandler;
-    private String currentIp;
 
     public AbstractMessageProcessor(BrokerController brokerController) {
         super(brokerController.getBrokerConfig().isHighPerformance(), brokerController.getSessionStore());
         this.messageStore = brokerController.getMessageStore();
         this.clusterEventHandler = brokerController.getClusterEventHandler();
-        this.currentIp = brokerController.getCurrentIp();
     }
 
     protected void processMessage(Message message) {
         if (ClusterHelper.lightning()) {
             CompletableFuture.runAsync(() -> {
-                ClusterHelper.sendToKeeper(ClusterHelper.getEvent(EventCode.DISPATCHER_FOR_SHARE_SUBSCRIPTION, message));
+                ClusterHelper.sendToOneKeeper(ClusterHelper.getEvent(EventCode.DISPATCHER_FOR_SHARE_SUBSCRIPTION, message));
             });
         }
         sendMessage2Cluster(message);

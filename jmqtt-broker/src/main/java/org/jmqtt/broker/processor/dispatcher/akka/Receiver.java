@@ -14,6 +14,7 @@ import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
+import org.jmqtt.broker.store.highperformance.OutflowMessageHandler;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
@@ -101,6 +102,13 @@ public class Receiver extends AbstractBehavior<Letter> {
                 String clientId = subscription.getClientId();
                 ClientSession client = ConnectManager.getInstance().getClient(clientId);
                 if (client != null) {
+                    int minQos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
+                    int messageId = client.generateMessageId();
+                    message.putHeader(MessageHeader.QOS, minQos);
+                    message.setMsgId(messageId);
+                    if (minQos > 0) {
+                        OutflowMessageHandler.cacheOutflowMsg(clientId, message);
+                    }
                     MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption(), clientId);
                     client.getCtx().writeAndFlush(publishMessage);
                 } else {
