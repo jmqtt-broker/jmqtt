@@ -25,6 +25,7 @@ import org.jmqtt.common.akka.AkkaConst;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
 import org.slf4j.Logger;
+import scala.Option;
 import scala.collection.immutable.SortedSet;
 
 import java.util.List;
@@ -109,17 +110,20 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
     @Override
     public void sendToOneKeeper(Event event) {
         // sendTokeeper(event);
-        Member member = Cluster.get(system).state().members().find(
+        Option<Member> memberOpt = Cluster.get(system).state().members().find(
                 m -> m.hasRole(AkkaConst.KEEPER) && m.status().equals(MemberStatus.up())
-        ).get();
-        if (member != null) {
-            Address address = member.address();
-            String targetPath = address.toString() + "/user/" + AkkaConst.KEEPER_SUBSCRIBER;
-            ActorSelection selection = Adapter.toClassic(system).actorSelection(targetPath);
-            String path = Cluster.get(system).selfMember().hasRole(AkkaConst.KEEPER) ? selfPath : selfPathWithAddress;
-            selection.tell(new Letter(event, path), akka.actor.ActorRef.noSender());
-        } else {
-            log.warn("can not find keeper node.");
+        );
+        if (!memberOpt.isEmpty()) {
+            Member member = memberOpt.get();
+            if (member != null) {
+                Address address = member.address();
+                String targetPath = address.toString() + "/user/" + AkkaConst.KEEPER_SUBSCRIBER;
+                ActorSelection selection = Adapter.toClassic(system).actorSelection(targetPath);
+                String path = Cluster.get(system).selfMember().hasRole(AkkaConst.KEEPER) ? selfPath : selfPathWithAddress;
+                selection.tell(new Letter(event, path), akka.actor.ActorRef.noSender());
+            } else {
+                log.warn("can not find keeper node.");
+            }
         }
     }
 

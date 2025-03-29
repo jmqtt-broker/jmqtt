@@ -29,7 +29,7 @@ public class LocalDB {
     private static final Logger log = JmqttLogger.storeLog;
 
     private String localStoreDriver = "org.h2.Driver";
-    private String localStoreUrl = "jdbc:h2:file:~/broker/jmqtt;AUTO_SERVER=true;MODE=MYSQL";
+    private String localStoreUrl = "jdbc:h2:file:/jmqtt/broker/jmqtt;AUTO_SERVER=true;MODE=MYSQL";
     private String localStoreUsername = "root";
     private String localStorePassword = "123456";
 
@@ -88,6 +88,7 @@ public class LocalDB {
             configuration.addMapper(LocalSubscriptionMapper.class);
             configuration.addMapper(LocalSessionMapper.class);
             configuration.addMapper(LocalBrokerMapper.class);
+            configuration.addMapper(LocalScheduleTaskMapper.class);
             configuration.setMapUnderscoreToCamelCase(true);
             this.sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
             LogUtil.info(log, "localStore store start success...");

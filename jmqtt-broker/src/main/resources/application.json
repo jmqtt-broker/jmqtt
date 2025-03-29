@@ -14,12 +14,18 @@
       }
     },
     "cluster": {
-      "seed-nodes": [
+      "seed-nodes-bak": [
         "akka://JMqttDispatcherSystem@127.0.0.1:25251"
       ],
       "downing-provider-class": "akka.cluster.sbr.SplitBrainResolverProvider",
       "seed-node-timeout": "20s",
-      "unsuccessful-join-after": "20s"
+      "unsuccessful-join-after": "20s",
+      "failure-detector": {
+        "acceptable-heartbeat-pause": "30s",
+        "heartbeat-interval": "15s",
+        "threshold": "8.0",
+        "expected-response-after": "3s"
+      }
     }
   }
 }

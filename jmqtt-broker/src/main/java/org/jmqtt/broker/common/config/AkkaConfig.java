@@ -3,10 +3,10 @@ package org.jmqtt.broker.common.config;
 import com.alibaba.fastjson.JSONObject;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.common.akka.AkkaConst;
 import org.jmqtt.common.serializer.kryo.KryoSerializer;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +18,8 @@ public class AkkaConfig {
     private String systemName = AkkaConst.SYSTEM_NAME;
     private String host;
     private String port;
+    private String bindHost;
+    private String bindPort;
     private List<String> roles;
     private List<String> clusterNodes;
 
@@ -28,10 +30,14 @@ public class AkkaConfig {
         JSONObject remote = new JSONObject();
         JSONObject artery = new JSONObject();
         JSONObject canonical = new JSONObject();
+        JSONObject bind = new JSONObject();
         remote.put("artery", artery);
         artery.put("canonical", canonical);
+        artery.put("bind", bind);
         canonical.put("hostname", this.host);
         canonical.put("port", this.port);
+        bind.put("hostname", StringUtils.isNotBlank(this.bindHost) ? this.bindHost : "0.0.0.0");
+        bind.put("port", StringUtils.isNotBlank(this.bindPort) ? this.bindPort : this.port);
         JSONObject cluster = new JSONObject();
         if (this.clusterNodes != null) {
             cluster.put("seed-nodes", this.clusterNodes.stream()
@@ -44,6 +50,12 @@ public class AkkaConfig {
         cluster.put("downing-provider-class", "akka.cluster.sbr.SplitBrainResolverProvider");
         cluster.put("seed-node-timeout", "10s");
         cluster.put("unsuccessful-join-after", "20s");
+        JSONObject failureDetector = new JSONObject();
+        failureDetector.put("acceptable-heartbeat-pause", "30s");
+        failureDetector.put("heartbeat-interval", "15s");
+        failureDetector.put("expected-response-after", "5s");
+        failureDetector.put("threshold", "8.0");
+        cluster.put("failure-detector", failureDetector);
         // cluster.put("configuration-compatibility-check", new JSONObject(){{put("enforce-on-join", "off");}});
         akka.put("remote", remote);
         akka.put("cluster", cluster);

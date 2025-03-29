@@ -28,6 +28,16 @@
       "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
     },
     {
+      "name": "jmqtt.broker.akka.bind-host",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
+    },
+    {
+      "name": "jmqtt.broker.akka.bind-port",
+      "type": "java.lang.String",
+      "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"
+    },
+    {
       "name": "jmqtt.broker.akka.port",
       "type": "java.lang.String",
       "sourceType": "org.jmqtt.broker.common.config.AkkaConfig"

@@ -36,7 +36,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         super(context);
         eventHandlerMap.put(EventCode.BROKER_STATE.getCode(), this::brokerOnline);
         eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::sessionState);
-        eventHandlerMap.put(EventCode.SESSION_STATE_RESPONSE.getCode(), this::sessionState);
         eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
         eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
@@ -99,8 +98,10 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
                     }
                 }
             }
-            // 同步到其他keeper节点
-            ClusterHelper.syncToKeeper(letter);
+            if (!letter.isSync()) {
+                // 同步到其他keeper节点
+                ClusterHelper.syncToKeeper(letter);
+            }
         }
     }
 
@@ -141,7 +142,9 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
                         new SubscriptionRetainMessage(retainMsgList, subscription, subRes)));
                 response(res, responsePath);
             }
-            ClusterHelper.syncToKeeper(letter);
+            if (!letter.isSync()) {
+                ClusterHelper.syncToKeeper(letter);
+            }
         }
     }
 

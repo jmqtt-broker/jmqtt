@@ -53,10 +53,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                     sessionStore.clearSession(clientId, false);
                 } else {
                     offlineSession(session);
-                    TimerManager.startSessionTimeout(clientId, timerBO -> {
-                        log.info("session expired. clientId: {}", clientId);
-                        sessionStore.clearSession(clientId, false);
-                    });
+                    TimerManager.startSessionTimeout(clientId);
                 }
                 if (session.normalDisconnection()) {
                     // 收到DISCONNECT报文而断开的连接属于正常断开，不发送遗嘱消息，仅异常断开的连接发送遗嘱消息
@@ -83,23 +80,16 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         String clientId = session.getClientId();
         Message willMessage = messageStore.getWillMessage(clientId);
         if (willMessage != null) {
-            Consumer<Message> consumer = message -> {
-                log.info("will message published, clientId: {}", clientId);
-                innerMessageDispatcher.appendMessage(message);
-                Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
+            if (session.isMqtt5()) {
+                TimerManager.startWillTimeout(clientId, willMessage);
+            } else {
+                innerMessageDispatcher.appendMessage(willMessage);
+                Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
                     if ((boolean) retain) {
-                        log.info("will message store as retain, clientId: {}", clientId);
-                        messageStore.storeRetainMessage((String) message.getHeader(MessageHeader.TOPIC), message);
+                        messageStore.storeRetainMessage((String) willMessage.getHeader(MessageHeader.TOPIC), willMessage);
                     }
                 });
                 messageStore.clearWillMessage(clientId);
-            };
-            if (session.isMqtt5()) {
-                TimerManager.startWillTimeout(clientId, willMessage, timerBO -> {
-                    consumer.accept((Message) timerBO.getData());
-                });
-            } else {
-                consumer.accept(willMessage);
             }
         }
     }

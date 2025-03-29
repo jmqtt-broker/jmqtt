@@ -79,7 +79,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE IF NOT EXISTS `jmqtt_broker`
 (
-    `id`           bigint(20)       NOT NULL COMMENT '主键',
+    `id`           bigint(20)   NOT NULL COMMENT '主键',
     `broker_id`    varchar(100) NOT NULL COMMENT 'broker唯一标识',
     `ip`           varchar(20)  NOT NULL COMMENT 'ip地址',
     `tcp_port`     int          NOT NULL COMMENT 'tcp端口',
@@ -87,16 +87,30 @@ CREATE TABLE IF NOT EXISTS `jmqtt_broker`
     `ws_port`      int          NOT NULL COMMENT 'websocket端口',
     `ws_port_ssl`  int          NOT NULL COMMENT 'websocket ssl端口',
     `status`       tinyint      NULL COMMENT '是否在线',
-    `online_at`    bigint(20)     NULL COMMENT '上线时间',
-    `offline_at`   bigint(20)     NULL COMMENT '离线时间',
+    `online_at`    bigint(20)   NULL COMMENT '上线时间',
+    `offline_at`   bigint(20)   NULL COMMENT '离线时间',
     PRIMARY KEY (`id`),
     UNIQUE INDEX `IDX_BROKER_ID` (`broker_id`) USING BTREE
 );
 
 CREATE TABLE IF NOT EXISTS `broker_config`
 (
-    `id`        bigint(20)       NOT NULL COMMENT '主键',
+    `id`        bigint(20)   NOT NULL COMMENT '主键',
     `broker_id` varchar(100) NOT NULL COMMENT 'broker唯一标识',
     `config`    json         NOT NULL COMMENT '配置详情',
     PRIMARY KEY (`id`)
 );
+
+CREATE TABLE IF NOT EXISTS `schedule_task`
+(
+    `timer_id`  varchar(64) COLLATE utf8mb4_general_ci NOT NULL COMMENT 'timerId，与任务类型组合唯一',
+    `type`      varchar(20) COLLATE utf8mb4_general_ci NOT NULL COMMENT '任务类型，如session过期任务',
+    `expire_at` bigint                                 NOT NULL COMMENT '过期时间点（时间戳）',
+    `expire`    int                                    NOT NULL COMMENT '有效时间（秒）',
+    `data`      text COLLATE utf8mb4_general_ci        NOT NULL COMMENT '关联数据',
+    `cycle`     tinyint                                NOT NULL COMMENT '是否为周期任务',
+    `exec`      tinyint                                NOT NULL COMMENT '是否需要执行',
+    PRIMARY KEY (`timer_id`, `type`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_general_ci;

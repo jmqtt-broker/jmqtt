@@ -3,59 +3,116 @@ package org.jmqtt.broker.common.helper;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import lombok.extern.slf4j.Slf4j;
+import org.jmqtt.broker.store.local.LocalDB;
+import org.jmqtt.broker.store.local.mapper.LocalScheduleTaskMapper;
+import org.jmqtt.broker.store.local.model.TimerDO;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 @Slf4j
 public class ScheduleManager {
 
-    private static final HashedWheelTimer SCHEDULER = new HashedWheelTimer(
-            new ThreadFactoryImpl("JMQTT_Schedule_thread"),
-            100,
-            TimeUnit.MILLISECONDS,
-            512,
-            true
-    );
+    private final HashedWheelTimer hashedWheelTimer;
 
-    private static final Map<TimerBO, Timeout> CALLBACK_MAP = new ConcurrentHashMap<>();
+    private final Map<TimerBO, TimerBO> timeroutCache;
+
+    private static AtomicBoolean load = new AtomicBoolean(false);
+
+    private static final ScheduleManager SCHEDULER = new ScheduleManager();
+
+    private ScheduleManager() {
+        this.hashedWheelTimer = new HashedWheelTimer(
+                new ThreadFactoryImpl("JMQTT_Schedule_thread"),
+                100,
+                TimeUnit.MILLISECONDS,
+                512,
+                true
+        );
+        this.timeroutCache = new ConcurrentHashMap<>();
+    }
+
+    public static ScheduleManager getInstance() {
+        if (load.compareAndSet(false, true)) {
+            SCHEDULER.loadTask();
+        }
+        return SCHEDULER;
+    }
+
+    public void loadTask() {
+        // 系统故障或重启，从本地恢复重启前的调度任务
+        List<TimerDO> tasks = (List<TimerDO>) LocalDB.getInstance().operate(session ->
+                session.getMapper(LocalScheduleTaskMapper.class).getAll());
+        tasks.forEach(timerDO -> {
+            long remain = timerDO.getExpireAt() - System.currentTimeMillis();
+            Boolean exec = timerDO.getExec();
+            TimerBO timerBO = new TimerBO(timerDO);
+            if (remain > 0) {
+                if (exec != null && exec) {
+                    addTask(timerBO);
+                }
+            } else {
+                if (exec != null && exec) {
+                    timerBO.process();
+                    LocalDB.getInstance().operate(session ->
+                            session.getMapper(LocalScheduleTaskMapper.class).del(timerBO.getTimerId(), timerBO.getType().name()));
+                }
+            }
+        });
+    }
 
     /**
-     * 添加定时任务
+     * 添加调度任务
      *
      * @param timerBO 任务
      */
-    public static void addScheduled(TimerBO timerBO) {
-        Timeout expired = SCHEDULER.newTimeout(timeout -> {
-            try {
-                timerBO.process();
-            } catch (Exception e) {
-                log.error("scheduled error.", e);
+    public void addTask(TimerBO timerBO) {
+        if (!timerBO.getCycle()) {
+            LocalDB.getInstance().operate(session ->
+                    session.getMapper(LocalScheduleTaskMapper.class).storeTask(new TimerDO(timerBO)));
+        }
+        Timeout expired = this.hashedWheelTimer.newTimeout(timeout -> {
+            timerBO.process();
+            if (timerBO.getCycle()) {
+                addTask(timerBO);
+            } else {
+                LocalDB.getInstance().operate(session ->
+                        session.getMapper(LocalScheduleTaskMapper.class)
+                                .del(timerBO.getTimerId(), timerBO.getType().name()));
             }
-            Timeout nextTimeout = SCHEDULER.newTimeout(timeout.task(), timerBO.getExpire(), TimeUnit.SECONDS);
-            CALLBACK_MAP.put(timerBO, nextTimeout);
         }, timerBO.getExpire(), TimeUnit.SECONDS);
-        CALLBACK_MAP.put(timerBO, expired);
+        timerBO.setTimeout(expired);
+        timeroutCache.putIfAbsent(timerBO, timerBO);
+    }
+
+    /**
+     * 添加定时任务
+     * @param timerBO   任务
+     */
+    public void addSchedule(TimerBO timerBO) {
+        timerBO.setCycle(true);
+        LocalDB.getInstance().operate(session ->
+                session.getMapper(LocalScheduleTaskMapper.class).storeTask(new TimerDO(timerBO)));
+        addTask(timerBO);
     }
 
     /**
      * 添加延时任务
      *
-     * @param timerBO 任务
+     * @param timerBO   任务
      */
-    public static void addDelay(TimerBO timerBO) {
-        Timeout expired = SCHEDULER.newTimeout(timeout -> {
-            CALLBACK_MAP.remove(timerBO);
-            timerBO.process();
-        }, timerBO.getExpire(), TimeUnit.SECONDS);
-        CALLBACK_MAP.put(timerBO, expired);
+    public void addDelay(TimerBO timerBO) {
+        timerBO.setCycle(false);
+        addTask(timerBO);
     }
 
-    public static void simpleDelay(Consumer<Timeout> execute, long seconds) {
-        SCHEDULER.newTimeout(execute::accept, seconds, TimeUnit.SECONDS);
+    public void simpleDelay(Consumer<Timeout> execute, long seconds) {
+        this.hashedWheelTimer.newTimeout(execute::accept, seconds, TimeUnit.SECONDS);
     }
 
     /**
@@ -64,24 +121,21 @@ public class ScheduleManager {
      * @param timerBO 任务
      * @return 成功失败
      */
-    public static boolean cancel(TimerBO timerBO) {
-        Timeout timeout = CALLBACK_MAP.remove(timerBO);
-        if (timeout != null) {
-            return timeout.cancel();
+    public boolean cancel(TimerBO timerBO) {
+        TimerBO timer = this.timeroutCache.remove(timerBO);
+        if (timer != null) {
+            Timeout timeout = timer.getTimeout();
+            if (timeout != null) {
+                LocalDB.getInstance().operate(session ->
+                        session.getMapper(LocalScheduleTaskMapper.class).del(timerBO.getTimerId(), timerBO.getType().name()));
+                return timeout.cancel();
+            }
         }
         return false;
     }
 
-    public static void executeImmediately(TimerBO timerBO) {
-        Timeout timeout = CALLBACK_MAP.remove(timerBO);
-        try {
-            if (timeout != null && !timeout.isCancelled()) {
-                timeout.task().run(timeout);
-                timeout.cancel();
-            }
-        } catch (Exception e) {
-            log.error("executeImmediately error.", e);
-        }
+    public TimerBO getTimerData(TimerBO timerBO) {
+        return this.timeroutCache.get(timerBO);
     }
 
 }

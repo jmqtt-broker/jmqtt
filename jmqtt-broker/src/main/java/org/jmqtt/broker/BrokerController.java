@@ -124,7 +124,7 @@ public class BrokerController {
 
         this.channelEventListener = channelEventListener != null ? channelEventListener : MixAll.pluginInit(brokerConfig.getChannelEventListener(),
                 new Class[]{SessionStore.class, MessageStore.class, InnerMessageDispatcher.class},
-                new Object[]{sessionStore, messageStore, subscriptionMatcher, innerMessageDispatcher});
+                new Object[]{sessionStore, messageStore, innerMessageDispatcher});
         this.remotingServer = new NettyRemotingServer(brokerConfig, nettyConfig, channelEventListener);
 
         {
@@ -266,7 +266,7 @@ public class BrokerController {
         LogUtil.info(log, "JMqtt Server start success.");
 
         // 向keeper节点广播本节点上线消息
-        ScheduleManager.simpleDelay(timeout -> brokerOnline(), 3);
+        ScheduleManager.getInstance().simpleDelay(timeout -> brokerOnline(), 3);
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
     }
 

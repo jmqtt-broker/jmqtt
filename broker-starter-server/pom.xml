@@ -45,7 +45,26 @@
                     <mainClass>org.jmqtt.starter.BrokerApplication</mainClass>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.4.12</version>
+                <configuration>
+<!--                    <imageName>${project.artifactId}:${project.version}.jar</imageName>-->
+                    <imageName>hello</imageName>
+                    <dockerHost>http://rdb.jmqtt.com:2375</dockerHost>
+                    <dockerDirectory>${project.basedir}/src/main/docker</dockerDirectory>
+                    <resources>
+                        <resource>
+                            <targetPath>/</targetPath>
+                            <directory>${project.build.directory}</directory>
+                            <include>${project.build.finalName}.jar</include>
+                        </resource>
+                    </resources>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
 
 </project>
