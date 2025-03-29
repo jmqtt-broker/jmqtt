@@ -7,7 +7,7 @@ import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.common.helper.CaffeineUtil;
-import org.jmqtt.broker.common.helper.TimerManager;
+import org.jmqtt.broker.common.helper.TimerUtils;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
@@ -73,7 +73,7 @@ public interface SessionStore {
                 TopicAliasManager.clear(clientId);
                 clearClientProperty(clientId);
                 // 会话到期了，如果存在延迟未发送的遗嘱消息，此时需要立即发送
-                TimerManager.sendWillImmediately(clientId);
+                TimerUtils.sendWillImmediately(clientId);
             }
         });
         Set<Subscription> subscriptions = getSubscriptions(clientId);

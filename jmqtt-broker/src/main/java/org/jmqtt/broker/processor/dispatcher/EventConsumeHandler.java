@@ -3,12 +3,10 @@ package org.jmqtt.broker.processor.dispatcher;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
-import org.jmqtt.broker.common.helper.TimerManager;
+import org.jmqtt.broker.common.helper.TimerUtils;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.broker.common.model.MessageHeader;
-import org.jmqtt.broker.common.model.Topic;
 import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.dispatcher.event.EventHandler;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
@@ -110,8 +108,8 @@ public class EventConsumeHandler {
         }
         String clientId = (String) event.getBody();
         if (!ConnectManager.getInstance().containClient(clientId)) {
-            TimerManager.sessionTimeoutImmediately(clientId);
-            TimerManager.stopWillTimeout(clientId);
+            TimerUtils.sessionTimeoutImmediately(clientId);
+            TimerUtils.stopWillTimeout(clientId);
             return;
         }
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);

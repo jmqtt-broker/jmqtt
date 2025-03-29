@@ -14,10 +14,10 @@
  jmqtt:
       broker:
         # 是否开启匿名访问、默认登录账号、默认登录密码，可通过重写AuthValid来校验登录
-        anonymous-enable: true
+        anonymous-enable: false
         # mqtt的登录账号和密码，默认admin/admin，可通过重写AuthValid来校验登录
-        user: admin
-        pwd: admin
+        user: jmqtt
+        pwd: jmqtt
         mqtt5:
           # 是否使用服务端心跳周期
           use-server-keepalive: false
@@ -83,9 +83,13 @@
           enable: false
           # 当前Akka集群系统名称
           system-name: JMqttDispatcherSystem
-          # 当前节点在集群中的ip和端口
+          # 其他节点可访问的ip和port，内网或docker环境部署时，填宿主机ip、port，或公网可访问到的地址也可以
           host: 127.0.0.1
           port: 25251
+          # 服务监听的ip，为空时默认为0.0.0.0，监听所有地址
+          bind-host: ${akka-bind-host:}
+          # 服务绑定的本地端口，为空时取akka.port
+          bind-port: ${akka-bind-port:25251}
           # Akka集群种子节点列表，最好配置至少两个种子节点。
           cluster-nodes:
             - 127.0.0.1:25251

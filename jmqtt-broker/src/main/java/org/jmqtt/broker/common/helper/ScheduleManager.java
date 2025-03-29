@@ -54,10 +54,13 @@ public class ScheduleManager {
             TimerBO timerBO = new TimerBO(timerDO);
             if (remain > 0) {
                 if (exec != null && exec) {
+                    timerBO.setExpire((int) remain / 1000);
+                    log.info("restore task: {}, {}, expire after: {}", timerBO.getType(), timerBO.getTimerId(), timerBO.getExpire());
                     addTask(timerBO);
                 }
             } else {
                 if (exec != null && exec) {
+                    log.info("restore task: {}, {}, expired, execute callback.", timerBO.getType(), timerBO.getTimerId());
                     timerBO.process();
                     LocalDB.getInstance().operate(session ->
                             session.getMapper(LocalScheduleTaskMapper.class).del(timerBO.getTimerId(), timerBO.getType().name()));
@@ -95,6 +98,7 @@ public class ScheduleManager {
      * @param timerBO   任务
      */
     public void addSchedule(TimerBO timerBO) {
+        log.info("start schedule task: {}, {}, expire: {}", timerBO.getType(), timerBO.getTimerId(), timerBO.getExpire());
         timerBO.setCycle(true);
         LocalDB.getInstance().operate(session ->
                 session.getMapper(LocalScheduleTaskMapper.class).storeTask(new TimerDO(timerBO)));
@@ -107,6 +111,7 @@ public class ScheduleManager {
      * @param timerBO   任务
      */
     public void addDelay(TimerBO timerBO) {
+        log.info("start delay task: {}, {}, expire: {}", timerBO.getType(), timerBO.getTimerId(), timerBO.getExpire());
         timerBO.setCycle(false);
         addTask(timerBO);
     }
@@ -126,6 +131,7 @@ public class ScheduleManager {
         if (timer != null) {
             Timeout timeout = timer.getTimeout();
             if (timeout != null) {
+                log.info("stop delay task:{}, {}", timerBO.getType().name(), timerBO.getTimerId());
                 LocalDB.getInstance().operate(session ->
                         session.getMapper(LocalScheduleTaskMapper.class).del(timerBO.getTimerId(), timerBO.getType().name()));
                 return timeout.cancel();

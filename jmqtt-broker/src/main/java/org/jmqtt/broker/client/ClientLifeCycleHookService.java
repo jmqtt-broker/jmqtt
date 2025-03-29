@@ -3,7 +3,7 @@ package org.jmqtt.broker.client;
 import io.netty.channel.Channel;
 import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.helper.BrokerContext;
-import org.jmqtt.broker.common.helper.TimerManager;
+import org.jmqtt.broker.common.helper.TimerUtils;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
@@ -22,7 +22,6 @@ import org.jmqtt.broker.store.SessionStore;
 import org.slf4j.Logger;
 
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public class ClientLifeCycleHookService implements ChannelEventListener {
 
@@ -53,7 +52,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                     sessionStore.clearSession(clientId, false);
                 } else {
                     offlineSession(session);
-                    TimerManager.startSessionTimeout(clientId);
+                    TimerUtils.startSessionTimeout(clientId);
                 }
                 if (session.normalDisconnection()) {
                     // 收到DISCONNECT报文而断开的连接属于正常断开，不发送遗嘱消息，仅异常断开的连接发送遗嘱消息
@@ -81,7 +80,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         Message willMessage = messageStore.getWillMessage(clientId);
         if (willMessage != null) {
             if (session.isMqtt5()) {
-                TimerManager.startWillTimeout(clientId, willMessage);
+                TimerUtils.startWillTimeout(clientId, willMessage);
             } else {
                 innerMessageDispatcher.appendMessage(willMessage);
                 Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {

@@ -17,7 +17,7 @@ public class TimerBO {
 
     private String timerId;
 
-    private TimerManager.TimerType type;
+    private TimerUtils.TimerType type;
 
     private Object data;
 
@@ -31,22 +31,22 @@ public class TimerBO {
 
     private Boolean exec;
 
-    public TimerBO(String timerId, TimerManager.TimerType type) {
+    public TimerBO(String timerId, TimerUtils.TimerType type) {
         this.timerId = timerId;
         this.type = type;
     }
 
-    public TimerBO(String timerId, TimerManager.TimerType type, Object data, int expire) {
+    public TimerBO(String timerId, TimerUtils.TimerType type, Object data, int expire) {
         this.timerId = timerId;
         this.type = type;
         this.data = data;
         this.expire = expire;
-        this.expireAt = System.currentTimeMillis() + this.expire;
+        this.expireAt = System.currentTimeMillis() + this.expire * 1000;
     }
 
     public TimerBO(TimerDO timerDO) {
         this.timerId = timerDO.getTimerId();
-        this.type = TimerManager.TimerType.valueOf(timerDO.getType());
+        this.type = TimerUtils.TimerType.valueOf(timerDO.getType());
         this.expire = timerDO.getExpire();
         this.expireAt = timerDO.getExpireAt();
         JSONObject dataObj = JSONObject.parseObject(timerDO.getData());
@@ -66,7 +66,7 @@ public class TimerBO {
     }
 
     public void process() {
-        TimerManager.afterExpire(this.type, this.data);
+        TimerUtils.afterExpire(this.type, this.data);
     }
 
 }

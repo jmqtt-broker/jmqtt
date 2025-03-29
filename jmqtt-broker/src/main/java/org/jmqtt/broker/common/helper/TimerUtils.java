@@ -12,38 +12,25 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 @Slf4j
-public class TimerManager {
+public class TimerUtils {
 
     private final static Map<TimerType, Consumer<Object>> timeoutHook = new HashMap<>();
 
     static {
-        timeoutHook.put(TimerType.SESSION, obj -> TimerManager.sessionTimeout((String) obj));
-        timeoutHook.put(TimerType.WILL, obj -> TimerManager.willTimeout((Message) obj));
-    }
-
-    private static void start(TimerBO task) {
-        int expire = task.getExpire();
-        log.info("start delay task: {}, {}, expire: {}", task.getType(), task.getTimerId(), expire);
-        ScheduleManager.getInstance().addDelay(task);
-    }
-
-    private static void stop(TimerBO task) {
-        boolean cancel = ScheduleManager.getInstance().cancel(task);
-        if (cancel) {
-            log.info("stop delay task:{}, {}", task.getType().name(), task.getTimerId());
-        }
+        timeoutHook.put(TimerType.SESSION, obj -> TimerUtils.sessionTimeout((String) obj));
+        timeoutHook.put(TimerType.WILL, obj -> TimerUtils.willTimeout((Message) obj));
     }
 
     public static void startSessionTimeout(String clientId) {
         int expire = Mqtt5Utils.timeoutSecond(clientId);
         if (expire > 0) {
             TimerBO task = new TimerBO(clientId, TimerType.SESSION, clientId, expire);
-            start(task);
+            ScheduleManager.getInstance().addDelay(task);
         }
     }
 
     public static void stopSessionTimeout(String clientId) {
-        stop(new TimerBO(clientId, TimerType.SESSION));
+        ScheduleManager.getInstance().cancel(new TimerBO(clientId, TimerType.SESSION));
     }
 
     public static void sessionTimeoutImmediately(String clientId) {
@@ -57,11 +44,11 @@ public class TimerManager {
             willDelay = (Integer) Optional.ofNullable(properties.get(MqttProperties.MqttPropertyType.WILL_DELAY_INTERVAL.value())).orElse(0);
         }
         TimerBO task = new TimerBO(clientId, TimerType.WILL, will, willDelay);
-        start(task);
+        ScheduleManager.getInstance().addDelay(task);
     }
 
     public static void stopWillTimeout(String clientId) {
-        stop(new TimerBO(clientId, TimerType.WILL));
+        ScheduleManager.getInstance().cancel(new TimerBO(clientId, TimerType.WILL));
     }
 
     public static void sendWillImmediately(String clientId) {

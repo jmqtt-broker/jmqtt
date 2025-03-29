@@ -7,7 +7,7 @@ import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.acl.AuthValid;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
-import org.jmqtt.broker.common.helper.TimerManager;
+import org.jmqtt.broker.common.helper.TimerUtils;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
@@ -141,8 +141,8 @@ public class ConnectProcessor implements RequestProcessor {
                         sessionPresent = true;
                     }
                     if (mqtt5) {
-                        TimerManager.stopSessionTimeout(clientId);
-                        TimerManager.stopWillTimeout(clientId);
+                        TimerUtils.stopSessionTimeout(clientId);
+                        TimerUtils.stopWillTimeout(clientId);
                     }
                 }
                 // 处理will消息
