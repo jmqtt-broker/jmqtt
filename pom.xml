@@ -7,7 +7,7 @@
     <groupId>io.github.jmqtt-broker</groupId>
     <artifactId>jmqtt</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <url>https://github.com/zt422680855/jmqtt.git</url>
     <description>高性能mqtt broker，支持mqtt5</description>
 
@@ -36,7 +36,6 @@
         <module>jmqtt-broker</module>
         <module>jmqtt-springboot-starter</module>
         <module>broker-starter-server</module>
-        <module>jmqtt-keeper</module>
         <module>jmqtt-common</module>
     </modules>
 
