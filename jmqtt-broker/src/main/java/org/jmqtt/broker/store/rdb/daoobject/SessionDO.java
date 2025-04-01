@@ -20,10 +20,14 @@ public class SessionDO implements Serializable {
 
     private String state;
 
+    private Long onlineTime;
+
     private Long offlineTime;
 
     private String property;
 
     private Integer version;
+
+    private String address;
 
 }

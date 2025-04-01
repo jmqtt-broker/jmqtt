@@ -51,11 +51,10 @@ public interface SessionStore {
     /**
      * 1. 保存会话到 Jmqtt集群
      * 2. 通知集群其它服务器，把该连接的本地会话信息清理掉
-     * @param clientId      clientId
      * @param sessionState  sessionState
      * @return  return
      */
-    boolean storeSession(String clientId,SessionState sessionState);
+    boolean storeSession(SessionState sessionState);
 
     /**
      * 清理会话信息：
@@ -64,10 +63,15 @@ public interface SessionStore {
      *  3. 订阅关系
      *  4. 订阅状态{@link SessionState}
      * @param clientId          clientId
-     * @param clearOfflineMsg   clearOfflineMsg
+     * @param cleanStart   cleanStart
      */
-    default void clearSession(String clientId,boolean clearOfflineMsg){
+    default void clearSession(String clientId, boolean cleanStart){
         SessionState session = getSession(clientId);
+        long onlineTime = session.getOnlineTime();
+        long cur = System.currentTimeMillis();
+        if (session.getState() == SessionState.StateEnum.ONLINE && (onlineTime > 0 && cur < onlineTime)) {
+            return;
+        }
         Optional.ofNullable(session.getVersion()).ifPresent(v -> {
             if (v == MqttVersion.MQTT_5.protocolLevel()) {
                 TopicAliasManager.clear(clientId);
@@ -76,18 +80,20 @@ public interface SessionStore {
                 TimerUtils.sendWillImmediately(clientId);
             }
         });
-        Set<Subscription> subscriptions = getSubscriptions(clientId);
-        if (!subscriptions.isEmpty()) {
-            subscriptions.forEach(s -> BrokerContext.getSubscriptionMatcher().unSubscribe(s.getTopic(), clientId));
+        if (cleanStart) {
+            clearOfflineMsg(clientId);
+            clearSubscriptionAndSubTree(clientId);
+        } else {
+            clearSubscription(clientId);
         }
-        clearSubscription(clientId);
         releaseInflowMsg(clientId, null);
         releaseOutflowMsg(clientId, null);
         releaseOutflowSecMsgId(clientId, null);
-        if (clearOfflineMsg) {
-            clearOfflineMsg(clientId);
-        }
-        storeSession(clientId,new SessionState(SessionState.StateEnum.NULL));
+        SessionState update = new SessionState(clientId, SessionState.StateEnum.NULL);
+        update.setOnlineTime(session.getOnlineTime());
+        update.setVersion(session.getVersion());
+        update.setAddress(session.getAddress());
+        storeSession(update);
         ConnectManager.getInstance().removeClient(clientId);
     }
 
@@ -113,6 +119,14 @@ public interface SessionStore {
      * @return  return
      */
     boolean clearSubscription(String clientId);
+
+    default void clearSubscriptionAndSubTree(String clientId) {
+        Set<Subscription> subscriptions = getSubscriptions(clientId);
+        if (!subscriptions.isEmpty()) {
+            subscriptions.forEach(s -> BrokerContext.getSubscriptionMatcher().unSubscribe(s.getTopic(), clientId));
+        }
+        clearSubscription(clientId);
+    }
 
     /**
      * 获取该clientId的所有的订阅关系

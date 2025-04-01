@@ -25,31 +25,32 @@ public class SessionState {
 
     private StateEnum state;
 
+    private long onlineTime;
+
     private long offlineTime;
 
     private Map<Integer, Object> propertyMap;
 
     private Integer version;
 
-    public SessionState(StateEnum state) {
+    private String address;
+
+    public SessionState(String clientId, StateEnum state) {
+        this.clientId = clientId;
         this.state = state;
     }
 
-    public SessionState(StateEnum state, Integer version) {
+    public SessionState(StateEnum state, String clientId, Integer version, String address, long onlineTime) {
         this.state = state;
+        this.clientId = clientId;
+        this.onlineTime = onlineTime;
         this.version = version;
+        this.address = address;
     }
 
     public SessionState(StateEnum state, long offlineTime, Integer version) {
         this.state = state;
         this.offlineTime = offlineTime;
-        this.version = version;
-    }
-
-    public SessionState(StateEnum state, long offlineTime, Map<Integer, Object> propertyMap, Integer version) {
-        this.state = state;
-        this.offlineTime = offlineTime;
-        this.propertyMap = propertyMap;
         this.version = version;
     }
 

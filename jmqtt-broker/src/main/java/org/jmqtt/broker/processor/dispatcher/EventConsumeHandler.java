@@ -7,6 +7,7 @@ import org.jmqtt.broker.common.helper.TimerUtils;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
+import org.jmqtt.broker.common.model.SessionConnect;
 import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.dispatcher.event.EventHandler;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
@@ -106,7 +107,8 @@ public class EventConsumeHandler {
             LogUtil.debug(log, "Event from current node,ignore the event,fromBroker:{}", event.getFromBroker());
             return;
         }
-        String clientId = (String) event.getBody();
+        SessionConnect sc = (SessionConnect) event.getBody();
+        String clientId = sc.getClientId();
         if (!ConnectManager.getInstance().containClient(clientId)) {
             TimerUtils.sessionTimeoutImmediately(clientId);
             TimerUtils.stopWillTimeout(clientId);
@@ -114,7 +116,7 @@ public class EventConsumeHandler {
         }
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
         Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E);
-        sessionStore.clearSession(clientId, false);
+        sessionStore.clearSession(clientId, sc.getCleanStart());
     }
 
 }

@@ -5,16 +5,22 @@ package org.jmqtt.broker.acl;
  */
 public interface AuthValid {
 
-    void start();
+    default void start() {
 
-    void shutdown();
+    }
+
+    default void shutdown() {
+
+    }
 
     /**
      * verify the clientId whether it meets the requirements or not
      * @param clientId  客户端clientId
      * @return  返回值
      */
-    boolean clientIdVerify(String clientId);
+    default boolean clientIdVerify(String clientId) {
+        return true;
+    }
 
     /**
      * if the client is on blacklist,is not allowed to connect
@@ -22,7 +28,9 @@ public interface AuthValid {
      * @param clientId      客户端clientId
      * @return  返回值
      */
-    boolean onBlacklist(String remoteAddr,String clientId);
+    default boolean onBlacklist(String remoteAddr,String clientId) {
+        return true;
+    }
 
     /**
      * verify the clientId,username,password whether true or not
@@ -34,8 +42,10 @@ public interface AuthValid {
      * @param anonymousEnable   是否允许匿名登录
      * @return  返回值
      */
-    boolean authentication(String clientId,String userName,byte[] password,
-                           String defaultUser, String defaultPwd, boolean anonymousEnable);
+    default boolean authentication(String clientId,String userName,byte[] password,
+                           String defaultUser, String defaultPwd, boolean anonymousEnable) {
+        return true;
+    }
 
     /**
      * verify the client's heartbeat time whether the compliance
@@ -43,7 +53,9 @@ public interface AuthValid {
      * @param time      心跳周期
      * @return  返回值
      */
-    boolean verifyHeartbeatTime(String clientId,int time);
+    default boolean verifyHeartbeatTime(String clientId,int time) {
+        return true;
+    }
 
     /**
      * verify the clientId whether can publish message to the topic
@@ -51,7 +63,9 @@ public interface AuthValid {
      * @param topic     发布的主题
      * @return  返回值
      */
-    boolean publishVerify(String clientId,String topic);
+    default boolean publishVerify(String clientId,String topic) {
+        return true;
+    }
 
     /**
      * verify the clientId whether can subscribe the topic
@@ -59,5 +73,7 @@ public interface AuthValid {
      * @param topic     订阅的主题
      * @return  返回值
      */
-    boolean subscribeVerify(String clientId,String topic);
+    default boolean subscribeVerify(String clientId,String topic) {
+        return true;
+    }
 }

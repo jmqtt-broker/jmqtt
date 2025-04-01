@@ -12,6 +12,7 @@ import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
+import org.jmqtt.broker.common.model.SessionConnect;
 import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.exception.BrokerException;
 import org.jmqtt.broker.processor.RequestProcessor;
@@ -33,6 +34,7 @@ import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -85,7 +87,7 @@ public class ConnectProcessor implements RequestProcessor {
         byte[] password = connectMessage.payload().passwordInBytes();
         ClientSession clientSession;
         boolean sessionPresent = false;
-        SocketAddress remoteAddress = ctx.channel().remoteAddress();
+        String remoteAddress = RemotingHelper.getRemoteAddr(ctx.channel());
         MqttProperties responseProperties = new MqttProperties();
         try {
             if (!versionValid(mqttVersion)) {
@@ -94,7 +96,7 @@ public class ConnectProcessor implements RequestProcessor {
             } else if (!clientIdVerify(clientId)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED;
                 throw new BrokerException("clientId invalid.");
-            } else if (onBlackList(RemotingHelper.getRemoteAddr(ctx.channel()), clientId)) {
+            } else if (onBlackList(remoteAddress, clientId)) {
                 returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_BANNED;
                 throw new BrokerException("clientId in blacklist.");
             } else if (!authentication(clientId, userName, password, this.user, this.pwd, this.anonymousEnable)) {
@@ -106,7 +108,7 @@ public class ConnectProcessor implements RequestProcessor {
                     clientId = brokerConfig.getClientIdPrefix() + IdWorker.getId();
                     responseProperties.add(new MqttProperties.StringProperty(MqttProperties.MqttPropertyType.ASSIGNED_CLIENT_IDENTIFIER.value(), clientId));
                 }
-                // 设置心跳，并开启心跳检测
+                // 设置心跳，mqtt5中可以使用服务端设置的默认心跳时间
                 int heartbeatSec = variableHeader.keepAliveTimeSeconds();
                 if (mqtt5 && (brokerConfig.isUseServerKeepalive() || (heartbeatSec <= 0 || heartbeatSec > 600))) {
                     heartbeatSec = brokerConfig.getDefaultKeepalive();
@@ -175,8 +177,8 @@ public class ConnectProcessor implements RequestProcessor {
                         messageStore.clearWillAndWillRetain(clientId);
                     }
                 }
-                SessionState ss = new SessionState(SessionState.StateEnum.ONLINE, mqttVersion);
-                ss.setClientId(clientId);
+                SessionState ss = new SessionState(SessionState.StateEnum.ONLINE, clientId, mqttVersion,
+                        remoteAddress, System.currentTimeMillis());
                 if (mqtt5) {
                     // 返回服务端可选功能
                     optionalService(responseProperties);
@@ -186,12 +188,15 @@ public class ConnectProcessor implements RequestProcessor {
                     }
                 }
                 // 存储 session 会话
-                sessionStore.storeSession(clientId, ss);
+                sessionStore.storeSession(ss);
                 if (ClusterHelper.lightning()) {
                     ClusterHelper.reportSessionToKeeper(ss);
                 }
                 if (notifyClearOtherSession) {
-                    Event event = new Event(EventCode.CLEAR_SESSION.getCode(), clientId,
+                    SessionConnect sc = new SessionConnect();
+                    sc.setClientId(clientId);
+                    sc.setCleanStart(cleanSession);
+                    Event event = new Event(EventCode.CLEAR_SESSION.getCode(), sc,
                             System.currentTimeMillis(), BrokerContext.getBrokerId());
                     clusterEventHandler.sendEvent(event);
                 }

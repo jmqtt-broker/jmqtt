@@ -9,7 +9,6 @@ import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.common.helper.BrokerContext;
-import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;

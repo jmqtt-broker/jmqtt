@@ -49,7 +49,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         if (StringUtils.isNotEmpty(clientId)) {
             Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(session -> {
                 if (session.isCleanStart()) {
-                    sessionStore.clearSession(clientId, false);
+                    sessionStore.clearSession(clientId, true);
                 } else {
                     offlineSession(session);
                     TimerUtils.startSessionTimeout(clientId);
@@ -100,10 +100,12 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         if (exist != null) {
             sessionState.setClientId(clientId);
             sessionState.setPropertyMap(exist.getPropertyMap());
+            sessionState.setAddress(exist.getAddress());
+            sessionState.setOnlineTime(exist.getOnlineTime());
             if (ClusterHelper.lightning()) {
                 ClusterHelper.reportSessionToKeeper(sessionState);
             }
-            sessionStore.storeSession(clientId, sessionState);
+            sessionStore.storeSession(sessionState);
         }
     }
 

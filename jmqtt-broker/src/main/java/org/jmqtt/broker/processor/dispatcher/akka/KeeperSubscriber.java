@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.store.SessionState;
+import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
 import org.jmqtt.common.akka.AkkaConst;
@@ -81,17 +82,19 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         log.info("keeper receive session status, {}", body);
         if (body instanceof SessionState) {
             SessionState sessionState = (SessionState) body;
+            SessionStore sessionStore = BrokerContext.getSessionStore();
             if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
-                BrokerContext.getSessionStore().storeSession(sessionState.getClientId(), sessionState);
+                sessionStore.storeSession(sessionState);
             }
             String responsePath = letter.getResponsePath();
             if (StringUtils.isBlank(responsePath)) {
+                String clientId = sessionState.getClientId();
                 if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
                     // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回
-                    String clientId = sessionState.getClientId();
-                    Collection<Message> offlineList = BrokerContext.getSessionStore().getAllOfflineMsg(clientId);
+                    // TODO 不能一次查所有记录
+                    Collection<Message> offlineList = sessionStore.getAllOfflineMsg(clientId);
                     if (!offlineList.isEmpty()) {
-                        BrokerContext.getSessionStore().clearOfflineMsg(clientId);
+                        sessionStore.clearOfflineMsg(clientId);
                         Letter res = new Letter(ClusterHelper.getEvent(EventCode.SESSION_STATE_RESPONSE,
                                 new OfflineMessageResponse(clientId, offlineList)));
                         response(res, responsePath);

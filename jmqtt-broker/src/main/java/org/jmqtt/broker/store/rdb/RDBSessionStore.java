@@ -39,28 +39,32 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         if (s == null) {
             SessionDO sessionDO = (SessionDO) operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).getSession(clientId));
             if (sessionDO == null) {
-                return new SessionState(SessionState.StateEnum.NULL);
+                return new SessionState(clientId, SessionState.StateEnum.NULL);
             }
             String property = sessionDO.getProperty();
             s = new SessionState(sessionDO.getBrokerId(), clientId, SessionState.StateEnum.valueOf(sessionDO.getState()),
+                    sessionDO.getOnlineTime(),
                     sessionDO.getOfflineTime(),
                     StringUtils.isNotBlank(property) ? new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)) : null,
-                    sessionDO.getVersion());
+                    sessionDO.getVersion(), sessionDO.getAddress());
             sessionTable.put(clientId, s);
         }
         return s;
     }
 
     @Override
-    public boolean storeSession(String clientId, SessionState sessionState) {
+    public boolean storeSession(SessionState sessionState) {
+        String clientId = sessionState.getClientId();
         sessionTable.remove(clientId);
         SessionDO sessionDO = new SessionDO();
         sessionDO.setId(IdWorker.getId());
         sessionDO.setBrokerId(sessionState.getBrokerId());
         sessionDO.setClientId(clientId);
         sessionDO.setState(sessionState.getState().getCode());
+        sessionDO.setOnlineTime(sessionState.getOnlineTime());
         sessionDO.setOfflineTime(sessionState.getOfflineTime());
         sessionDO.setVersion(sessionState.getVersion());
+        sessionDO.setAddress(sessionState.getAddress());
         Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> sessionDO.setProperty(JSON.toJSONString(p)));
         Long id = (Long) operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).storeSession(sessionDO));
         return id != null;
