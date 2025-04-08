@@ -4,10 +4,11 @@ import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.RetainMessageDO;
+import tk.mybatis.mapper.common.Mapper;
 
 import java.util.List;
 
-public interface RetainMessageMapper {
+public interface RetainMessageMapper extends Mapper<RetainMessageDO> {
 
     @Insert("<script>" +
             "<if test=\"'${dbType}' == 'oracle'\">" +

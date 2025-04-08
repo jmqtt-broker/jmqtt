@@ -4,12 +4,15 @@ import com.alibaba.fastjson.JSONObject;
 import lombok.*;
 import org.jmqtt.broker.common.helper.TimerBO;
 
+import javax.persistence.Table;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = {"timerId", "type"})
 @ToString
+@Table(name = "schedule_task")
 public class TimerDO {
 
     private String timerId;

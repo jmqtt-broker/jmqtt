@@ -5,10 +5,11 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.SubscriptionDO;
+import tk.mybatis.mapper.common.Mapper;
 
 import java.util.List;
 
-public interface LocalSubscriptionMapper {
+public interface LocalSubscriptionMapper extends Mapper<SubscriptionDO> {
 
     @Insert("INSERT INTO jmqtt_subscription(id, client_id,topic,qos,opt) " +
             "VALUES(#{id},#{clientId},#{topic},#{qos},#{opt})" +
@@ -19,12 +20,12 @@ public interface LocalSubscriptionMapper {
     Integer clearSubscription(String clientId);
 
     @Delete("DELETE FROM jmqtt_subscription WHERE client_id = #{clientId} AND topic = #{topic}")
-    Integer delSubscription(@Param("clientId") String clientId,@Param("topic") String topic);
+    Integer delSubscription(@Param("clientId") String clientId, @Param("topic") String topic);
 
     @Select("SELECT client_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
     List<SubscriptionDO> querySubscription(String clientId);
 
     @Select("SELECT client_id,topic,qos,opt FROM jmqtt_subscription " +
             "WHERE client_id = #{clientId} and topic = #{topic}")
-    SubscriptionDO queryOneSubscription(@Param("clientId") String clientId,@Param("topic") String topic);
+    SubscriptionDO queryOneSubscription(@Param("clientId") String clientId, @Param("topic") String topic);
 }

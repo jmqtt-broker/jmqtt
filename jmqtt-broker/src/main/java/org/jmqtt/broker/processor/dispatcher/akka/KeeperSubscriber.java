@@ -186,7 +186,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
     }
 
     private void response(Letter res, String responsePath) {
-        log.info("responsePath: {}", responsePath);
+        log.debug("responsePath: {}", responsePath);
         ActorSelection selection = Adapter.toClassic(getContext().getSystem())
                 .actorSelection(responsePath);
         selection.tell(res, Adapter.toClassic(getContext().getSelf()));

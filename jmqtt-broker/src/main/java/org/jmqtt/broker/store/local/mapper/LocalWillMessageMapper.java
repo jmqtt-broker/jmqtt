@@ -4,8 +4,9 @@ import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.WillMessageDO;
+import tk.mybatis.mapper.common.Mapper;
 
-public interface LocalWillMessageMapper {
+public interface LocalWillMessageMapper extends Mapper<WillMessageDO> {
 
     @Insert("INSERT INTO jmqtt_will_message(id,client_id,content,gmt_create) VALUES(#{id},#{clientId},#{content},#{gmtCreate})" +
             " on DUPLICATE key update content = #{content},gmt_create = #{gmtCreate}")

@@ -16,16 +16,6 @@ import org.jmqtt.broker.remoting.session.ConnectManager;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * 存储客户端会话信息
- *  1. 会话是否存在, 即使会话状态其余部分为空.
- *  2. 客户端订阅信息, 包括任何订阅标识符.
- *  3. 已发送给客户端, 但是还没有完成确认的QoS等级1和QoS等级2的消息.
- *  4. 等待传输给客户端的QoS等级0(可选), QoS等级1和QoS等级2的消息.
- *  5. 从客户端收到的, 但是还没有完成确认的QoS等级2消息. 遗嘱小子和遗嘱延时间隔.
- *  6. 如果会话当前未连接, 会话结束时间和会话状态将被丢弃.
- *
- */
 public interface SessionStore {
 
     /**
@@ -37,34 +27,14 @@ public interface SessionStore {
 
     void shutdown();
 
-    /**
-     * 从集群中查询该clientId之前的连接状态
-     * @param clientId  clientId
-     * @return  return
-     */
     SessionState getSession(String clientId);
 
     default List<SessionDO> getSessionList(Collection<String> clientIds) {
         return null;
     }
 
-    /**
-     * 1. 保存会话到 Jmqtt集群
-     * 2. 通知集群其它服务器，把该连接的本地会话信息清理掉
-     * @param sessionState  sessionState
-     * @return  return
-     */
     boolean storeSession(SessionState sessionState);
 
-    /**
-     * 清理会话信息：
-     *  1. 入栈出栈中的过程消息
-     *  2. 离线消息
-     *  3. 订阅关系
-     *  4. 订阅状态{@link SessionState}
-     * @param clientId          clientId
-     * @param cleanStart   cleanStart
-     */
     default void clearSession(String clientId, boolean cleanStart){
         SessionState session = getSession(clientId);
         long onlineTime = session.getOnlineTime();

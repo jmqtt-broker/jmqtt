@@ -1,11 +1,15 @@
 package org.jmqtt.broker.store.rdb.daoobject;
 
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.io.Serializable;
 
+@Table(name = "jmqtt_event")
 public class EventDO implements Serializable {
 
     private static final long serialVersionUID = 12213213131231231L;
 
+    @Id
     private Long id;
 
     private String content;

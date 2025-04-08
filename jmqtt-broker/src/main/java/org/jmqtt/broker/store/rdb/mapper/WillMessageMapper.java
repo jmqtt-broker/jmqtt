@@ -4,8 +4,9 @@ import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.WillMessageDO;
+import tk.mybatis.mapper.common.Mapper;
 
-public interface WillMessageMapper {
+public interface WillMessageMapper extends Mapper<WillMessageDO> {
 
     @Insert("<script>" +
             "<if test=\"'${dbType}' == 'oracle'\">" +

@@ -12,12 +12,22 @@ spring:
     # mysql
     url: ${RDB_URL:jdbc:mysql://dev.jmqtt.com:3366/jmqtt?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
     username: ${RDB_USERNAME:root}
-    password: ${RDB_PASSWORD:123456}
+    password: ${RDB_PASSWORD:zhibo2022}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # postgres
+#    url: ${RDB_URL:jdbc:postgresql://dev.jmqtt.com:5432/zb_iot}
+#    username: ${RDB_USERNAME:postgres}
+#    password: ${RDB_PASSWORD:123456}
+#    driver-class-name: org.postgresql.Driver
+    # oracle
+#    url: ${rdb-url:jdbc:oracle:thin:@odb.jmqtt.com:1521:helowin}
+#    username: ${rdb-username:zhibo}
+#    password: ${rdb-password:zhibo2023}
+#    driverClassName: oracle.jdbc.driver.OracleDriver
   redis:
     host: ${redis-host:dev.jmqtt.com}
     port: ${redis-port:56379}
-    password: ${redis-password:123456}
+    password: ${redis-password:zhibo2022}
     database: 11
     jedis:
       pool:
@@ -70,7 +80,7 @@ jmqtt:
     redis:
       redis-host: rdb.jmqtt.com
       redis-port: 56379
-      redis-password: 1234556
+      redis-password: zhibo@2020
       database: 11
       max-wait-mills: 60000
       max-idle: 50
@@ -91,14 +101,14 @@ jmqtt:
       # 是否开启Akka，开启后提高吞吐，集群环境下建议开启
       # Akka作用是将一个broker节点的消息同步到其他broker节点
       # 集群环境下，store为mem时，Akka必须开启
-      enable: ${akka-enable:false}
+      enable: ${akka-enable:true}
       # 当前Akka集群系统名称
       system-name: ${akka-system-name:JMqttDispatcherSystem}
-      # 其他节点可访问的ip和port，内网或docker环境部署时，填宿主机ip、port，或公网可访问到的地址也行
-#      host: ${akka-host:127.0.0.1}
-      host: ${akka-host:server.natappfree.cc}
-#      port: ${akka-port:25251}
-      port: ${akka-port:41790}
+      # 其他节点可访问的ip和port，内网或docker环境部署时，填宿主机ip、port，或公网可访问到的地址也可以
+      host: ${akka-host:127.0.0.1}
+#      host: ${akka-host:server.natappfree.cc}
+      port: ${akka-port:25251}
+#      port: ${akka-port:41790}
       # 服务监听的ip，为空时默认为0.0.0.0，监听所有地址
       bind-host: ${akka-bind-host:}
       # 服务绑定的本地端口，为空时取akka.port
@@ -108,8 +118,9 @@ jmqtt:
       # 节点也可以当做worker节点，但不建议这么做。一个集群至少有一个keeper节点，推荐不超过2个keeper节点，因为
       # 相对于worker节点，keeper节点处理的任务较多，资源占用更大，两个节点可以保证系统高可用
       roles: ${akka-roles:keeper,worker}
-      # akka集群种子节点列表，可以只配置一个种子节点，其他节点都使用该种子节点，也可以配置多个种子节点，但列表中的第一个种子
-      # 种子节点必须启动，否则akka集群会关闭。
-      cluster-nodes: ${seed-nodes:server.natappfree.cc:2551}
+      # akka集群种子节点列表，可以只配置一个种子节点，其他节点都连接该种子节点，也可以配置多个种子节点，但列表中的第一个种子
+      # 节点必须启动，否则akka集群会关闭。
+      cluster-nodes: ${seed-nodes:127.0.0.1:25251}
+#      cluster-nodes: ${seed-nodes:192.168.1.251:2551}
 #      cluster-nodes: ${seed-nodes:h162827k90.iok.la:17420}
 

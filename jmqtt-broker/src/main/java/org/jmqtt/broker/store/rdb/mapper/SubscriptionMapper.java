@@ -5,10 +5,11 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.SubscriptionDO;
+import tk.mybatis.mapper.common.Mapper;
 
 import java.util.List;
 
-public interface SubscriptionMapper {
+public interface SubscriptionMapper extends Mapper<SubscriptionDO> {
 
     @Insert("<script>" +
             "<if test=\"'${dbType}' == 'oracle'\">" +
@@ -39,7 +40,7 @@ public interface SubscriptionMapper {
     Integer clearSubscription(String clientId);
 
     @Delete("DELETE FROM jmqtt_subscription WHERE client_id = #{clientId} AND topic = #{topic}")
-    Integer delSubscription(@Param("clientId") String clientId,@Param("topic") String topic);
+    Integer delSubscription(@Param("clientId") String clientId, @Param("topic") String topic);
 
     @Select("SELECT client_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
     List<SubscriptionDO> querySubscription(String clientId);

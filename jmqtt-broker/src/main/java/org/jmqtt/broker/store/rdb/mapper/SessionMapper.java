@@ -4,16 +4,17 @@ package org.jmqtt.broker.store.rdb.mapper;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
+import tk.mybatis.mapper.common.Mapper;
 
-public interface SessionMapper {
+public interface SessionMapper extends Mapper<SessionDO> {
 
-    @Select("select broker_id, client_id,state,online_time,offline_time, property, version, address from jmqtt_session where client_id = #{clientId}")
+    @Select("select id, broker_id, client_id,state,online_time,offline_time, property, version, address from jmqtt_session where client_id = #{clientId}")
     SessionDO getSession(String clientId);
 
     @Insert("<script>" +
             "<if test=\"'${dbType}' == 'oracle'\">" +
             "MERGE INTO JMQTT_SESSION a " +
-            "USING (SELECT #{id} AS ID, #{brokerId} AS BROKER_ID, #{clientId} AS CLIENT_ID, #{state} AS STATE, #{onlineTime} AS ONLINE_TIME " +
+            "USING (SELECT #{id} AS ID, #{brokerId} AS BROKER_ID, #{clientId} AS CLIENT_ID, #{state} AS STATE, #{onlineTime} AS ONLINE_TIME, " +
             "#{offlineTime} AS OFFLINE_TIME, #{property} AS PROPERTY, #{version} AS VERSION, #{address} AS ADDRESS FROM DUAL) b " +
             "ON (a.CLIENT_ID = b.CLIENT_ID) " +
             "WHEN MATCHED THEN " +
@@ -28,7 +29,7 @@ public interface SessionMapper {
             "on DUPLICATE key update broker_id = #{brokerId}, state = #{state},online_time = #{onlineTime},offline_time = #{offlineTime},property=#{property},version=#{version},address=#{address}" +
             "</if>" +
             "<if test=\"'${dbType}' == 'postgresql'\">" +
-            "on conflict(client_id) do update set broker_id = #{brokerId},state = #{state},online_time = #{onlineTime}offline_time = #{offlineTime},property=#{property},version=#{version},address=#{address}" +
+            "on conflict(client_id) do update set broker_id = #{brokerId},state = #{state},online_time = #{onlineTime},offline_time = #{offlineTime},property=#{property},version=#{version},address=#{address}" +
             "</if>" +
             "</if>" +
             "</script>"

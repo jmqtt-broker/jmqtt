@@ -6,10 +6,11 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.local.model.TimerDO;
+import tk.mybatis.mapper.common.Mapper;
 
 import java.util.List;
 
-public interface LocalScheduleTaskMapper {
+public interface LocalScheduleTaskMapper extends Mapper<TimerDO> {
 
     @Select("select timer_id, type, expire_at, expire, data, cycle, exec from schedule_task where timer_id = #{timerId} and type = #{type}")
     TimerDO getTask(@Param("timerId") String timerId, @Param("type") String type);

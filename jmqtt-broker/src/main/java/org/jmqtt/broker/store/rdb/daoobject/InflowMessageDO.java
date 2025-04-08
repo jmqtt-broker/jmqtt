@@ -1,11 +1,15 @@
 package org.jmqtt.broker.store.rdb.daoobject;
 
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.io.Serializable;
 
+@Table(name = "jmqtt_inflow_message")
 public class InflowMessageDO implements Serializable {
 
     private static final long serialVersionUID = 12313131231231L;
 
+    @Id
     private Long id;
 
     private Integer msgId;

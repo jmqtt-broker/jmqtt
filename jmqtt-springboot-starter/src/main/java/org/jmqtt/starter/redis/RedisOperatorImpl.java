@@ -1,14 +1,12 @@
 package org.jmqtt.starter.redis;
 
 import org.jmqtt.broker.store.redis.support.RedisOperator;
-import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStringCommands;
 import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.util.Assert;
 
 import java.util.HashMap;

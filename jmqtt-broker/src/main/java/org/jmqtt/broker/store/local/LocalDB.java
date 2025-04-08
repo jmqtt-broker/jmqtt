@@ -1,6 +1,7 @@
 package org.jmqtt.broker.store.local;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.github.pagehelper.PageInterceptor;
 import org.apache.ibatis.datasource.DataSourceFactory;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.mapping.Environment;
@@ -15,6 +16,7 @@ import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.store.local.mapper.*;
 import org.jmqtt.broker.store.rdb.DBCallback;
 import org.slf4j.Logger;
+import tk.mybatis.mapper.mapperhelper.MapperHelper;
 
 import javax.sql.DataSource;
 import java.io.InputStream;
@@ -90,6 +92,17 @@ public class LocalDB {
             configuration.addMapper(LocalBrokerMapper.class);
             configuration.addMapper(LocalScheduleTaskMapper.class);
             configuration.setMapUnderscoreToCamelCase(true);
+            // 分页插件
+            PageInterceptor pageInterceptor = new PageInterceptor();
+            Properties properties = new Properties();
+            properties.setProperty("reasonable", "true");
+            properties.setProperty("supportMethodsArguments", "true");
+            properties.setProperty("autoRuntimeDialect", "true");
+            pageInterceptor.setProperties(properties);
+            configuration.addInterceptor(pageInterceptor);
+            // 启用tkmybatis
+            MapperHelper mapperHelper = new MapperHelper();
+            mapperHelper.processConfiguration(configuration);
             this.sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
             LogUtil.info(log, "localStore store start success...");
             try {
@@ -122,6 +135,10 @@ public class LocalDB {
         try (SqlSession sqlSession = this.sqlSessionFactory.openSession(true)) {
             return dbCallback.operate(sqlSession);
         }
+    }
+
+    public <T> T getMapper(Class<T> clazz) {
+        return this.sqlSessionFactory.openSession(true).getMapper(clazz);
     }
 
 }

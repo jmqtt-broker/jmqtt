@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS `broker_config`
     PRIMARY KEY (`id`)
 );
 
+-- DROP TABLE `schedule_task`;
 CREATE TABLE IF NOT EXISTS `schedule_task`
 (
     `timer_id`  varchar(64) COLLATE utf8mb4_general_ci NOT NULL COMMENT 'timerId，与任务类型组合唯一',

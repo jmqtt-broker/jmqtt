@@ -1,4 +1,4 @@
-package org.jmqtt.starter.plugins;
+package org.jmqtt.server.plugins;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.acl.impl.DefaultAuthValid;

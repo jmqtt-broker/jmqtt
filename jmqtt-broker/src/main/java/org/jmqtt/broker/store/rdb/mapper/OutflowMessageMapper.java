@@ -5,10 +5,11 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.OutflowMessageDO;
+import tk.mybatis.mapper.common.Mapper;
 
 import java.util.List;
 
-public interface OutflowMessageMapper {
+public interface OutflowMessageMapper extends Mapper<OutflowMessageDO> {
 
     @Insert("<script>" +
             "<if test=\"'${dbType}' == 'oracle'\">" +

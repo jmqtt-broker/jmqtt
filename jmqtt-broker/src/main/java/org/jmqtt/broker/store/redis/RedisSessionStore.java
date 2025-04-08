@@ -38,7 +38,7 @@ public class RedisSessionStore implements SessionStore {
         }
         SessionState s = sessionTable.get(clientId);
         if (s == null) {
-            String sessionStr = redisOperator.get(RedisKeySupport.SESSION + clientId);
+            String sessionStr = redisOperator.hget(RedisKeySupport.SESSION, clientId);
             if (sessionStr == null) {
                 s = new SessionState(clientId, SessionState.StateEnum.NULL);
             } else {
@@ -53,7 +53,7 @@ public class RedisSessionStore implements SessionStore {
     public boolean storeSession(SessionState sessionState) {
         String clientId = sessionState.getClientId();
         sessionTable.remove(clientId);
-        return redisOperator.set(RedisKeySupport.SESSION + clientId, JSONObject.toJSONString(sessionState));
+        return redisOperator.hset(RedisKeySupport.SESSION, clientId, JSONObject.toJSONString(sessionState));
     }
 
     @Override

@@ -4,10 +4,11 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.EventDO;
+import tk.mybatis.mapper.common.Mapper;
 
 import java.util.List;
 
-public interface EventMapper {
+public interface EventMapper extends Mapper<EventDO> {
 
     @Insert("insert into jmqtt_event (id, content,gmt_create,jmqtt_ip,event_code) values "
             + "(#{id},#{content},#{gmtCreate},#{jmqttIp},#{eventCode})")

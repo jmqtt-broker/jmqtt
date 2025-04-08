@@ -4,29 +4,34 @@ import lombok.*;
 import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.common.entity.BrokerInfo;
 
+import javax.persistence.Id;
+import javax.persistence.Table;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = {"brokerId"})
+@Table(name = "jmqtt_broker")
 public class BrokerDO {
 
+    @Id
     private Long id;
 
     private String brokerId;
 
     private String ip;
 
-    private int tcpPort;
-    private int tcpPortSsl;
-    private int wsPort;
-    private int wsPortSsl;
+    private Integer tcpPort;
+    private Integer tcpPortSsl;
+    private Integer wsPort;
+    private Integer wsPortSsl;
 
     private Boolean status;
 
     private Long onlineAt;
 
-    private Long offLineAt;
+    private Long offlineAt;
 
     public BrokerDO(BrokerInfo brokerInfo) {
         this.id = IdWorker.getId();
@@ -38,7 +43,7 @@ public class BrokerDO {
         this.wsPortSsl = brokerInfo.getWsPortSsl();
         this.status = brokerInfo.getStatus();
         this.onlineAt = brokerInfo.getOnlineAt();
-        this.offLineAt = brokerInfo.getOffLineAt();
+        this.offlineAt = brokerInfo.getOffLineAt();
     }
 
 }

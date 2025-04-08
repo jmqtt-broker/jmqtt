@@ -37,6 +37,10 @@ public class RedisUtils {
         }
     }
 
+    public RedisOperator getOperator() {
+        return this.redisSupport;
+    }
+
     public void close() {
         if (start.compareAndSet(true, false) && redisSupport != null) {
             redisSupport.close();

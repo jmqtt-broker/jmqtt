@@ -5,10 +5,11 @@ import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Select;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
+import tk.mybatis.mapper.common.Mapper;
 
 import java.util.List;
 
-public interface LocalBrokerMapper {
+public interface LocalBrokerMapper extends Mapper<BrokerDO> {
 
     @Select("select id,broker_id,ip,tcp_port,tcp_port_ssl, ws_port, ws_port_ssl, status, online_at, offline_at from jmqtt_broker where broker_id = #{brokerId}")
     BrokerDO getBroker(String brokerId);
@@ -18,9 +19,9 @@ public interface LocalBrokerMapper {
 
     @Insert(
             "insert into jmqtt_broker(id,broker_id,ip,tcp_port,tcp_port_ssl, ws_port, ws_port_ssl, status, online_at, offline_at) values " +
-                    "(#{id},#{brokerId},#{ip},#{tcpPort},#{tcpPortSsl}, #{wsPort}, #{wsPortSsl}, #{status}, #{onlineAt}, #{offLineAt}) " +
+                    "(#{id},#{brokerId},#{ip},#{tcpPort},#{tcpPortSsl}, #{wsPort}, #{wsPortSsl}, #{status}, #{onlineAt}, #{offlineAt}) " +
                     "on DUPLICATE key update tcp_port = #{tcpPort},tcp_port_ssl = #{tcpPortSsl},ws_port=#{wsPort}," +
-                    "ws_port_ssl=#{wsPortSsl},status=#{status},online_at=#{onlineAt},offline_at=#{offLineAt}"
+                    "ws_port_ssl=#{wsPortSsl},status=#{status},online_at=#{onlineAt},offline_at=#{offlineAt}"
     )
     Long storeBroker(BrokerDO brokerDO);
 
