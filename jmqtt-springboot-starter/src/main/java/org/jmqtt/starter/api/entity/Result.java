@@ -28,6 +28,10 @@ public class Result<T> {
         this.msg = msg;
     }
 
+    public static <T> Result<T> ok() {
+        return new Result<>();
+    }
+
     public static <T> Result<T> ok(T data) {
         return new Result<>(data);
     }

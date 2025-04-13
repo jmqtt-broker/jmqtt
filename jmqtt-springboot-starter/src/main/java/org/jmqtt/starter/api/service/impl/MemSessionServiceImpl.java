@@ -42,11 +42,11 @@ public class MemSessionServiceImpl implements SessionService {
         Example.Criteria criteria = example.createCriteria();
         String brokerId = sessionDO.getBrokerId();
         if (StringUtils.isNotBlank(brokerId)) {
-            criteria.andEqualTo("brokerId", brokerId);
+            criteria.andLike("brokerId", "%" + brokerId + "%");
         }
         String clientId = sessionDO.getClientId();
         if (StringUtils.isNotBlank(clientId)) {
-            criteria.andEqualTo("clientId", clientId);
+            criteria.andLike("clientId", "%" + clientId + "%");
         }
         String state = sessionDO.getState();
         if (StringUtils.isNotBlank(state)) {

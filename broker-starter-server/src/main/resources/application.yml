@@ -1,5 +1,5 @@
 server:
-  port: ${server-port:8084}
+  port: ${server-port:8080}
 
 # log相关配置
 logging:
