@@ -1,11 +1,14 @@
 package org.jmqtt.starter.api.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.jmqtt.broker.common.helper.Pair;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.starter.api.entity.PageVo;
 import org.jmqtt.starter.api.entity.Result;
 import org.jmqtt.starter.api.service.BrokerService;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("jmqtt/broker")
@@ -14,9 +17,14 @@ public class BrokerInfoController {
 
     private final BrokerService brokerService;
 
-    @GetMapping("selectByBrokerId/{brokerId}")
+    @GetMapping("{brokerId}")
     public Result<BrokerDO> selectByBrokerId(@PathVariable String brokerId) {
         return Result.ok(brokerService.selectByBrokerId(brokerId));
+    }
+
+    @GetMapping("list")
+    public Result<List<Pair<String, String>>> brokerList() {
+        return Result.ok(brokerService.brokerList());
     }
 
     @GetMapping

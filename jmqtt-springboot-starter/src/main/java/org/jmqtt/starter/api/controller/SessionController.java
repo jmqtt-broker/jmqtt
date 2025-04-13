@@ -14,7 +14,7 @@ public class SessionController {
 
     private final SessionService sessionService;
 
-    @GetMapping("selectByClientId/{clientId}")
+    @GetMapping("{clientId}")
     public Result<SessionDO> selectByClientId(@PathVariable String clientId) {
         return Result.ok(sessionService.selectByClientId(clientId));
     }

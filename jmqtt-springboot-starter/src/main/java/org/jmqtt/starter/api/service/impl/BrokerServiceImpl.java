@@ -5,6 +5,7 @@ import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jmqtt.broker.common.helper.Pair;
 import org.jmqtt.broker.store.local.LocalDB;
 import org.jmqtt.broker.store.local.mapper.LocalBrokerMapper;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import tk.mybatis.mapper.entity.Example;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -31,6 +33,14 @@ public class BrokerServiceImpl implements BrokerService {
         BrokerDO brokerDO = new BrokerDO();
         brokerDO.setBrokerId(brokerId);
         return getMapper().selectOne(brokerDO);
+    }
+
+    @Override
+    public List<Pair<String, String>> brokerList() {
+        List<BrokerDO> brokerList = getMapper().selectAll();
+        return brokerList.stream().map(b ->
+            new Pair<>(b.getBrokerId(), b.getIp() + ":" + b.getTcpPort())
+        ).collect(Collectors.toList());
     }
 
     @Override
