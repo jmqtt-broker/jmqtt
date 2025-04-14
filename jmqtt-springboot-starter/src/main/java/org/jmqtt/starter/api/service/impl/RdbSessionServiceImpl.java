@@ -25,15 +25,11 @@ public class RdbSessionServiceImpl implements SessionService {
 
     private final DBUtils dbUtils;
 
-    private SessionMapper getMapper() {
-        return this.dbUtils.getMapper(SessionMapper.class);
-    }
-
     @Override
     public SessionDO selectByClientId(String clientId) {
         SessionDO sessionDO = new SessionDO();
         sessionDO.setClientId(clientId);
-        return getMapper().selectOne(sessionDO);
+        return this.dbUtils.execute(SessionMapper.class, mapper -> mapper.selectOne(sessionDO));
     }
 
     @Override
@@ -58,7 +54,7 @@ public class RdbSessionServiceImpl implements SessionService {
         }
         example.setOrderByClause("online_time desc");
         Page<SessionDO> pageInfo = PageHelper.startPage(page, pageSize);
-        List<SessionDO> dataList = getMapper().selectByExample(example);
+        List<SessionDO> dataList = this.dbUtils.execute(SessionMapper.class, mapper -> mapper.selectByExample(example));
         return new PageVo<>(dataList, pageInfo.getTotal(), page, pageSize);
     }
 }

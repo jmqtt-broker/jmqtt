@@ -32,12 +32,7 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
     @Override
     public void start(BrokerConfig brokerConfig) {
         super.start(brokerConfig);
-        Long maxId = (Long) operate(new DBCallback() {
-            @Override
-            public Object operate(SqlSession sqlSession) {
-                return getMapper(sqlSession,eventMapperClass).getMaxOffset();
-            }
-        });
+        Long maxId = operate(sqlSession -> getMapper(sqlSession,eventMapperClass).getMaxOffset());
         if (maxId == null) {
             offset.set(0);
         } else {
@@ -62,7 +57,7 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
         eventDO.setContent(desc.toJSONString());
         eventDO.setEventCode(event.getEventCode());
         eventDO.setGmtCreate(event.getSendTime());
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession,eventMapperClass).sendEvent(eventDO));
+        Long id = operate(sqlSession -> getMapper(sqlSession,eventMapperClass).sendEvent(eventDO));
         return id != null;
     }
 
@@ -76,7 +71,7 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
     public List<Event> pollEvent(int maxPollNum) {
         // offset: min -> max
         long currentOffset = offset.get();
-        List<EventDO> eventDOList = (List<EventDO>) operate(sqlSession -> getMapper(sqlSession,eventMapperClass).consumeEvent(currentOffset,maxPollNum));
+        List<EventDO> eventDOList = operate(sqlSession -> getMapper(sqlSession,eventMapperClass).consumeEvent(currentOffset,maxPollNum));
         if (eventDOList == null || eventDOList.size() == 0) {
             return Collections.emptyList();
         }

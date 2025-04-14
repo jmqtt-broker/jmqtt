@@ -12,6 +12,7 @@ import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.starter.api.entity.PageVo;
 import org.jmqtt.starter.api.service.BrokerService;
 import org.springframework.stereotype.Service;
+import tk.mybatis.mapper.common.base.select.SelectAllMapper;
 import tk.mybatis.mapper.entity.Example;
 
 import java.util.List;
@@ -24,22 +25,18 @@ public class BrokerServiceImpl implements BrokerService {
 
     private final LocalDB localDb;
 
-    private LocalBrokerMapper getMapper() {
-        return this.localDb.getMapper(LocalBrokerMapper.class);
-    }
-
     @Override
     public BrokerDO selectByBrokerId(String brokerId) {
         BrokerDO brokerDO = new BrokerDO();
         brokerDO.setBrokerId(brokerId);
-        return getMapper().selectOne(brokerDO);
+        return this.localDb.execute(LocalBrokerMapper.class, mapper -> mapper.selectOne(brokerDO));
     }
 
     @Override
     public List<Pair<String, String>> brokerList() {
-        List<BrokerDO> brokerList = getMapper().selectAll();
+        List<BrokerDO> brokerList = this.localDb.execute(LocalBrokerMapper.class, SelectAllMapper::selectAll);
         return brokerList.stream().map(b ->
-            new Pair<>(b.getBrokerId(), b.getIp() + ":" + b.getTcpPort())
+                new Pair<>(b.getBrokerId(), b.getIp() + ":" + b.getTcpPort())
         ).collect(Collectors.toList());
     }
 
@@ -61,7 +58,7 @@ public class BrokerServiceImpl implements BrokerService {
         }
         example.setOrderByClause("online_at desc");
         Page<BrokerDO> pageInfo = PageHelper.startPage(page, pageSize);
-        List<BrokerDO> dataList = getMapper().selectByExample(example);
+        List<BrokerDO> dataList = this.localDb.execute(LocalBrokerMapper.class, mapper -> mapper.selectByExample(example));
         return new PageVo<>(dataList, pageInfo.getTotal(), page, pageSize);
     }
 }

@@ -37,7 +37,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         }
         SessionState s = sessionTable.get(clientId);
         if (s == null) {
-            SessionDO sessionDO = (SessionDO) operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).getSession(clientId));
+            SessionDO sessionDO = operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).getSession(clientId));
             if (sessionDO == null) {
                 return new SessionState(clientId, SessionState.StateEnum.NULL);
             }
@@ -66,7 +66,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         sessionDO.setVersion(sessionState.getVersion());
         sessionDO.setAddress(sessionState.getAddress());
         Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> sessionDO.setProperty(JSON.toJSONString(p)));
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).storeSession(sessionDO));
+        Long id = operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).storeSession(sessionDO));
         return id != null;
     }
 
@@ -80,20 +80,20 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         Optional.ofNullable(subscription.getOption()).ifPresent(opt -> {
             subscriptionDO.setOpt(JSON.toJSONString(opt));
         });
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession, subscriptionMapperClass).storeSubscription(subscriptionDO));
+        Long id = operate(sqlSession -> getMapper(sqlSession, subscriptionMapperClass).storeSubscription(subscriptionDO));
         return id != null;
     }
 
     @Override
     public boolean clearSubscription(String clientId) {
-        Integer effectNum = (Integer) operate(sqlSession -> getMapper(sqlSession, subscriptionMapperClass).clearSubscription(clientId));
+        Integer effectNum = operate(sqlSession -> getMapper(sqlSession, subscriptionMapperClass).clearSubscription(clientId));
         LogUtil.debug(log, "[ClearSubscription] effect num:{}", effectNum);
         return true;
     }
 
     @Override
     public boolean delSubscription(String clientId, String topic) {
-        Integer effectNum = (Integer) operate(
+        Integer effectNum = operate(
                 sqlSession -> getMapper(sqlSession, subscriptionMapperClass).delSubscription(clientId, topic));
         if (effectNum != null && effectNum > 0) {
             return true;
@@ -104,7 +104,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
 
     @Override
     public Set<Subscription> getSubscriptions(String clientId) {
-        List<SubscriptionDO> subscriptionDOList = (List<SubscriptionDO>) operate(
+        List<SubscriptionDO> subscriptionDOList = operate(
                 sqlSession -> getMapper(sqlSession, subscriptionMapperClass).querySubscription(clientId));
         Set<Subscription> set = new HashSet<>();
         for (SubscriptionDO item : subscriptionDOList) {
@@ -125,7 +125,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         inflowMessageDO.setMsgId(message.getMsgId());
         inflowMessageDO.setContent(JSONObject.toJSONString(message));
         inflowMessageDO.setGmtCreate(message.getStoreTime());
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession, inflowMessageMapperClass).cacheInflowMessage(inflowMessageDO));
+        Long id = operate(sqlSession -> getMapper(sqlSession, inflowMessageMapperClass).cacheInflowMessage(inflowMessageDO));
         return id != null;
     }
 
@@ -135,12 +135,12 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
             operate(sqlSession -> getMapper(sqlSession, inflowMessageMapperClass).delInflowMessageByClientId(clientId));
             return null;
         }
-        InflowMessageDO inflowMessageDO = (InflowMessageDO) operate(
+        InflowMessageDO inflowMessageDO = operate(
                 sqlSession -> getMapper(sqlSession, inflowMessageMapperClass).getInflowMessage(clientId, msgId));
         if (inflowMessageDO == null) {
             return null;
         }
-        Integer effecuNum = (Integer) operate(
+        Integer effecuNum = operate(
                 sqlSession -> getMapper(sqlSession, inflowMessageMapperClass).delInflowMessage(inflowMessageDO.getId()));
         if (effecuNum == null || effecuNum == 0) {
             LogUtil.warn(log, "releaseInflowMsg del inflow msg error,{},{}", clientId, msgId);
@@ -150,7 +150,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
 
     @Override
     public Collection<Message> getAllInflowMsg(String clientId) {
-        List<InflowMessageDO> messageList = (List<InflowMessageDO>) operate(
+        List<InflowMessageDO> messageList = operate(
                 sqlSession -> getMapper(sqlSession, inflowMessageMapperClass).getAllInflowMessage(clientId));
         if (MixAll.isEmpty(messageList)) {
             return null;
@@ -171,13 +171,13 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         outflowMessageDO.setMsgId(message.getMsgId());
         outflowMessageDO.setContent(JSONObject.toJSONString(message));
         outflowMessageDO.setGmtCreate(message.getStoreTime());
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession, outflowMessageMapperClass).cacheOuflowMessage(outflowMessageDO));
+        Long id = operate(sqlSession -> getMapper(sqlSession, outflowMessageMapperClass).cacheOuflowMessage(outflowMessageDO));
         return id != null;
     }
 
     @Override
     public Collection<Message> getAllOutflowMsg(String clientId) {
-        List<OutflowMessageDO> messageList = (List<OutflowMessageDO>) operate(
+        List<OutflowMessageDO> messageList = operate(
                 sqlSession -> getMapper(sqlSession, outflowMessageMapperClass).getAllOutflowMessage(clientId));
         if (MixAll.isEmpty(messageList)) {
             return null;
@@ -196,12 +196,12 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
             operate(sqlSession -> getMapper(sqlSession, outflowMessageMapperClass).delOutflowMessageByClientId(clientId));
             return null;
         }
-        OutflowMessageDO outflowMessageDO = (OutflowMessageDO) operate(
+        OutflowMessageDO outflowMessageDO = operate(
                 sqlSession -> getMapper(sqlSession, outflowMessageMapperClass).getOutflowMessage(clientId, msgId));
         if (outflowMessageDO == null) {
             return null;
         }
-        Integer effecuNum = (Integer) operate(
+        Integer effecuNum = operate(
                 sqlSession -> getMapper(sqlSession, outflowMessageMapperClass).delOutflowMessage(outflowMessageDO.getId()));
         if (effecuNum == null || effecuNum == 0) {
             LogUtil.warn(log, "releaseOutflowMsg del outflow msg error,{},{}", clientId, msgId);
@@ -216,7 +216,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         outflowSecMessageDO.setClientId(clientId);
         outflowSecMessageDO.setMsgId(msgId);
         outflowSecMessageDO.setGmtCreate(System.currentTimeMillis());
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).cacheOuflowMessage(outflowSecMessageDO));
+        Long id = operate(sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).cacheOuflowMessage(outflowSecMessageDO));
         return id != null;
     }
 
@@ -226,12 +226,12 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
             operate(sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).delOutflowSecMessageByClientId(clientId));
             return true;
         }
-        OutflowSecMessageDO outflowSecMessageDO = (OutflowSecMessageDO) operate(
+        OutflowSecMessageDO outflowSecMessageDO = operate(
                 sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).getOutflowSecMessage(clientId, msgId));
         if (outflowSecMessageDO == null) {
             return false;
         }
-        Integer effecuNum = (Integer) operate(
+        Integer effecuNum = operate(
                 sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).delOutflowSecMessage(outflowSecMessageDO.getId()));
         if (effecuNum == null || effecuNum == 0) {
             LogUtil.warn(log, "releaseOutflowSecMsgId del outflow sec msg error,{},{}", clientId, msgId);
@@ -241,7 +241,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
 
     @Override
     public List<Integer> getAllOutflowSecMsgId(String clientId) {
-        return (List<Integer>) operate(sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).getAllOutflowSecMessage(clientId));
+        return operate(sqlSession -> getMapper(sqlSession, outflowSecMessageMapperClass).getAllOutflowSecMessage(clientId));
     }
 
     @Override
@@ -251,13 +251,13 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         offlineMessageDO.setClientId(clientId);
         offlineMessageDO.setContent(JSONObject.toJSONString(message));
         offlineMessageDO.setGmtCreate(message.getStoreTime());
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession, offlineMessageMapperClass).storeOfflineMessage(offlineMessageDO));
+        Long id = operate(sqlSession -> getMapper(sqlSession, offlineMessageMapperClass).storeOfflineMessage(offlineMessageDO));
         return id != 0;
     }
 
     @Override
     public Collection<Message> getAllOfflineMsg(String clientId) {
-        List<OfflineMessageDO> offlineMessageDOList = (List<OfflineMessageDO>) operate(
+        List<OfflineMessageDO> offlineMessageDOList = operate(
                 sqlSession -> getMapper(sqlSession, offlineMessageMapperClass).getAllOfflineMessage(clientId));
         if (MixAll.isEmpty(offlineMessageDOList)) {
             return null;
@@ -272,7 +272,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
 
     @Override
     public boolean clearOfflineMsg(String clientId) {
-        Integer effectNum = (Integer) operate(sqlSession -> getMapper(sqlSession, offlineMessageMapperClass).clearOfflineMessage(clientId));
+        Integer effectNum = operate(sqlSession -> getMapper(sqlSession, offlineMessageMapperClass).clearOfflineMessage(clientId));
         LogUtil.debug(log, "RDB clearOfflineMsg del nums:{}", effectNum);
         return true;
     }

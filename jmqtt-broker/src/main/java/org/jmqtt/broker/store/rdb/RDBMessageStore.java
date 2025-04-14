@@ -36,7 +36,7 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
         willMessageDO.setClientId(clientId);
         willMessageDO.setContent(JSONObject.toJSONString(message));
         willMessageDO.setGmtCreate(message.getStoreTime());
-        Long id = (Long) operate(sqlSession -> getMapper(sqlSession, willMessageMapperClass).storeWillMessage(willMessageDO));
+        Long id = operate(sqlSession -> getMapper(sqlSession, willMessageMapperClass).storeWillMessage(willMessageDO));
         return id != 0;
     }
 
@@ -48,7 +48,7 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
 
     @Override
     public Message getWillMessage(String clientId) {
-        WillMessageDO willMessageDO = (WillMessageDO) operate(sqlSession -> getMapper(sqlSession, willMessageMapperClass).getWillMessage(clientId));
+        WillMessageDO willMessageDO = operate(sqlSession -> getMapper(sqlSession, willMessageMapperClass).getWillMessage(clientId));
         if (willMessageDO == null) {
             return null;
         }
@@ -61,12 +61,7 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
         retainMessageDO.setId(IdWorker.getId());
         retainMessageDO.setTopic(topic);
         retainMessageDO.setContent(JSONObject.toJSONString(message));
-        Long id = (Long) operate(new DBCallback() {
-            @Override
-            public Object operate(SqlSession sqlSession) {
-                return getMapper(sqlSession, retainMessageMapperClass).storeRetainMessage(retainMessageDO);
-            }
-        });
+        Long id = operate(sqlSession -> getMapper(sqlSession, retainMessageMapperClass).storeRetainMessage(retainMessageDO));
         return id != 0;
     }
 
@@ -78,7 +73,7 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
 
     @Override
     public Collection<Message> getAllRetainMsg() {
-        List<RetainMessageDO> messageList = (List<RetainMessageDO>) operate(sqlSession -> getMapper(sqlSession, retainMessageMapperClass).getAllRetainMessage());
+        List<RetainMessageDO> messageList = operate(sqlSession -> getMapper(sqlSession, retainMessageMapperClass).getAllRetainMessage());
         if (MixAll.isEmpty(messageList)) {
             return null;
         }
@@ -92,7 +87,7 @@ public class RDBMessageStore extends AbstractDBStore implements MessageStore {
 
     @Override
     public Collection<Message> getRetainMsg(String topic) {
-        List<RetainMessageDO> messageList = (List<RetainMessageDO>) DBUtils.getInstance().operate(sqlSession ->
+        List<RetainMessageDO> messageList = DBUtils.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(RetainMessageMapper.class).getRetainMessage(topic.replace("+", "%").replace("#", "%"))
         );
         return messageList.stream().map(messageDo -> JSONObject.parseObject(messageDo.getContent(), Message.class)).collect(Collectors.toList());

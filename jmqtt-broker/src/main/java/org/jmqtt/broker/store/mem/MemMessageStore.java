@@ -64,7 +64,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public Message getWillMessage(String clientId) {
-        WillMessageDO msg = (WillMessageDO) LocalDB.getInstance().operate(sqlSession ->
+        WillMessageDO msg = LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalWillMessageMapper.class).getWillMessage(clientId)
         );
         if (msg != null) {
@@ -98,7 +98,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public Collection<Message> getAllRetainMsg() {
-        List<RetainMessageDO> messageList = (List<RetainMessageDO>) LocalDB.getInstance().operate(sqlSession ->
+        List<RetainMessageDO> messageList = LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalRetainMessageMapper.class).getAllRetainMessage()
         );
         List<Message> mqttMessages = new ArrayList<>(messageList.size());
@@ -112,7 +112,7 @@ public class MemMessageStore extends AbstractMemStore implements MessageStore {
 
     @Override
     public Collection<Message> getRetainMsg(String topic) {
-        List<RetainMessageDO> messageList = (List<RetainMessageDO>) LocalDB.getInstance().operate(sqlSession ->
+        List<RetainMessageDO> messageList = LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalRetainMessageMapper.class).getRetainMessage(topic.replace("+", "%").replace("#", "%"))
         );
         return messageList.stream().map(messageDo -> JSONObject.parseObject(messageDo.getContent(), Message.class)).collect(Collectors.toList());

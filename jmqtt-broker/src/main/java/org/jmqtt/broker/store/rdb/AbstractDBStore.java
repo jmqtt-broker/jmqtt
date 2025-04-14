@@ -33,7 +33,7 @@ public abstract class AbstractDBStore {
         return sqlSession.getMapper(clazz);
     }
 
-    protected Object operate(DBCallback dbCallback) {
+    protected <R> R operate(DBCallback<R> dbCallback) {
         return DBUtils.getInstance().operate(dbCallback);
     }
 

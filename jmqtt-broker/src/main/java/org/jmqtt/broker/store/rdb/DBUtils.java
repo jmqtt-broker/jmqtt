@@ -25,6 +25,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 /**
  * db 工具类
@@ -161,8 +162,7 @@ public class DBUtils {
     public void shutdown() {
     }
 
-
-    public Object operate(DBCallback dbCallback) {
+    public <R> R operate(DBCallback<R> dbCallback) {
         try (SqlSession sqlSession = this.sqlSessionFactory.openSession(true)) {
             return dbCallback.operate(sqlSession);
         }
@@ -177,7 +177,9 @@ public class DBUtils {
         return this.sqlSessionFactory.openSession(false);
     }
 
-    public <T> T getMapper(Class<T> clazz) {
-        return this.sqlSessionFactory.openSession(true).getMapper(clazz);
+    public <T, R> R execute(Class<T> clazz, Function<T, R> func) {
+        try (SqlSession sqlSession = this.sqlSessionFactory.openSession(true)) {
+            return func.apply(sqlSession.getMapper(clazz));
+        }
     }
 }

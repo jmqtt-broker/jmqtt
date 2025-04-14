@@ -25,15 +25,11 @@ public class MemSessionServiceImpl implements SessionService {
 
     private final LocalDB localDb;
 
-    private LocalSessionMapper getMapper() {
-        return this.localDb.getMapper(LocalSessionMapper.class);
-    }
-
     @Override
     public SessionDO selectByClientId(String clientId) {
         SessionDO sessionDO = new SessionDO();
         sessionDO.setClientId(clientId);
-        return getMapper().selectOne(sessionDO);
+        return this.localDb.execute(LocalSessionMapper.class, mapper -> mapper.selectOne(sessionDO));
     }
 
     @Override
@@ -58,7 +54,7 @@ public class MemSessionServiceImpl implements SessionService {
         }
         example.setOrderByClause("online_time desc");
         Page<SessionDO> pageInfo = PageHelper.startPage(page, pageSize);
-        List<SessionDO> dataList = getMapper().selectByExample(example);
+        List<SessionDO> dataList = this.localDb.execute(LocalSessionMapper.class, mapper -> mapper.selectByExample(example));
         return new PageVo<>(dataList, pageInfo.getTotal(), page, pageSize);
     }
 }

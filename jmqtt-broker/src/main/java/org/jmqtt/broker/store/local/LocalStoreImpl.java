@@ -13,18 +13,18 @@ public class LocalStoreImpl implements LocalStore {
         LocalDB.getInstance().start();
     }
 
-    protected Object operate(DBCallback callback) {
+    protected <R> R operate(DBCallback<R> callback) {
         return LocalDB.getInstance().operate(callback);
     }
 
     @Override
     public BrokerDO getBroker(String brokerId) {
-        return (BrokerDO) operate(sqlSession -> sqlSession.getMapper(LocalBrokerMapper.class).getBroker(brokerId));
+        return operate(sqlSession -> sqlSession.getMapper(LocalBrokerMapper.class).getBroker(brokerId));
     }
 
     @Override
     public List<BrokerDO> getAll() {
-        return (List<BrokerDO>) operate(sqlSession -> sqlSession.getMapper(LocalBrokerMapper.class).getAll());
+        return operate(sqlSession -> sqlSession.getMapper(LocalBrokerMapper.class).getAll());
     }
 
     @Override

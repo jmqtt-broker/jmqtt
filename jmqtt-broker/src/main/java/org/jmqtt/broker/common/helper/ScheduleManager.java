@@ -47,7 +47,7 @@ public class ScheduleManager {
     public void loadTask() {
         // 系统故障或重启，从本地恢复重启前的调度任务
         // TODO 不能一次查所有记录
-        List<TimerDO> tasks = (List<TimerDO>) LocalDB.getInstance().operate(session ->
+        List<TimerDO> tasks = LocalDB.getInstance().operate(session ->
                 session.getMapper(LocalScheduleTaskMapper.class).getAll());
         tasks.forEach(timerDO -> {
             long remain = timerDO.getExpireAt() - System.currentTimeMillis();
