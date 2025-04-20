@@ -59,4 +59,8 @@ public interface ClusterEventHandler {
 
     }
 
+    default void sendByPath(Letter letter, String path) {
+
+    }
+
 }

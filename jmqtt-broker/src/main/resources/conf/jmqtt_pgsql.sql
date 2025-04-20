@@ -112,6 +112,7 @@ COMMENT ON TABLE "jmqtt_retain_message" IS '保留消息表';
 -- ----------------------------
 -- Table structure for jmqtt_session
 -- ----------------------------
+-- DROP TABLE "jmqtt_session";
 CREATE TABLE IF NOT EXISTS "jmqtt_session"
 (
     "id" int8 NOT NULL,
@@ -123,6 +124,8 @@ CREATE TABLE IF NOT EXISTS "jmqtt_session"
     "property" varchar(500) COLLATE "pg_catalog"."default",
     "version" int8,
     "address" varchar(50) COLLATE "pg_catalog"."default",
+    "clean_start" bool,
+    "keepalive" int4 DEFAULT 0,
     CONSTRAINT "jmqtt_session_pkey" PRIMARY KEY ("id")
 )
 ;
@@ -135,6 +138,8 @@ COMMENT ON COLUMN "jmqtt_session"."offline_time" IS 'OFFLINE状态时对应的�
 COMMENT ON COLUMN "jmqtt_session"."property" IS 'mqtt5 client连接属性';
 COMMENT ON COLUMN "jmqtt_session"."version" IS 'mqtt客户端版本';
 COMMENT ON COLUMN "jmqtt_session"."address" IS '客户端地址';
+COMMENT ON COLUMN "jmqtt_session"."clean_start" IS '断开后是否清空会话';
+COMMENT ON COLUMN "jmqtt_session"."keepalive" IS '心跳周期';
 COMMENT ON TABLE "jmqtt_session" IS '客户端会话状态';
 
 -- ----------------------------

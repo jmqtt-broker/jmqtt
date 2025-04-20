@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `jmqtt_retain_message`
 -- ----------------------------
 -- Table structure for jmqtt_session
 -- ----------------------------
+-- DROP TABLE `jmqtt_session`;
 CREATE TABLE IF NOT EXISTS `jmqtt_session`
 (
     `id`           bigint(20)   NOT NULL COMMENT '主键',
@@ -43,6 +44,8 @@ CREATE TABLE IF NOT EXISTS `jmqtt_session`
     `property`     varchar(500) DEFAULT NULL COMMENT 'mqtt5 client连接属性',
     `version`      int          DEFAULT NULL COMMENT 'mqtt客户端版本',
     `address`      varchar(50)  DEFAULT NULL COMMENT '客户端地址',
+    `clean_start` tinyint DEFAULT NULL COMMENT '断开后是否清空会话',
+    `keepalive` int DEFAULT NULL COMMENT '心跳周期',
     PRIMARY KEY (`id`),
     UNIQUE KEY `s_client_id` (`client_id`)
 ) ENGINE = InnoDB

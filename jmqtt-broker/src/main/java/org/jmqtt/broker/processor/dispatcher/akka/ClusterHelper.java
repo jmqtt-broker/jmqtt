@@ -18,8 +18,14 @@ import java.util.List;
  */
 public class ClusterHelper {
 
+    /**
+     * 当前节点是否拥有keeper角色
+     */
     private static Boolean KEEPER;
 
+    /**
+     * 内存模式下，并且开启了akka，为高性能集群模式
+     */
     private static Boolean LIGHTNING;
 
     private static final BrokerConfig BROKER_CONFIG;
@@ -72,6 +78,10 @@ public class ClusterHelper {
 
     public static void sendToCluster(Event event) {
         BrokerContext.getBrokerController().getClusterEventHandler().sendEvent(event);
+    }
+
+    public static void sendByPath(Letter letter, String path) {
+        BrokerContext.getBrokerController().getClusterEventHandler().sendByPath(letter, path);
     }
 
     public static boolean reportSessionToKeeper(SessionState sessionState) {

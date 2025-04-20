@@ -72,16 +72,11 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         }
         SessionState s = sessionTable.get(clientId);
         if (s == null) {
-            SessionDO sessionDO = (SessionDO) LocalDB.getInstance().operate(sqlSession -> sqlSession.getMapper(LocalSessionMapper.class).getSession(clientId));
+            SessionDO sessionDO = LocalDB.getInstance().operate(sqlSession -> sqlSession.getMapper(LocalSessionMapper.class).getSession(clientId));
             if (sessionDO == null) {
                 return new SessionState(clientId, SessionState.StateEnum.NULL);
             }
-            String property = sessionDO.getProperty();
-            s = new SessionState(sessionDO.getBrokerId(), clientId, SessionState.StateEnum.valueOf(sessionDO.getState()),
-                    sessionDO.getOnlineTime(),
-                    sessionDO.getOfflineTime(),
-                    StringUtils.isNotBlank(property) ? new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)) : null,
-                    sessionDO.getVersion(), sessionDO.getAddress());
+            s = new SessionState(sessionDO);
             sessionTable.put(clientId, s);
         }
         return s;
@@ -89,7 +84,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public List<SessionDO> getSessionList(Collection<String> clientIds) {
-        return (List<SessionDO>) LocalDB.getInstance().operate(sqlSession -> sqlSession.getMapper(LocalSessionMapper.class).getSessionList(clientIds));
+        return LocalDB.getInstance().operate(sqlSession -> sqlSession.getMapper(LocalSessionMapper.class).getSessionList(clientIds));
     }
 
     @Override
@@ -106,6 +101,8 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
             sessionDO.setOfflineTime(sessionState.getOfflineTime());
             sessionDO.setVersion(sessionState.getVersion());
             sessionDO.setAddress(sessionState.getAddress());
+            sessionDO.setCleanStart(sessionState.getCleanStart());
+            sessionDO.setKeepalive(sessionState.getKeepalive());
             Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> sessionDO.setProperty(JSON.toJSONString(p)));
             return sqlSession.getMapper(LocalSessionMapper.class).storeSession(sessionDO);
         });
@@ -148,7 +145,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public Set<Subscription> getSubscriptions(String clientId) {
-        List<SubscriptionDO> subscriptionDOList = (List<SubscriptionDO>) LocalDB.getInstance().operate(sqlSession ->
+        List<SubscriptionDO> subscriptionDOList = LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalSubscriptionMapper.class).querySubscription(clientId)
         );
         Set<Subscription> set = new HashSet<>();
@@ -164,7 +161,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public Subscription getOneSubscription(String clientId, String topic) {
-        SubscriptionDO subscriptionDO = (SubscriptionDO) LocalDB.getInstance().operate(sqlSession ->
+        SubscriptionDO subscriptionDO = LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalSubscriptionMapper.class).queryOneSubscription(clientId, topic)
         );
         Subscription subscription = new Subscription(subscriptionDO.getClientId(), subscriptionDO.getTopic(), subscriptionDO.getQos());
@@ -334,7 +331,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
 
     @Override
     public Collection<Message> getAllOfflineMsg(String clientId) {
-        List<OfflineMessageDO> offlineMessageDOList = (List<OfflineMessageDO>) LocalDB.getInstance().operate(sqlSession ->
+        List<OfflineMessageDO> offlineMessageDOList = LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalOfflineMessageMapper.class).getAllOfflineMessage(clientId)
         );
         return offlineMessageDOList.stream().map(off -> JSONObject.parseObject(off.getContent(), Message.class)).collect(Collectors.toList());

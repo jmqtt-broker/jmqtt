@@ -178,7 +178,7 @@ public class ConnectProcessor implements RequestProcessor {
                     }
                 }
                 SessionState ss = new SessionState(SessionState.StateEnum.ONLINE, clientId, mqttVersion,
-                        remoteAddress, System.currentTimeMillis());
+                        remoteAddress, System.currentTimeMillis(), cleanSession, heartbeatSec);
                 if (mqtt5) {
                     // 返回服务端可选功能
                     optionalService(responseProperties);

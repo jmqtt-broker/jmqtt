@@ -121,14 +121,22 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                 ActorSelection selection = Adapter.toClassic(system).actorSelection(targetPath);
                 String path = Cluster.get(system).selfMember().hasRole(AkkaConst.KEEPER) ? selfPath : selfPathWithAddress;
                 selection.tell(new Letter(event, path), akka.actor.ActorRef.noSender());
-            } else {
-                log.warn("can not find keeper node.");
             }
+        } else {
+            log.warn("can not find keeper node.");
         }
     }
 
     @Override
     public void syncToKeeper(Letter letter) {
         keeperTopic.tell(Topic.publish(letter));
+    }
+
+    @Override
+    public void sendByPath(Letter letter, String path) {
+        log.debug("akka send path: {}", path);
+        ActorSelection selection = Adapter.toClassic(system)
+                .actorSelection(path);
+        selection.tell(letter, Adapter.toClassic(keeperSubscriber));
     }
 }

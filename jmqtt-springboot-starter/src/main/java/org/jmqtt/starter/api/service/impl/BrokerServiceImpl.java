@@ -12,7 +12,6 @@ import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.starter.api.entity.PageVo;
 import org.jmqtt.starter.api.service.BrokerService;
 import org.springframework.stereotype.Service;
-import tk.mybatis.mapper.common.base.select.SelectAllMapper;
 import tk.mybatis.mapper.entity.Example;
 
 import java.util.List;
@@ -34,9 +33,11 @@ public class BrokerServiceImpl implements BrokerService {
 
     @Override
     public List<Pair<String, String>> brokerList() {
-        List<BrokerDO> brokerList = this.localDb.execute(LocalBrokerMapper.class, SelectAllMapper::selectAll);
+        BrokerDO brokerDO = new BrokerDO();
+        brokerDO.setStatus(true);
+        List<BrokerDO> brokerList = this.localDb.execute(LocalBrokerMapper.class, mapper -> mapper.select(brokerDO));
         return brokerList.stream().map(b ->
-                new Pair<>(b.getBrokerId(), b.getIp() + ":" + b.getTcpPort())
+                new Pair<>(b.getBrokerId(), b.getBrokerId())
         ).collect(Collectors.toList());
     }
 

@@ -13,8 +13,12 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
@@ -203,4 +207,33 @@ public class MixAll {
             }
         }
     }
+
+    public static void copyProperties(Object source, Object target) {
+        Class<?> sClazz = source.getClass();
+        Class<?> tClazz = target.getClass();
+        Method[] sMethods = sClazz.getMethods();
+        Method[] tMethods = tClazz.getMethods();
+        Map<String, Method> sMethodMap = Arrays.stream(sClazz.getDeclaredMethods()).collect(Collectors.toMap(m -> m.getName() + "_" + m.getReturnType().getName(), Function.identity()));
+        Map<String, Method> tMethodMap = Arrays.stream(tClazz.getDeclaredMethods()).collect(Collectors.toMap(m -> m.getName() + "_" + m.getReturnType().getName(), Function.identity()));
+        for (Method method : tMethods) {
+            String methodName = method.getName();
+            if (methodName.startsWith("set")) {
+                try {
+                    Class<?>[] types = method.getParameterTypes();
+                    String type = types[0].getName();
+                    String tmp = methodName.substring(3);
+                    Method getMethod = sMethodMap.get("get" + tmp + "_" + type);
+                    if (getMethod != null) {
+                        Object value = getMethod.invoke(source);
+                        if (value != null) {
+                            method.invoke(target, value);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
 }

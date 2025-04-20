@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -48,6 +49,7 @@ public class EventConsumeHandler {
         eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
         eventHandlerMap.put(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), this::dispatcherMessage);
         eventHandlerMap.put(EventCode.DISPATCHER_WILL_MESSAGE.getCode(), this::dispatcherMessage);
+        eventHandlerMap.put(EventCode.KICK_CONNECTION.getCode(), this::kickConnection);
     }
 
     // 集群方式1: consume event from cluster
@@ -117,6 +119,16 @@ public class EventConsumeHandler {
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
         Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E);
         sessionStore.clearSession(clientId, sc.getCleanStart());
+    }
+
+    private void kickConnection(Event event) {
+        Object body = event.getBody();
+        if (body instanceof String) {
+            String clientId = (String) body;
+            Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(s -> {
+                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B);
+            });
+        }
     }
 
 }

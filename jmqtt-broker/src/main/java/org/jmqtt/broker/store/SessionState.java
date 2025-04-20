@@ -2,12 +2,17 @@
 package org.jmqtt.broker.store;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.helper.BrokerContext;
+import org.jmqtt.broker.common.helper.MixAll;
+import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -25,9 +30,9 @@ public class SessionState {
 
     private StateEnum state;
 
-    private long onlineTime;
+    private Long onlineTime;
 
-    private long offlineTime;
+    private Long offlineTime;
 
     private Map<Integer, Object> propertyMap;
 
@@ -35,23 +40,42 @@ public class SessionState {
 
     private String address;
 
+    private Boolean cleanStart;
+
+    private Integer keepalive;
+
     public SessionState(String clientId, StateEnum state) {
         this.clientId = clientId;
         this.state = state;
     }
 
-    public SessionState(StateEnum state, String clientId, Integer version, String address, long onlineTime) {
+    public SessionState(StateEnum state, String clientId, Integer version,
+                        String address, long onlineTime, Boolean cleanStart,
+                        Integer keepalive) {
         this.state = state;
         this.clientId = clientId;
         this.onlineTime = onlineTime;
         this.version = version;
         this.address = address;
+        this.cleanStart = cleanStart;
+        this.keepalive = keepalive;
     }
 
     public SessionState(StateEnum state, long offlineTime, Integer version) {
         this.state = state;
         this.offlineTime = offlineTime;
         this.version = version;
+    }
+
+    public SessionState(SessionDO sessionDO) {
+        try {
+            MixAll.copyProperties(sessionDO, this);
+            this.state = StateEnum.valueOf(sessionDO.getState());
+            String property = sessionDO.getProperty();
+            this.propertyMap = StringUtils.isNotBlank(property) ? new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)) : null;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

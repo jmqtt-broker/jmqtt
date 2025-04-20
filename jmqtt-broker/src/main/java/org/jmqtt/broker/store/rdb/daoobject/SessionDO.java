@@ -34,4 +34,8 @@ public class SessionDO implements Serializable {
 
     private String address;
 
+    private Boolean cleanStart;
+
+    private Integer keepalive;
+
 }

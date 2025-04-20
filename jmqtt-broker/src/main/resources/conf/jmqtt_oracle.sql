@@ -95,6 +95,7 @@ COMMENT ON TABLE "JMQTT_RETAIN_MESSAGE" IS '保留消息表';
 -- ----------------------------
 -- Table structure for JMQTT_SESSION
 -- ----------------------------
+-- DROP TABLE `JMQTT_SESSION`;
 CREATE TABLE "JMQTT_SESSION" (
                                  "ID" NUMBER(20,0) NOT NULL,
                                  "BROKER_ID" NVARCHAR2(100) NOT NULL,
@@ -104,7 +105,9 @@ CREATE TABLE "JMQTT_SESSION" (
                                  "OFFLINE_TIME" NUMBER(20,0),
                                  "PROPERTY" NVARCHAR2(500),
                                  "VERSION" NUMBER(11,0),
-                                 "ADDRESS" NVARCHAR2(50)
+                                 "ADDRESS" NVARCHAR2(50),
+                                 "CLEAN_START" NUMBER(1) CHECK (CLEAN_START IN (0, 1)),
+                                 "KEEPALIVE" NUMBER(11,0)
 );
 COMMENT ON COLUMN "JMQTT_SESSION"."ID" IS '主键';
 COMMENT ON COLUMN "JMQTT_SESSION"."CLIENT_ID" IS 'brokerId';
@@ -115,6 +118,8 @@ COMMENT ON COLUMN "JMQTT_SESSION"."OFFLINE_TIME" IS 'OFFLINE状态时对应的�
 COMMENT ON COLUMN "JMQTT_SESSION"."PROPERTY" IS 'mqtt5 客户端连接属性';
 COMMENT ON COLUMN "JMQTT_SESSION"."VERSION" IS 'mqtt客户端版本';
 COMMENT ON COLUMN "JMQTT_SESSION"."ADDRESS" IS '客户端地址';
+COMMENT ON COLUMN "JMQTT_SESSION"."CLEAN_START" IS '断开后是否清空会话';
+COMMENT ON COLUMN "JMQTT_SESSION"."KEEPALIVE" IS '心跳周期';
 COMMENT ON TABLE "JMQTT_SESSION" IS '客户端会话状态';
 
 -- ----------------------------

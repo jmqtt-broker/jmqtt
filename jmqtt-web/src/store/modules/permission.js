@@ -190,7 +190,7 @@ const usePermissionStore = defineStore(
               "hidden":false,
               "component":"monitor/online/index",
               "meta":{
-                "title":"在线用户",
+                "title":"客户端管理",
                 "icon":"online",
                 "noCache":false,
                 "link":null
@@ -309,18 +309,6 @@ const usePermissionStore = defineStore(
               }
             }
           ]
-        },
-        {
-          "name":"Http://ruoyi.vip",
-          "path":"http://ruoyi.vip",
-          "hidden":false,
-          "component":"Layout",
-          "meta":{
-            "title":"若依官网",
-            "icon":"guide",
-            "noCache":false,
-            "link":"http://ruoyi.vip"
-          }
         }
       ]
     }),

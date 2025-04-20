@@ -102,6 +102,8 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
             sessionState.setPropertyMap(exist.getPropertyMap());
             sessionState.setAddress(exist.getAddress());
             sessionState.setOnlineTime(exist.getOnlineTime());
+            sessionState.setCleanStart(exist.getCleanStart());
+            sessionState.setKeepalive(exist.getKeepalive());
             if (ClusterHelper.lightning()) {
                 ClusterHelper.reportSessionToKeeper(sessionState);
             }

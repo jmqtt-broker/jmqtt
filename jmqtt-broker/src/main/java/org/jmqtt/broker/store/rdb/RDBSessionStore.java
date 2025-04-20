@@ -41,12 +41,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
             if (sessionDO == null) {
                 return new SessionState(clientId, SessionState.StateEnum.NULL);
             }
-            String property = sessionDO.getProperty();
-            s = new SessionState(sessionDO.getBrokerId(), clientId, SessionState.StateEnum.valueOf(sessionDO.getState()),
-                    sessionDO.getOnlineTime(),
-                    sessionDO.getOfflineTime(),
-                    StringUtils.isNotBlank(property) ? new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)) : null,
-                    sessionDO.getVersion(), sessionDO.getAddress());
+            s = new SessionState(sessionDO);
             sessionTable.put(clientId, s);
         }
         return s;
@@ -65,6 +60,8 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         sessionDO.setOfflineTime(sessionState.getOfflineTime());
         sessionDO.setVersion(sessionState.getVersion());
         sessionDO.setAddress(sessionState.getAddress());
+        sessionDO.setCleanStart(sessionState.getCleanStart());
+        sessionDO.setKeepalive(sessionState.getKeepalive());
         Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> sessionDO.setProperty(JSON.toJSONString(p)));
         Long id = operate(sqlSession -> getMapper(sqlSession, sessionMapperClass).storeSession(sessionDO));
         return id != null;

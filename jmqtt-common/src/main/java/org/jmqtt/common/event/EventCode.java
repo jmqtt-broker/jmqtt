@@ -28,6 +28,8 @@ public enum EventCode {
 
     DISPATCHER_FOR_SHARE_SUBSCRIPTION(23, "DISPATCHER_FOR_SHARE_SUBSCRIPTION", "通知Keeper节点处理集群共享订阅消息"),
     DISPATCHER_SHARE_SUBSCRIPTION_MSG(24, "DISPATCHER_SHARE_SUBSCRIPTION_MSG", "集群共享订阅消息分发"),
+
+    KICK_CONNECTION(30, "KICK_CONNECTION", "Broker主动踢掉连接"),
     ;
 
     private int code;

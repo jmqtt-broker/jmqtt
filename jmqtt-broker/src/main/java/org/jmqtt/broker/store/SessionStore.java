@@ -2,6 +2,7 @@
 package org.jmqtt.broker.store;
 
 import io.netty.handler.codec.mqtt.MqttVersion;
+import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.BrokerConfig;
@@ -37,7 +38,7 @@ public interface SessionStore {
 
     default void clearSession(String clientId, boolean cleanStart){
         SessionState session = getSession(clientId);
-        long onlineTime = session.getOnlineTime();
+        long onlineTime = Optional.ofNullable(session.getOnlineTime()).orElse(0L);
         long cur = System.currentTimeMillis();
         if (session.getState() == SessionState.StateEnum.ONLINE && (onlineTime > 0 && cur < onlineTime)) {
             return;
@@ -60,9 +61,8 @@ public interface SessionStore {
         releaseOutflowMsg(clientId, null);
         releaseOutflowSecMsgId(clientId, null);
         SessionState update = new SessionState(clientId, SessionState.StateEnum.NULL);
-        update.setOnlineTime(session.getOnlineTime());
-        update.setVersion(session.getVersion());
-        update.setAddress(session.getAddress());
+        MixAll.copyProperties(session, update);
+        update.setState(SessionState.StateEnum.NULL);
         storeSession(update);
         ConnectManager.getInstance().removeClient(clientId);
     }

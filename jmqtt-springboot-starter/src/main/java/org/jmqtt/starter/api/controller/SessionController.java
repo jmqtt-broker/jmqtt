@@ -26,4 +26,10 @@ public class SessionController {
         return Result.ok(sessionService.page(page, pageSize, sessionDO));
     }
 
+    @DeleteMapping("kick/{clientId}")
+    public Result<?> kickConnection(@PathVariable String clientId) {
+        sessionService.kickConnection(clientId);
+        return Result.ok();
+    }
+
 }
