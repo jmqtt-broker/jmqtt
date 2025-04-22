@@ -27,7 +27,7 @@ public interface SessionService {
             Letter letter = new Letter(ClusterHelper.getEvent(EventCode.KICK_CONNECTION, clientId));
             ClusterHelper.sendByPath(letter, session.getBrokerId());
         } else {
-            ClusterHelper.sendToKeeper(ClusterHelper.getEvent(EventCode.KICK_CONNECTION, clientId));
+            ClusterHelper.sendToCluster(ClusterHelper.getEvent(EventCode.KICK_CONNECTION, clientId));
         }
     }
 

@@ -7,8 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.*;
-import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
-import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
@@ -19,7 +17,10 @@ import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -41,7 +42,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unSubscription);
         eventHandlerMap.put(EventCode.DISPATCHER_FOR_SHARE_SUBSCRIPTION.getCode(), this::dispatcherMsgForShareSubscription);
-        eventHandlerMap.put(EventCode.KICK_CONNECTION.getCode(), this::kickConnection);
     }
 
     public static Behavior<Letter> create() {
@@ -182,17 +182,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
                     response(res, responsePath);
                 });
             }
-        }
-    }
-
-    private void kickConnection(Letter letter) {
-        Event event = letter.getMessage();
-        Object body = event.getBody();
-        if (body instanceof String) {
-            String clientId = (String) body;
-            Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(s -> {
-                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B);
-            });
         }
     }
 

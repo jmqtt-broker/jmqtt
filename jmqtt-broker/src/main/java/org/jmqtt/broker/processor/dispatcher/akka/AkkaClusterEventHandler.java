@@ -45,8 +45,8 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
     private ActorRef<ClusterEvent.ClusterDomainEvent> clusterListener;
     private ActorRef<Letter> receiver;
 
+    private Address address;
     private String selfPathWithAddress;
-
     private String selfPath;
 
     @Override
@@ -70,7 +70,7 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                     }
                     // clusterListener = context.spawn(AkkaClusterEventListener.create(), AkkaConst.CLUSTER_LISTENER);
                     receiver = context.spawn(Receiver.create(), AkkaConst.AKKA_RECEIVER);
-                    Address address = new Address(AkkaConst.SYSTEM_PROTOCOL, akkaConfig.getSystemName(), akkaConfig.getHost(), Integer.parseInt(akkaConfig.getPort()));
+                    address = new Address(AkkaConst.SYSTEM_PROTOCOL, akkaConfig.getSystemName(), akkaConfig.getHost(), Integer.parseInt(akkaConfig.getPort()));
                     selfPathWithAddress = receiver.path().toStringWithAddress(address);
                     selfPath = receiver.path().toString();
                     return Behaviors.empty();
@@ -136,7 +136,7 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
     public void sendByPath(Letter letter, String path) {
         log.debug("akka send path: {}", path);
         ActorSelection selection = Adapter.toClassic(system)
-                .actorSelection(path);
-        selection.tell(letter, Adapter.toClassic(keeperSubscriber));
+                .actorSelection(path + "/user/" + AkkaConst.AKKA_RECEIVER);
+        selection.tell(letter, akka.actor.ActorRef.noSender());
     }
 }

@@ -10,6 +10,7 @@ import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.*;
+import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
@@ -21,6 +22,7 @@ import org.jmqtt.common.event.EventCode;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -34,6 +36,7 @@ public class Receiver extends AbstractBehavior<Letter> {
         responseHandlerMap.put(EventCode.SESSION_STATE_RESPONSE.getCode(), this::onlineResponse);
         responseHandlerMap.put(EventCode.SUBSCRIPTION_RESPONSE.getCode(), this::subscriptionResponse);
         responseHandlerMap.put(EventCode.DISPATCHER_SHARE_SUBSCRIPTION_MSG.getCode(), this::dispatcherShareSubscriptionMsg);
+        responseHandlerMap.put(EventCode.KICK_CONNECTION.getCode(), this::kickConnection);
     }
 
     public static Behavior<Letter> create() {
@@ -113,6 +116,17 @@ public class Receiver extends AbstractBehavior<Letter> {
                 } else {
                     log.warn("share subscription msg dispatcher faild, subscription: {}, message: {}", subscription, message);
                 }
+            });
+        }
+    }
+
+    private void kickConnection(Letter letter) {
+        Event event = letter.getMessage();
+        Object body = event.getBody();
+        if (body instanceof String) {
+            String clientId = (String) body;
+            Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(s -> {
+                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B);
             });
         }
     }
