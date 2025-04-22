@@ -15,6 +15,7 @@ import akka.cluster.MemberStatus;
 import akka.cluster.typed.Cluster;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 
 @NoArgsConstructor
+@Getter
 public class AkkaClusterEventHandler implements ClusterEventHandler {
 
     private static final Logger log = JmqttLogger.eventLog;
@@ -68,7 +70,7 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                         keeperSubscriber = context.spawn(KeeperSubscriber.create(), AkkaConst.KEEPER_SUBSCRIBER);
                         keeperTopic.tell(Topic.subscribe(keeperSubscriber));
                     }
-                    // clusterListener = context.spawn(AkkaClusterEventListener.create(), AkkaConst.CLUSTER_LISTENER);
+                    clusterListener = context.spawn(AkkaClusterEventListener.create(), AkkaConst.CLUSTER_LISTENER);
                     receiver = context.spawn(Receiver.create(), AkkaConst.AKKA_RECEIVER);
                     address = new Address(AkkaConst.SYSTEM_PROTOCOL, akkaConfig.getSystemName(), akkaConfig.getHost(), Integer.parseInt(akkaConfig.getPort()));
                     selfPathWithAddress = receiver.path().toStringWithAddress(address);

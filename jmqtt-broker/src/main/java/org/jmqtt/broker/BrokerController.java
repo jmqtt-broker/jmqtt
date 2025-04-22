@@ -9,14 +9,10 @@ import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
-import org.jmqtt.broker.common.helper.ScheduleManager;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
-import org.jmqtt.broker.processor.dispatcher.*;
-import org.jmqtt.broker.store.local.LocalStore;
-import org.jmqtt.broker.store.local.LocalStoreImpl;
-import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.broker.processor.RequestProcessor;
+import org.jmqtt.broker.processor.dispatcher.*;
 import org.jmqtt.broker.processor.dispatcher.akka.AkkaClusterEventHandler;
 import org.jmqtt.broker.processor.dispatcher.mem.MemEventHandler;
 import org.jmqtt.broker.processor.dispatcher.rdb.RDBClusterEventHandler;
@@ -27,19 +23,21 @@ import org.jmqtt.broker.processor.recover.ReSendMessageService;
 import org.jmqtt.broker.remoting.netty.ChannelEventListener;
 import org.jmqtt.broker.remoting.netty.NettyRemotingServer;
 import org.jmqtt.broker.remoting.session.ConnectManager;
+import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
+import org.jmqtt.broker.store.local.LocalStore;
+import org.jmqtt.broker.store.local.LocalStoreImpl;
 import org.jmqtt.broker.store.mem.MemMessageStore;
 import org.jmqtt.broker.store.mem.MemSessionStore;
 import org.jmqtt.broker.store.rdb.RDBMessageStore;
 import org.jmqtt.broker.store.rdb.RDBSessionStore;
+import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.broker.store.redis.RedisMessageStore;
 import org.jmqtt.broker.store.redis.RedisSessionStore;
 import org.jmqtt.broker.subscribe.DefaultSubscriptionTreeMatcher;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.jmqtt.common.config.JmqttConst;
-import org.jmqtt.common.event.Event;
-import org.jmqtt.common.event.EventCode;
 import org.jmqtt.common.helper.RejectHandler;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
 import org.slf4j.Logger;
@@ -263,10 +261,8 @@ public class BrokerController {
         if (this.remotingServer != null) {
             this.remotingServer.start();
         }
+        brokerOnline();
         LogUtil.info(log, "JMqtt Server start success.");
-
-        // 向keeper节点广播本节点上线消息
-        ScheduleManager.getInstance().simpleDelay(timeout -> brokerOnline(), 3);
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
     }
 
@@ -329,7 +325,8 @@ public class BrokerController {
 
     private void brokerOnline() {
         // ClusterManager.start();
-        BrokerInfo brokerInfo = new BrokerInfo();
+        BrokerDO brokerInfo = new BrokerDO();
+        brokerInfo.setId(IdWorker.getId());
         brokerInfo.setBrokerId(BrokerContext.getBrokerId());
         brokerInfo.setIp(currentIp);
         brokerInfo.setTcpPort(nettyConfig.getTcpPort());
@@ -338,11 +335,7 @@ public class BrokerController {
         brokerInfo.setWsPortSsl(nettyConfig.getSslWebsocketPort());
         brokerInfo.setStatus(true);
         brokerInfo.setOnlineAt(System.currentTimeMillis());
-        // 向集群中广播本节点状态信息
-        Event brokerOnline = new Event(EventCode.BROKER_STATE.getCode(),
-                brokerInfo,
-                System.currentTimeMillis(), BrokerContext.getBrokerId());
-        this.clusterEventHandler.sendToKeeper(brokerOnline);
+        localStore.storeBroker(brokerInfo);
     }
 
 }

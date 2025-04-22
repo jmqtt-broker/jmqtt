@@ -17,11 +17,19 @@ public interface LocalBrokerMapper extends Mapper<BrokerDO> {
     @Select("select id,broker_id,ip,tcp_port,tcp_port_ssl, ws_port, ws_port_ssl, status, online_at, offline_at from jmqtt_broker")
     List<BrokerDO> getAll();
 
-    @Insert(
+    @Insert("<script>" +
             "insert into jmqtt_broker(id,broker_id,ip,tcp_port,tcp_port_ssl, ws_port, ws_port_ssl, status, online_at, offline_at) values " +
-                    "(#{id},#{brokerId},#{ip},#{tcpPort},#{tcpPortSsl}, #{wsPort}, #{wsPortSsl}, #{status}, #{onlineAt}, #{offlineAt}) " +
-                    "on DUPLICATE key update tcp_port = #{tcpPort},tcp_port_ssl = #{tcpPortSsl},ws_port=#{wsPort}," +
-                    "ws_port_ssl=#{wsPortSsl},status=#{status},online_at=#{onlineAt},offline_at=#{offlineAt}"
+            "(#{id},#{brokerId},#{ip},#{tcpPort},#{tcpPortSsl}, #{wsPort}, #{wsPortSsl}, #{status}, #{onlineAt}, #{offlineAt}) " +
+            "<trim prefix=\"on DUPLICATE key update\" suffixOverrides=\",\">" +
+            "<if test=\"tcpPort != null\">tcp_port=#{tcpPort},</if>" +
+            "<if test=\"tcpPortSsl != null\">tcp_port_ssl=#{tcpPortSsl},</if>" +
+            "<if test=\"wsPort != null\">ws_port=#{wsPort},</if>" +
+            "<if test=\"wsPortSsl != null\">ws_port_ssl=#{wsPortSsl},</if>" +
+            "<if test=\"status != null\">status=#{status},</if>" +
+            "<if test=\"onlineAt != null\">online_at=#{onlineAt},</if>" +
+            "<if test=\"offlineAt != null\">offline_at=#{offlineAt}</if>" +
+            "</trim>" +
+            "</script>"
     )
     Long storeBroker(BrokerDO brokerDO);
 

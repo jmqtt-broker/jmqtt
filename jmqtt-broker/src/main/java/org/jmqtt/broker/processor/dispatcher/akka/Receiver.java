@@ -1,21 +1,25 @@
 package org.jmqtt.broker.processor.dispatcher.akka;
 
+import akka.actor.ActorSelection;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.AbstractBehavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.Receive;
+import akka.actor.typed.javadsl.*;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.jmqtt.broker.BrokerController;
+import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
+import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
 import org.jmqtt.broker.store.highperformance.OutflowMessageHandler;
+import org.jmqtt.broker.store.local.LocalStore;
+import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.common.akka.Letter;
+import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 
@@ -33,6 +37,8 @@ public class Receiver extends AbstractBehavior<Letter> {
 
     public Receiver(ActorContext<Letter> context) {
         super(context);
+        responseHandlerMap.put(EventCode.BROKER_STATE.getCode(), this::brokerStatus);
+        responseHandlerMap.put(EventCode.BROKER_STATE_REQUEST.getCode(), this::reportBrokerInfo);
         responseHandlerMap.put(EventCode.SESSION_STATE_RESPONSE.getCode(), this::onlineResponse);
         responseHandlerMap.put(EventCode.SUBSCRIPTION_RESPONSE.getCode(), this::subscriptionResponse);
         responseHandlerMap.put(EventCode.DISPATCHER_SHARE_SUBSCRIPTION_MSG.getCode(), this::dispatcherShareSubscriptionMsg);
@@ -56,6 +62,45 @@ public class Receiver extends AbstractBehavior<Letter> {
                     }
                     return this;
                 }).build();
+    }
+
+    private void reportBrokerInfo(Letter letter) {
+        LocalStore localStore = BrokerContext.getLocalStore();
+        BrokerDO brokerDO = localStore.getBroker(BrokerContext.getBrokerId());
+        BrokerInfo brokerInfo = new BrokerInfo();
+        if (brokerDO != null) {
+            MixAll.copyProperties(brokerDO, brokerInfo);
+            Boolean status = brokerInfo.getStatus();
+            if (status != null && !status) {
+                brokerDO.setStatus(true);
+                brokerDO.setOnlineAt(System.currentTimeMillis());
+                localStore.storeBroker(brokerDO);
+            }
+        } else {
+            BrokerController controller = BrokerContext.getBrokerController();
+            NettyConfig config = controller.getNettyConfig();
+            brokerInfo.setBrokerId(BrokerContext.getBrokerId());
+            brokerInfo.setIp(controller.getCurrentIp());
+            brokerInfo.setTcpPort(config.getTcpPort());
+            brokerInfo.setTcpPortSsl(config.getSslTcpPort());
+            brokerInfo.setWsPort(config.getWebsocketPort());
+            brokerInfo.setWsPortSsl(config.getSslWebsocketPort());
+            brokerInfo.setStatus(true);
+            brokerInfo.setOnlineAt(System.currentTimeMillis());
+            localStore.storeBroker(new BrokerDO(brokerInfo));
+        }
+        response(new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE, brokerInfo)), letter.getResponsePath());
+    }
+
+    private void brokerStatus(Letter letter) {
+        Event event = letter.getMessage();
+        Object body = event.getBody();
+        log.info("receive broker status, {}", body);
+        if (body instanceof BrokerInfo) {
+            BrokerInfo brokerInfo = (BrokerInfo) body;
+            BrokerDO broker = new BrokerDO(brokerInfo);
+            BrokerContext.getLocalStore().storeBroker(broker);
+        }
     }
 
     private void subscriptionResponse(Letter letter) {
@@ -129,5 +174,12 @@ public class Receiver extends AbstractBehavior<Letter> {
                 Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B);
             });
         }
+    }
+
+    private void response(Letter res, String responsePath) {
+        log.debug("responsePath: {}", responsePath);
+        ActorSelection selection = Adapter.toClassic(getContext().getSystem())
+                .actorSelection(responsePath);
+        selection.tell(res, Adapter.toClassic(getContext().getSelf()));
     }
 }

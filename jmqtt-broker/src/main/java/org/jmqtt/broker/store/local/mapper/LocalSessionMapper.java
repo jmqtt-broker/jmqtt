@@ -23,7 +23,7 @@ public interface LocalSessionMapper extends Mapper<SessionDO> {
     @Insert("<script>" +
             "insert into jmqtt_session(id,broker_id,client_id,state,online_time,offline_time, property, version, address, clean_start, keepalive) values " +
             "(#{id},#{brokerId},#{clientId},#{state},#{onlineTime},#{offlineTime}, #{property}, #{version}, #{address}, #{cleanStart}, #{keepalive}) " +
-            "on DUPLICATE key update " +
+            "<trim prefix=\"on DUPLICATE key update\" suffixOverrides=\",\">" +
             "<if test=\"brokerId != null\">broker_id=#{brokerId},</if>" +
             "<if test=\"state != null\">state=#{state},</if>" +
             "<if test=\"onlineTime != null\">online_time=#{onlineTime},</if>" +
@@ -33,6 +33,7 @@ public interface LocalSessionMapper extends Mapper<SessionDO> {
             "<if test=\"address != null\">address = #{address},</if>" +
             "<if test=\"cleanStart != null\">clean_start=#{cleanStart},</if>" +
             "<if test=\"keepalive != null\">keepalive=#{keepalive}</if>" +
+            "</trim>" +
             "</script>"
     )
     Long storeSession(SessionDO sessionDO);

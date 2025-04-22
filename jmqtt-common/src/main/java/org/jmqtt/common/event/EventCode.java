@@ -14,7 +14,8 @@ public enum EventCode {
 
     DISPATCHER_WILL_MESSAGE(3,"DISPATCHER_WILL_MESSAGE","向集群分发will消息"),
 
-    BROKER_STATE(4, "BROKER_STATE", "集群节点上下线通知"),
+    BROKER_STATE_REQUEST(41, "BROKER_STATE_REQUEST", "集群节点信息请求"),
+    BROKER_STATE(4, "BROKER_STATE", "集群节点信息响应"),
 
     SESSION_STATE(5, "SESSION_STATE", "集群客户端上下线"),
     SESSION_STATE_RESPONSE(6, "SESSION_STATE_RESPONSE", "客户端上下线，Keeper节点回复worker节点"),

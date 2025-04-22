@@ -9,11 +9,9 @@ import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
-import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
 import org.jmqtt.common.akka.AkkaConst;
 import org.jmqtt.common.akka.Letter;
-import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 
@@ -35,7 +33,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
 
     public KeeperSubscriber(ActorContext<Letter> context) {
         super(context);
-        eventHandlerMap.put(EventCode.BROKER_STATE.getCode(), this::brokerOnline);
         eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::sessionState);
         eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
         eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
@@ -60,17 +57,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             }
             return this;
         }).build();
-    }
-
-    private void brokerOnline(Letter letter) {
-        Event event = letter.getMessage();
-        Object body = event.getBody();
-        log.info("keeper receive broker status, {}", body);
-        if (body instanceof BrokerInfo) {
-            BrokerInfo brokerInfo = (BrokerInfo) body;
-            BrokerDO broker = new BrokerDO(brokerInfo);
-            BrokerContext.getLocalStore().storeBroker(broker);
-        }
     }
 
     private void sessionState(Letter letter) {
