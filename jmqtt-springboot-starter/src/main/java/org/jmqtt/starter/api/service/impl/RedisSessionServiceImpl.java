@@ -3,7 +3,10 @@ package org.jmqtt.starter.api.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
+import org.jmqtt.broker.store.rdb.daoobject.SubscriptionDO;
+import org.jmqtt.broker.store.rdb.daoobject.WillMessageDO;
 import org.jmqtt.broker.store.redis.support.RedisKeySupport;
 import org.jmqtt.broker.store.redis.support.RedisUtils;
 import org.jmqtt.common.config.JmqttConst;
@@ -11,6 +14,8 @@ import org.jmqtt.starter.api.entity.PageVo;
 import org.jmqtt.starter.api.service.SessionService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * redis存储时，条件查询及分页等功能实现较困难，该情况暂不实现相关api
@@ -34,6 +39,16 @@ public class RedisSessionServiceImpl implements SessionService {
 
     @Override
     public PageVo<SessionDO> page(int page, int pageSize, SessionDO sessionDO) {
+        return null;
+    }
+
+    @Override
+    public List<SubscriptionDO> getSubscriptions(String clientId) {
+        return null;
+    }
+
+    @Override
+    public Message getWillMessage(String clientId) {
         return null;
     }
 }

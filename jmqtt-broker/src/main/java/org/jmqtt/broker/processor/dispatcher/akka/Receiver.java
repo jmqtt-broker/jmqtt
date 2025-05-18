@@ -6,6 +6,7 @@ import akka.actor.typed.javadsl.*;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
@@ -89,7 +90,10 @@ public class Receiver extends AbstractBehavior<Letter> {
             brokerInfo.setOnlineAt(System.currentTimeMillis());
             localStore.storeBroker(new BrokerDO(brokerInfo));
         }
-        response(new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE, brokerInfo)), letter.getResponsePath());
+        String responsePath = letter.getResponsePath();
+        if (StringUtils.isNotBlank(responsePath)) {
+            response(new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE, brokerInfo)), responsePath);
+        }
     }
 
     private void brokerStatus(Letter letter) {

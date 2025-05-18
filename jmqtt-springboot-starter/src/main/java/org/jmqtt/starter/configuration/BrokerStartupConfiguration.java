@@ -36,6 +36,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -43,6 +44,7 @@ import java.io.InputStream;
 import java.util.Optional;
 import java.util.Properties;
 
+@Configuration
 public class BrokerStartupConfiguration {
 
     private static final Logger log = JmqttLogger.brokerlog;

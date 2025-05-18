@@ -211,10 +211,8 @@ public class MixAll {
     public static void copyProperties(Object source, Object target) {
         Class<?> sClazz = source.getClass();
         Class<?> tClazz = target.getClass();
-        Method[] sMethods = sClazz.getMethods();
         Method[] tMethods = tClazz.getMethods();
         Map<String, Method> sMethodMap = Arrays.stream(sClazz.getDeclaredMethods()).collect(Collectors.toMap(m -> m.getName() + "_" + m.getReturnType().getName(), Function.identity()));
-        Map<String, Method> tMethodMap = Arrays.stream(tClazz.getDeclaredMethods()).collect(Collectors.toMap(m -> m.getName() + "_" + m.getReturnType().getName(), Function.identity()));
         for (Method method : tMethods) {
             String methodName = method.getName();
             if (methodName.startsWith("set")) {

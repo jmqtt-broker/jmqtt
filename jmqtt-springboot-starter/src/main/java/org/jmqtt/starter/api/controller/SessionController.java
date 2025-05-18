@@ -1,11 +1,16 @@
 package org.jmqtt.starter.api.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
+import org.jmqtt.broker.store.rdb.daoobject.SubscriptionDO;
+import org.jmqtt.starter.api.entity.MessageVo;
 import org.jmqtt.starter.api.entity.PageVo;
 import org.jmqtt.starter.api.entity.Result;
 import org.jmqtt.starter.api.service.SessionService;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("jmqtt/session")
@@ -30,6 +35,17 @@ public class SessionController {
     public Result<?> kickConnection(@PathVariable String clientId) {
         sessionService.kickConnection(clientId);
         return Result.ok();
+    }
+
+    @GetMapping("subscriptions/{clientId}")
+    public Result<List<SubscriptionDO>> getSubscriptions(@PathVariable String clientId) {
+        return Result.ok(sessionService.getSubscriptions(clientId));
+    }
+
+    @GetMapping("will/{clientId}")
+    public Result<MessageVo> getWillMessage(@PathVariable String clientId) {
+        Message willMessage = sessionService.getWillMessage(clientId);
+        return Result.ok(willMessage != null ? new MessageVo(willMessage) : null);
     }
 
 }

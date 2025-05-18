@@ -45,8 +45,7 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
             AkkaClusterEventHandler handler = (AkkaClusterEventHandler) BrokerContext.getBrokerController().getClusterEventHandler();
             ActorSelection selection = Adapter.toClassic(getContext().getSystem())
                     .actorSelection(handler.getReceiver().path().toStringWithAddress(address));
-            Letter letter = new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE_REQUEST, true));
-            letter.setResponsePath(handler.getSelfPathWithAddress());
+            Letter letter = new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE_REQUEST, true), handler.getSelfPathWithAddress());
             selection.tell(letter, Adapter.toClassic(getContext().getSelf()));
         }
         return this;

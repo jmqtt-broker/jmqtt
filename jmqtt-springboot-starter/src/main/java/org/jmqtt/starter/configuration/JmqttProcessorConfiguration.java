@@ -5,7 +5,9 @@ import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.processor.protocol.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
+@Configuration
 @Slf4j
 public class JmqttProcessorConfiguration {
 

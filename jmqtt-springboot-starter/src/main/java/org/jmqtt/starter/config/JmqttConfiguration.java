@@ -5,7 +5,9 @@ import lombok.Setter;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.broker.common.config.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
+@Configuration
 @ConfigurationProperties(prefix = "jmqtt.broker")
 @Getter
 @Setter

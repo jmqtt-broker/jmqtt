@@ -88,6 +88,7 @@ public class ScheduleManager {
                 LocalDB.getInstance().operate(session ->
                         session.getMapper(LocalScheduleTaskMapper.class)
                                 .del(timerBO.getTimerId(), timerBO.getType().name()));
+                timeroutCache.remove(timerBO);
             }
         }, timerBO.getExpire(), TimeUnit.SECONDS);
         timerBO.setTimeout(expired);

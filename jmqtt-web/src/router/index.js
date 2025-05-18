@@ -131,6 +131,20 @@ export const dynamicRoutes = [
     ]
   },
   {
+    path: '/monitor/online-detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['monitor:online:detail'],
+    children: [
+      {
+        path: 'index/:clientId(.+)',
+        component: () => import('@/views/monitor/online/detail'),
+        name: 'ClientDetail',
+        meta: { title: '客户端详情', activeMenu: '/monitor/online', breadcrumb: true }
+      }
+    ]
+  },
+  {
     path: '/monitor/job-log',
     component: Layout,
     hidden: true,

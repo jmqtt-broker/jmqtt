@@ -1,13 +1,19 @@
 package org.jmqtt.starter.api.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.store.local.LocalDB;
 import org.jmqtt.broker.store.local.mapper.LocalSessionMapper;
+import org.jmqtt.broker.store.local.mapper.LocalSubscriptionMapper;
+import org.jmqtt.broker.store.local.mapper.LocalWillMessageMapper;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
+import org.jmqtt.broker.store.rdb.daoobject.SubscriptionDO;
+import org.jmqtt.broker.store.rdb.daoobject.WillMessageDO;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.starter.api.entity.PageVo;
 import org.jmqtt.starter.api.service.SessionService;
@@ -56,5 +62,23 @@ public class MemSessionServiceImpl implements SessionService {
         Page<SessionDO> pageInfo = PageHelper.startPage(page, pageSize);
         List<SessionDO> dataList = this.localDb.execute(LocalSessionMapper.class, mapper -> mapper.selectByExample(example));
         return new PageVo<>(dataList, pageInfo.getTotal(), page, pageSize);
+    }
+
+    @Override
+    public List<SubscriptionDO> getSubscriptions(String clientId) {
+        SubscriptionDO s = new SubscriptionDO();
+        s.setClientId(clientId);
+        return this.localDb.execute(LocalSubscriptionMapper.class, mapper -> mapper.select(s));
+    }
+
+    @Override
+    public Message getWillMessage(String clientId) {
+        WillMessageDO will = new WillMessageDO();
+        will.setClientId(clientId);
+        WillMessageDO willMessage = this.localDb.execute(LocalWillMessageMapper.class, mapper -> mapper.selectOne(will));
+        if (willMessage != null) {
+            return JSONObject.parseObject(willMessage.getContent(), Message.class);
+        }
+        return null;
     }
 }

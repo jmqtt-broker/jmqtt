@@ -1,14 +1,18 @@
 package org.jmqtt.starter.api.service;
 
 import org.jmqtt.broker.common.helper.BrokerContext;
+import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.rdb.daoobject.SessionDO;
+import org.jmqtt.broker.store.rdb.daoobject.SubscriptionDO;
+import org.jmqtt.broker.store.rdb.daoobject.WillMessageDO;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.EventCode;
 import org.jmqtt.starter.api.entity.PageVo;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SessionService {
@@ -30,5 +34,9 @@ public interface SessionService {
             ClusterHelper.sendToCluster(ClusterHelper.getEvent(EventCode.KICK_CONNECTION, clientId));
         }
     }
+
+    List<SubscriptionDO> getSubscriptions(String clientId);
+
+    Message getWillMessage(String clientId);
 
 }

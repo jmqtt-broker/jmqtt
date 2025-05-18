@@ -30,6 +30,8 @@ public class ClusterHelper {
 
     private static final BrokerConfig BROKER_CONFIG;
 
+    private static AkkaClusterEventHandler handler;
+
     static {
         BROKER_CONFIG = BrokerContext.getBrokerConfig();
         AkkaConfig akka = BrokerContext.getBrokerConfig().getAkka();
@@ -37,6 +39,7 @@ public class ClusterHelper {
             List<String> roles = akka.getRoles();
             KEEPER = roles != null && roles.contains(AkkaConst.KEEPER);
             LIGHTNING = JmqttConst.MEM.equals(BROKER_CONFIG.getStore());
+            handler = (AkkaClusterEventHandler) BrokerContext.getBrokerController().getClusterEventHandler();
         } else {
             KEEPER = false;
             LIGHTNING = false;
@@ -57,14 +60,14 @@ public class ClusterHelper {
 
     public static boolean sendToKeeper(Event event) {
         if (LIGHTNING) {
-            BrokerContext.getBrokerController().getClusterEventHandler().sendToKeeper(event);
+            handler.sendToKeeper(event);
         }
         return LIGHTNING;
     }
 
     public static boolean sendToOneKeeper(Event event) {
         if (LIGHTNING) {
-            BrokerContext.getBrokerController().getClusterEventHandler().sendToOneKeeper(event);
+            handler.sendToOneKeeper(event);
         }
         return LIGHTNING;
     }
@@ -73,15 +76,15 @@ public class ClusterHelper {
         letter.setResponsePath(null);
         letter.setSync(true);
         letter.getMessage().setFromBroker(BrokerContext.getBrokerId());
-        BrokerContext.getBrokerController().getClusterEventHandler().syncToKeeper(letter);
+        handler.syncToKeeper(letter);
     }
 
     public static void sendToCluster(Event event) {
-        BrokerContext.getBrokerController().getClusterEventHandler().sendEvent(event);
+        handler.sendEvent(event);
     }
 
     public static void sendByPath(Letter letter, String path) {
-        BrokerContext.getBrokerController().getClusterEventHandler().sendByPath(letter, path);
+        handler.sendByPath(letter, path);
     }
 
     public static boolean reportSessionToKeeper(SessionState sessionState) {

@@ -12,6 +12,7 @@ import org.jmqtt.starter.config.JmqttConfiguration;
 import org.jmqtt.starter.redis.RedisOperatorImpl;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
@@ -22,6 +23,7 @@ import javax.sql.DataSource;
 import java.util.Map;
 import java.util.Optional;
 
+@Configuration
 @Slf4j
 @RequiredArgsConstructor
 public class JmqttStartup {

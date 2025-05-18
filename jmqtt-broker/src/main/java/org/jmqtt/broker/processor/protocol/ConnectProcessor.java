@@ -172,6 +172,8 @@ public class ConnectProcessor implements RequestProcessor {
                             }
                         }
                         MqttProperties properties = payload.willProperties();
+                        // 遗嘱消息用户属性
+                        properties.add(variableHeader.properties().getProperty(USER_PROPERTY.value()));
                         storeWillMsg(clientId, willRetain, willQos, willTopic, payload.willMessageInBytes(), Mqtt5Utils.propertyMap(properties));
                     } else {
                         messageStore.clearWillAndWillRetain(clientId);
