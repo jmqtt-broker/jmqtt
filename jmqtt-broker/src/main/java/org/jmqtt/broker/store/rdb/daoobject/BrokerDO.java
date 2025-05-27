@@ -1,5 +1,6 @@
 package org.jmqtt.broker.store.rdb.daoobject;
 
+import com.alibaba.fastjson.JSON;
 import lombok.*;
 import org.jmqtt.broker.remoting.util.IdWorker;
 import org.jmqtt.common.entity.BrokerInfo;
@@ -46,4 +47,8 @@ public class BrokerDO {
         this.offlineAt = brokerInfo.getOffLineAt();
     }
 
+    @Override
+    public String toString() {
+        return JSON.toJSONString(this);
+    }
 }

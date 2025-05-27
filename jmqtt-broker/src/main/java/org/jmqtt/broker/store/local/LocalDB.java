@@ -102,6 +102,8 @@ public class LocalDB {
             properties.setProperty("autoRuntimeDialect", "true");
             pageInterceptor.setProperties(properties);
             configuration.addInterceptor(pageInterceptor);
+            // debug调试使用，打印Sql相关信息
+            // configuration.addInterceptor(new SqlInteceptor());
             // 启用tkmybatis
             MapperHelper mapperHelper = new MapperHelper();
             mapperHelper.processConfiguration(configuration);

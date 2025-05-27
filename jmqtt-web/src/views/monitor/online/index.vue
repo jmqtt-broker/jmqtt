@@ -84,7 +84,8 @@
 </template>
 
 <script setup name="Online">
-    import {brokerList, forceLogout, list as initData} from "@/api/monitor/online";
+    import { forceLogout, list as initData} from "@/api/monitor/online";
+    import {brokerList} from "@/api/monitor/broker";
 
     const router = useRouter();
     const {proxy} = getCurrentInstance();

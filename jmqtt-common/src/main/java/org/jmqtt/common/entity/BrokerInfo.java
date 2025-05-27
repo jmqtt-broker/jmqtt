@@ -14,10 +14,10 @@ public class BrokerInfo {
 
     private String ip;
 
-    private int tcpPort;
-    private int tcpPortSsl;
-    private int wsPort;
-    private int wsPortSsl;
+    private Integer tcpPort;
+    private Integer tcpPortSsl;
+    private Integer wsPort;
+    private Integer wsPortSsl;
 
     private Boolean status;
 

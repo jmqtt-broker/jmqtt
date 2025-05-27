@@ -98,12 +98,14 @@ public class Receiver extends AbstractBehavior<Letter> {
 
     private void brokerStatus(Letter letter) {
         Event event = letter.getMessage();
-        Object body = event.getBody();
-        log.info("receive broker status, {}", body);
-        if (body instanceof BrokerInfo) {
-            BrokerInfo brokerInfo = (BrokerInfo) body;
-            BrokerDO broker = new BrokerDO(brokerInfo);
-            BrokerContext.getLocalStore().storeBroker(broker);
+        if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
+            Object body = event.getBody();
+            log.info("receive broker status, {}", body);
+            if (body instanceof BrokerInfo) {
+                BrokerInfo brokerInfo = (BrokerInfo) body;
+                BrokerDO broker = new BrokerDO(brokerInfo);
+                BrokerContext.getLocalStore().storeBroker(broker);
+            }
         }
     }
 

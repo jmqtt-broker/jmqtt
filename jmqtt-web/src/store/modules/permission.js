@@ -197,12 +197,12 @@ const usePermissionStore = defineStore(
               }
             },
             {
-              "name":"Job",
-              "path":"job",
+              "name":"Broker",
+              "path":"broker",
               "hidden":false,
-              "component":"monitor/job/index",
+              "component":"monitor/broker/index",
               "meta":{
-                "title":"定时任务",
+                "title":"Broker节点管理",
                 "icon":"job",
                 "noCache":false,
                 "link":null

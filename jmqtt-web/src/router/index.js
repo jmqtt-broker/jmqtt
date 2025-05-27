@@ -145,16 +145,16 @@ export const dynamicRoutes = [
     ]
   },
   {
-    path: '/monitor/job-log',
+    path: '/monitor/broker-detail',
     component: Layout,
     hidden: true,
-    permissions: ['monitor:job:list'],
+    permissions: ['monitor:broker:detail'],
     children: [
       {
         path: 'index/:jobId(\\d+)',
-        component: () => import('@/views/monitor/job/log'),
-        name: 'JobLog',
-        meta: { title: '调度日志', activeMenu: '/monitor/job' }
+        component: () => import('@/views/monitor/broker/detail'),
+        name: 'BrokerDetail',
+        meta: { title: 'Broker详情', activeMenu: '/monitor/broker', breadcrumb: true }
       }
     ]
   },
