@@ -1,6 +1,6 @@
 <template>
    <div class="app-container">
-      <el-card class="box-card" v-for="item in brokers" :key="item.brokerId">
+      <el-card class="box-card" v-for="item in brokers" :key="item.brokerId" shadow="hover">
          <div slot="header" class="clearfix">
             <span>{{item.brokerId}}</span>
             <el-button style="float: right; padding: 3px 0" type="text">操作</el-button>

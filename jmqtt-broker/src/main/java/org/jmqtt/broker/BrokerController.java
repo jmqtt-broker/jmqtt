@@ -2,7 +2,6 @@ package org.jmqtt.broker;
 
 import akka.actor.ActorSelection;
 import akka.actor.typed.javadsl.Adapter;
-import akka.cluster.Member;
 import akka.cluster.MemberStatus;
 import akka.cluster.typed.Cluster;
 import io.netty.handler.codec.mqtt.MqttMessageType;
@@ -43,7 +42,6 @@ import org.jmqtt.broker.store.redis.RedisMessageStore;
 import org.jmqtt.broker.store.redis.RedisSessionStore;
 import org.jmqtt.broker.subscribe.DefaultSubscriptionTreeMatcher;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
-import org.jmqtt.common.akka.AkkaConst;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.common.event.EventCode;
@@ -333,7 +331,6 @@ public class BrokerController {
     }
 
     private void brokerOnline() {
-        // ClusterManager.start();
         BrokerDO brokerInfo = new BrokerDO();
         brokerInfo.setId(IdWorker.getId());
         brokerInfo.setBrokerId(BrokerContext.getBrokerId());
@@ -348,18 +345,15 @@ public class BrokerController {
         if (ClusterHelper.lightning()) {
             AkkaClusterEventHandler handler = (AkkaClusterEventHandler) clusterEventHandler;
             Cluster cluster = Cluster.get(handler.getSystem());
-            Member self = cluster.selfMember();
-            if (self.hasRole(AkkaConst.KEEPER)) {
-                Letter letter = new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE_REQUEST, true), handler.getSelfPathWithAddress());
-                cluster.state().members().foreach(member -> {
-                    if (member.status().equals(MemberStatus.up())) {
-                        ActorSelection selection = Adapter.toClassic(handler.getSystem())
-                                .actorSelection(handler.getReceiver().path().toStringWithAddress(member.address()));
-                        selection.tell(letter, akka.actor.ActorRef.noSender());
-                    }
-                    return member;
-                });
-            }
+            Letter letter = new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE_REQUEST, true), handler.getSelfPathWithAddress());
+            cluster.state().members().foreach(member -> {
+                if (member.status().equals(MemberStatus.up())) {
+                    ActorSelection selection = Adapter.toClassic(handler.getSystem())
+                            .actorSelection(handler.getReceiver().path().toStringWithAddress(member.address()));
+                    selection.tell(letter, akka.actor.ActorRef.noSender());
+                }
+                return member;
+            });
         }
     }
 

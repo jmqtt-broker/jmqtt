@@ -98,6 +98,11 @@
       "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
     },
     {
+      "name": "jmqtt.broker.netty.use-client-ca",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.jmqtt.broker.common.config.NettyConfig"
+    },
+    {
       "name": "jmqtt.broker.netty.use-epoll",
       "type": "java.lang.Boolean",
       "sourceType": "org.jmqtt.broker.common.config.NettyConfig",

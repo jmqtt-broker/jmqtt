@@ -95,6 +95,8 @@ jmqtt:
       ssl-key-file-path: ${ssl-key-file-path:conf/server.pfx}
       ssl-manager-pwd: ${ssl-manager-pwd:654321}
       ssl-store-pwd: ${ssl-store-pwd:654321}
+      # 是否开启双向认证，校验客户端证书
+      use-client-ca: ${useClientCa:false}
       use-epoll: true
       pooled-byte-buf-allocator-enable: true
     akka:

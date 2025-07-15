@@ -119,7 +119,7 @@ public class NettyRemotingServer implements RemotingService {
                         if (useSsl) {
                             pipeline.addLast("ssl", NettySslHandler.getSslHandler(
                                     socketChannel,
-                                    nettyConfig.getUseClientCA(),
+                                    nettyConfig.getUseClientCa(),
                                     nettyConfig.getSslKeyStoreType(),
                                     nettyConfig.getSslKeyFilePath(),
                                     nettyConfig.getSslManagerPwd(),
@@ -168,7 +168,7 @@ public class NettyRemotingServer implements RemotingService {
                         if (useSsl) {
                             pipeline.addLast("ssl", NettySslHandler.getSslHandler(
                                     socketChannel,
-                                    nettyConfig.getUseClientCA(),
+                                    nettyConfig.getUseClientCa(),
                                     nettyConfig.getSslKeyStoreType(),
                                     nettyConfig.getSslKeyFilePath(),
                                     nettyConfig.getSslManagerPwd(),
