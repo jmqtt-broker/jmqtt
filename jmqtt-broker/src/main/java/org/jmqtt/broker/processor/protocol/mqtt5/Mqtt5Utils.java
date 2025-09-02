@@ -61,6 +61,14 @@ public class Mqtt5Utils {
         ctx.close();
     }
 
+    public static void sendDisconnectAndClose(ClientSession session, byte reasonCode, String reasonString) {
+        ChannelHandlerContext ctx = session.getCtx();
+        if (session.isMqtt5()) {
+            ctx.writeAndFlush(MessageUtil.getDisconnectMessage(reasonCode, reasonString));
+        }
+        ctx.close();
+    }
+
     public static boolean checkAlias(String clientId, Integer alias) {
         Integer maxAlias = (Integer) BrokerContext.getSessionStore().getClientProperty(clientId, MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value());
         return alias > 0 && maxAlias != null && alias <= maxAlias;

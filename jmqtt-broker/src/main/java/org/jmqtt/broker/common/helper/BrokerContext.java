@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BrokerContext {
 
+    private static String brokerId;
+
     private static BrokerController brokerController;
 
     private static final AtomicBoolean READY = new AtomicBoolean(false);
@@ -30,12 +32,17 @@ public class BrokerContext {
     }
 
     public static String getBrokerId() {
+        if (brokerId != null && !"".equals(brokerId)) {
+            return brokerId;
+        }
         BrokerController ctl = getBrokerController();
         AkkaConfig akka = getBrokerConfig().getAkka();
         if (akka != null && akka.getEnable()) {
-            return akka.nodeId();
+            brokerId = akka.nodeId();
+            return brokerId;
         }
-        return JmqttConst.PROJECT + "@" + ctl.getCurrentIp() + ":" + ctl.getNettyConfig().getTcpPort();
+        brokerId = JmqttConst.PROJECT + "@" + ctl.getCurrentIp() + ":" + ctl.getNettyConfig().getTcpPort();
+        return brokerId;
     }
 
     public static SessionStore getSessionStore() {

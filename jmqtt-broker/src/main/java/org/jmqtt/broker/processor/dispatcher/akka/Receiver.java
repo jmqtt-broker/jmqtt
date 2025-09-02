@@ -177,7 +177,7 @@ public class Receiver extends AbstractBehavior<Letter> {
         if (body instanceof String) {
             String clientId = (String) body;
             Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(s -> {
-                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B);
+                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B, "Server terminated connection.");
             });
         }
     }

@@ -73,7 +73,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
                 sessionStore.storeSession(sessionState);
             }
             String responsePath = letter.getResponsePath();
-            if (StringUtils.isBlank(responsePath)) {
+            if (StringUtils.isNotBlank(responsePath)) {
                 String clientId = sessionState.getClientId();
                 if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
                     // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回

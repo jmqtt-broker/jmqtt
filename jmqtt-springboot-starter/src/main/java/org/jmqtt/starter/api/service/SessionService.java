@@ -25,7 +25,7 @@ public interface SessionService {
         SessionDO session = selectByClientId(clientId);
         if (BrokerContext.getBrokerId().equals(session.getBrokerId())) {
             Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(s -> {
-                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B);
+                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B, "Server terminated connection.");
             });
         } else if (ClusterHelper.lightning()) {
             Letter letter = new Letter(ClusterHelper.getEvent(EventCode.KICK_CONNECTION, clientId));

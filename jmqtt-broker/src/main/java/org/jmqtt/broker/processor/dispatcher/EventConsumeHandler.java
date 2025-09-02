@@ -117,7 +117,7 @@ public class EventConsumeHandler {
             return;
         }
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
-        Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E);
+        Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E, "Session taken over.");
         sessionStore.clearSession(clientId, sc.getCleanStart());
     }
 
@@ -126,7 +126,7 @@ public class EventConsumeHandler {
         if (body instanceof String) {
             String clientId = (String) body;
             Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(s -> {
-                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B);
+                Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B, "Server terminated connection.");
             });
         }
     }

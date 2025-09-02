@@ -21,12 +21,12 @@ public class ClusterHelper {
     /**
      * 当前节点是否拥有keeper角色
      */
-    private static Boolean KEEPER;
+    private static final Boolean KEEPER;
 
     /**
      * 内存模式下，并且开启了akka，为高性能集群模式
      */
-    private static Boolean LIGHTNING;
+    private static final Boolean LIGHTNING;
 
     private static final BrokerConfig BROKER_CONFIG;
 

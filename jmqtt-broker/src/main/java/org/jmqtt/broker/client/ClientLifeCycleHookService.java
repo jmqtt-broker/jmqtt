@@ -116,7 +116,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         String clientId = NettyUtil.getClientId(channel);
         log.info("onChannelIdle:[{}],ClientId:{{}}", remoteAddr, clientId);
         Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(session -> {
-            Mqtt5Utils.sendDisconnectAndClose(session, (byte) 0x8D);
+            Mqtt5Utils.sendDisconnectAndClose(session, (byte) 0x8D, "Keep Alive timeout.");
         });
     }
 

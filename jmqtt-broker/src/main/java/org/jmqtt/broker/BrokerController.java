@@ -312,7 +312,7 @@ public class BrokerController {
         }
         ConnectManager.getInstance().forEach(session -> {
             // Server shutting down, ReasonCode = 0x8B
-            Mqtt5Utils.sendDisconnectAndClose(session, (byte) 0x8B);
+            Mqtt5Utils.sendDisconnectAndClose(session, (byte) 0x8B, "Server shutting down.");
         });
 
     }

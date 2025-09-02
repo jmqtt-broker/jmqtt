@@ -58,16 +58,16 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
                 if (!brokerConfig.getRetainAvailable() && fixedHeader.isRetain()) {
                     // broker没有开启保留消息功能，禁止发布保留消息
                     log.warn("retain not available, clientId: {}", clientId);
-                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9A);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9A, "Retain not supported.");
                     return;
                 } else if (qos.value() > brokerConfig.getMaximumQos()) {
                     log.warn("QoS not supported, clientId: {}", clientId);
-                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9B);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9B, "QoS not supported.");
                     return;
                 } else if (Mqtt5Utils.checkPackageSize(clientSession, fixedHeader.remainingLength())) {
                     // 消息超出约定的大小
                     log.warn("exceeding message, clientId: {}", clientId);
-                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x95);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x95, "Packet too large.");
                     return;
                 }
             }
@@ -107,11 +107,11 @@ public class PublishProcessor extends AbstractMessageProcessor implements Reques
                                     } else {
                                         // 没有根据别名找到topic，可能是重连后发送了带别名的消息，正确做法是重连后
                                         // 重新建立主题 -> 别名的映射关系
-                                        Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x82);
+                                        Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x82, "Alisa Error.");
                                     }
                                 } else {
                                     // 超过连接时约定的别名最大值
-                                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x82);
+                                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x82, "Alisa Error.");
                                 }
                             }
                         }

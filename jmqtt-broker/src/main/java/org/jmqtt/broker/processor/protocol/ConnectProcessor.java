@@ -124,7 +124,7 @@ public class ConnectProcessor implements RequestProcessor {
                 if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
                     ClientSession previousClient = ConnectManager.getInstance().getClient(clientId);
                     if (previousClient != null) {
-                        Mqtt5Utils.sendDisconnectAndClose(previousClient, (byte) 0x8E);
+                        Mqtt5Utils.sendDisconnectAndClose(previousClient, (byte) 0x8E, "Session taken over.");
                         this.sessionStore.clearSession(clientId, true);
                         notifyClearOtherSession = false;
                     }

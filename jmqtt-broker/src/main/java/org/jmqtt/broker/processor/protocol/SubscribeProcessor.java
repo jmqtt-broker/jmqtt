@@ -67,7 +67,7 @@ public class SubscribeProcessor implements RequestProcessor {
             if (subscriptionIdentifier.isPresent()) {
                 if (!BrokerContext.getBrokerConfig().getSubscriptionIdentifierAvailable()) {
                     LogUtil.warn(log, "[Subscribe] -> Subscription Identifiers not supported,clientId:{}", clientId);
-                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0xA1);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0xA1, "Subscription Identifiers not supported.");
                     return;
                 }
                 validTopicList.forEach(t -> t.getOption().setSubscriptionIdentifier(subscriptionIdentifier.get().value()));
@@ -76,14 +76,14 @@ public class SubscribeProcessor implements RequestProcessor {
                 if (!BrokerContext.getBrokerConfig().getSharedSubscriptionAvailable() &&
                         t.getTopicName().startsWith(JmqttConst.SHARE_IDENTIFIERS)) {
                     LogUtil.warn(log, "[Subscribe] -> Shared Subscriptions not supported,clientId:{}", clientId);
-                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9E);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x9E, "Sorry, Shared Subscriptions not supported.");
                     return;
                 }
                 if (!BrokerContext.getBrokerConfig().getWildcardSubscriptionAvailable() &&
                         (t.getTopicName().contains(JmqttConst.WILDCARD_SINGLE) ||
                                 t.getTopicName().contains(JmqttConst.WILDCARD_MULTY))) {
                     LogUtil.warn(log, "[Subscribe] -> Wildcard Subscriptions not supported,clientId:{}", clientId);
-                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0xA2);
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0xA2, "Wildcard Subscriptions not supported.");
                     return;
                 }
             }
@@ -127,7 +127,7 @@ public class SubscribeProcessor implements RequestProcessor {
         for (MqttTopicSubscription subscription : subscriptions) {
             if (!authValid.subscribeVerify(clientSession.getClientId(), subscription.topicName())) {
                 LogUtil.warn(log, "[SubPermission] this clientId:{} have no permission to subscribe this topic:{}", clientSession.getClientId(), subscription.topicName());
-                Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x87);
+                Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x87, "No permission.");
                 return null;
             }
             Topic topic = new Topic(subscription.topicName(), subscription.qualityOfService().value());
