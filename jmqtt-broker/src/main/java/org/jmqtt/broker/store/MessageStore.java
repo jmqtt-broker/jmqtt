@@ -108,6 +108,8 @@ public interface MessageStore {
                 }
                 if (qos == 0 || payload == null || payload.length == 0) {
                     clearRetainMessage(topic);
+                    Event event = ClusterHelper.getEvent(EventCode.CLEAR_RETAIN_MSG, message);
+                    ClusterHelper.sendToKeeper(event);
                 } else {
                     storeRetainMessage(topic, message);
                     if (!ClusterHelper.isKeeper()) {

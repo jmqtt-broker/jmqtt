@@ -102,14 +102,12 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
         return null;
     }
 
-    @Override
     public void sendToKeeper(Event event) {
         String path = Cluster.get(system).selfMember().hasRole(AkkaConst.KEEPER) ? selfPath : selfPathWithAddress;
         Letter letter = new Letter(event, path);
         keeperTopic.tell(Topic.publish(letter));
     }
 
-    @Override
     public void sendToOneKeeper(Event event) {
         // sendTokeeper(event);
         Option<Member> memberOpt = Cluster.get(system).state().members().find(
@@ -129,12 +127,10 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
         }
     }
 
-    @Override
     public void syncToKeeper(Letter letter) {
         keeperTopic.tell(Topic.publish(letter));
     }
 
-    @Override
     public void sendByPath(Letter letter, String path) {
         log.debug("akka send path: {}", path);
         ActorSelection selection = Adapter.toClassic(system)

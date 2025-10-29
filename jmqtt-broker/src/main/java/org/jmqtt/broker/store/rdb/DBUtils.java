@@ -152,6 +152,7 @@ public class DBUtils {
                 throw new RuntimeException("sql script not found!");
             }
             ScriptRunner runner = new ScriptRunner(conn);
+            runner.setLogWriter(null);
             runner.setAutoCommit(true);
             runner.runScript(new InputStreamReader(is));
             is.close();

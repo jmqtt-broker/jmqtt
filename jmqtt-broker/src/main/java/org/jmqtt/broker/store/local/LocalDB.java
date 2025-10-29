@@ -126,6 +126,8 @@ public class LocalDB {
                 throw new RuntimeException("sql script not found!");
             }
             ScriptRunner runner = new ScriptRunner(conn);
+            // 不打印执行日志
+            runner.setLogWriter(null);
             runner.setAutoCommit(true);
             runner.runScript(new InputStreamReader(is));
             is.close();

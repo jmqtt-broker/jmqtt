@@ -1,5 +1,7 @@
 package org.jmqtt.broker.processor.dispatcher.akka;
 
+import akka.cluster.Member;
+import akka.cluster.typed.Cluster;
 import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
@@ -10,8 +12,11 @@ import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
+import scala.collection.immutable.SortedSet;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 集群相关操作
@@ -30,16 +35,19 @@ public class ClusterHelper {
 
     private static final BrokerConfig BROKER_CONFIG;
 
-    private static AkkaClusterEventHandler handler;
+    private static AkkaClusterEventHandler AKKA_HANDLER;
+
+    private static final Map<String, Member> MEMBER_MAP;
 
     static {
         BROKER_CONFIG = BrokerContext.getBrokerConfig();
+        MEMBER_MAP = new ConcurrentHashMap<>();
         AkkaConfig akka = BrokerContext.getBrokerConfig().getAkka();
         if (akka != null && akka.getEnable()) {
             List<String> roles = akka.getRoles();
             KEEPER = roles != null && roles.contains(AkkaConst.KEEPER);
             LIGHTNING = JmqttConst.MEM.equals(BROKER_CONFIG.getStore());
-            handler = (AkkaClusterEventHandler) BrokerContext.getBrokerController().getClusterEventHandler();
+            AKKA_HANDLER = (AkkaClusterEventHandler) BrokerContext.getBrokerController().getClusterEventHandler();
         } else {
             KEEPER = false;
             LIGHTNING = false;
@@ -60,14 +68,14 @@ public class ClusterHelper {
 
     public static boolean sendToKeeper(Event event) {
         if (LIGHTNING) {
-            handler.sendToKeeper(event);
+            AKKA_HANDLER.sendToKeeper(event);
         }
         return LIGHTNING;
     }
 
     public static boolean sendToOneKeeper(Event event) {
         if (LIGHTNING) {
-            handler.sendToOneKeeper(event);
+            AKKA_HANDLER.sendToOneKeeper(event);
         }
         return LIGHTNING;
     }
@@ -76,15 +84,15 @@ public class ClusterHelper {
         letter.setResponsePath(null);
         letter.setSync(true);
         letter.getMessage().setFromBroker(BrokerContext.getBrokerId());
-        handler.syncToKeeper(letter);
+        AKKA_HANDLER.syncToKeeper(letter);
     }
 
     public static void sendToCluster(Event event) {
-        handler.sendEvent(event);
+        AKKA_HANDLER.sendEvent(event);
     }
 
     public static void sendByPath(Letter letter, String path) {
-        handler.sendByPath(letter, path);
+        AKKA_HANDLER.sendByPath(letter, path);
     }
 
     public static boolean reportSessionToKeeper(SessionState sessionState) {
@@ -97,6 +105,11 @@ public class ClusterHelper {
 
     public static boolean reportSubscriptionToKeeper(Subscription subscription) {
         return sendToOneKeeper(getEvent(EventCode.SUBSCRIPTION, subscription));
+    }
+
+    public static void refreshAkkaMembers() {
+        SortedSet<Member> members = Cluster.get(AKKA_HANDLER.getSystem()).state().members();
+        // members.foreach(m -> {});
     }
 
 }
