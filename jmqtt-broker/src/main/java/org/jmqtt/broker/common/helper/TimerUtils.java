@@ -1,36 +1,62 @@
 package org.jmqtt.broker.common.helper;
 
+import com.alibaba.fastjson.JSONObject;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.jmqtt.broker.common.future.ScheduleTask;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
+import org.jmqtt.broker.store.local.LocalDB;
+import org.jmqtt.broker.store.local.mapper.LocalScheduleTaskMapper;
+import org.jmqtt.broker.store.local.model.TimerDO;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 @Slf4j
 public class TimerUtils {
 
-    private final static Map<TimerType, Consumer<Object>> timeoutHook = new HashMap<>();
+    private final static Map<String, ScheduleTask> taskMap = new ConcurrentHashMap<>(128);
+
+    // 超时任务的回调
+    private final static Map<String, Consumer<Object>> timeoutHook = new ConcurrentHashMap<>();
 
     static {
-        timeoutHook.put(TimerType.SESSION, obj -> TimerUtils.sessionTimeout((String) obj));
-        timeoutHook.put(TimerType.WILL, obj -> TimerUtils.willTimeout((Message) obj));
+        timeoutHook.put(TimerType.SESSION.name(), obj -> {
+            startSessionTimeout((String) obj);
+            String clientId = (String) obj;
+            sessionTimeout(clientId);
+            removeTask(TimerType.SESSION.name() + clientId);
+        });
+        timeoutHook.put(TimerType.WILL.name(), obj -> {
+            Message will = (Message) obj;
+            willTimeout(will);
+            removeTask(will.getClientId());
+        });
     }
 
     public static void startSessionTimeout(String clientId) {
         int expire = Mqtt5Utils.timeoutSecond(clientId);
         if (expire > 0) {
-            TimerBO task = new TimerBO(clientId, TimerType.SESSION, clientId, expire);
-            ScheduleManager.getInstance().addDelay(task);
+            String taskId = TimerType.SESSION.name() + clientId;
+            ScheduleTask sessionTimeout = ScheduleTask.delayTask(taskId, timeout -> {
+                sessionTimeout(clientId);
+                removeTask(taskId);
+            }, expire).persist(true, clientId, TimerType.SESSION.name(), true);
+            addTask(sessionTimeout);
         }
     }
 
     public static void stopSessionTimeout(String clientId) {
-        ScheduleManager.getInstance().cancel(new TimerBO(clientId, TimerType.SESSION));
+        stopTimeout(clientId, TimerType.SESSION);
+    }
+
+    public static void stopTimeout(String clientId, TimerType timerType) {
+        Optional.ofNullable(removeTask(timerType.name() + clientId)).ifPresent(ScheduleTask::close);
     }
 
     public static void sessionTimeoutImmediately(String clientId) {
@@ -43,12 +69,16 @@ public class TimerUtils {
         if (properties != null && !properties.isEmpty()) {
             willDelay = (Integer) Optional.ofNullable(properties.get(MqttProperties.MqttPropertyType.WILL_DELAY_INTERVAL.value())).orElse(0);
         }
-        TimerBO task = new TimerBO(clientId, TimerType.WILL, will, willDelay);
-        ScheduleManager.getInstance().addDelay(task);
+        String taskId = TimerType.WILL.name() + clientId;
+        ScheduleTask willTimeout = ScheduleTask.delayTask(taskId, timeout -> {
+            willTimeout(will);
+            removeTask(taskId);
+        }, willDelay).persist(true, will, TimerType.WILL.name(), true);
+        addTask(willTimeout);
     }
 
     public static void stopWillTimeout(String clientId) {
-        ScheduleManager.getInstance().cancel(new TimerBO(clientId, TimerType.WILL));
+        stopTimeout(clientId, TimerType.WILL);
     }
 
     public static void sendWillImmediately(String clientId) {
@@ -56,8 +86,7 @@ public class TimerUtils {
     }
 
     private static void executeImmediately(String clientId, TimerType timerType) {
-        TimerBO timerData = ScheduleManager.getInstance().getTimerData(new TimerBO(clientId, timerType));
-        Optional.ofNullable(timerData).ifPresent(TimerBO::process);
+        Optional.ofNullable(removeTask(timerType.name() + clientId)).ifPresent(ScheduleTask::executeImmediately);
     }
 
     private static void sessionTimeout(String clientId) {
@@ -78,8 +107,57 @@ public class TimerUtils {
         BrokerContext.getMessageStore().clearWillMessage(clientId);
     }
 
-    public static void afterExpire(TimerType type, Object data) {
-        Optional.ofNullable(timeoutHook.get(type)).ifPresent(hook -> hook.accept(data));
+    public static void addTask(ScheduleTask task) {
+        taskMap.put(task.getTaskId(), task);
+    }
+
+    public static ScheduleTask removeTask(String taskId) {
+        return taskMap.remove(taskId);
+    }
+
+    public static void restoreTask() {
+        // 系统故障或重启，从本地恢复重启前的调度任务
+        List<TimerDO> tasks = LocalDB.getInstance().operate(session ->
+                session.getMapper(LocalScheduleTaskMapper.class).getAll());
+        tasks.forEach(timerDO -> {
+            ScheduleTask load = restore(timerDO);
+            if (load != null) {
+                addTask(load);
+            }
+        });
+    }
+
+    private static ScheduleTask restore(TimerDO timer) {
+        long remain = timer.getExpireAt() - System.currentTimeMillis();
+        Boolean exec = timer.getExec();
+        JSONObject dataObj = JSONObject.parseObject(timer.getData());
+        Object obj;
+        try {
+            Class<?> clazz = Class.forName(dataObj.getString("type"));
+            Object data = dataObj.get("data");
+            if (data instanceof String) {
+                obj = data;
+            } else {
+                obj = ((JSONObject) data).toJavaObject(clazz);
+            }
+        } catch (ClassNotFoundException e) {
+            log.error("schedule task dirty data.");
+            return null;
+        }
+        if (remain > 0) {
+            return new ScheduleTask(timer.getTimerId(), timeout -> timeoutHook.get(timer.getType()).accept(obj),
+                    remain / 1000, timer.getCycle() ? ScheduleTask.TaskType.TIMED : ScheduleTask.TaskType.DELAY)
+                    .persist(false, obj, timer.getType(), timer.getExec()).start();
+        } else {
+            if (exec != null && exec) {
+                log.info("restore task: {}, expired, execute callback.", timer.getTimerId());
+                LocalDB.getInstance().operate(session ->
+                        session.getMapper(LocalScheduleTaskMapper.class).del(timer.getTimerId()));
+                return new ScheduleTask(timer.getTimerId(), timeout -> timeoutHook.get(timer.getType()).accept(obj),
+                        0, timer.getCycle() ? ScheduleTask.TaskType.TIMED : ScheduleTask.TaskType.DELAY).start();
+            }
+        }
+        return null;
     }
 
     public enum TimerType {

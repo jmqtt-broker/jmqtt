@@ -25,7 +25,7 @@ public interface LocalScheduleTaskMapper extends Mapper<TimerDO> {
                     ",cycle=#{cycle},exec=#{exec}")
     Long storeTask(TimerDO timerDO);
 
-    @Delete("delete from schedule_task where timer_id = #{timerId} and type = #{type}")
-    Long del(@Param("timerId") String timerId, @Param("type") String type);
+    @Delete("delete from schedule_task where timer_id = #{timerId}")
+    Long del(@Param("timerId") String timerId);
 
 }

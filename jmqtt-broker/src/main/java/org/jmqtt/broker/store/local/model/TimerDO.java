@@ -2,7 +2,7 @@ package org.jmqtt.broker.store.local.model;
 
 import com.alibaba.fastjson.JSONObject;
 import lombok.*;
-import org.jmqtt.broker.common.helper.TimerBO;
+import org.jmqtt.broker.common.future.ScheduleTask;
 
 import javax.persistence.Table;
 
@@ -21,7 +21,7 @@ public class TimerDO {
 
     private String data;
 
-    private int expire;
+    private long expire;
 
     private long expireAt;
 
@@ -29,17 +29,20 @@ public class TimerDO {
 
     private Boolean exec;
 
-    public TimerDO(TimerBO timerBO) {
-        this.timerId = timerBO.getTimerId();
-        this.type = timerBO.getType().name();
-        this.expire = timerBO.getExpire();
-        this.expireAt = timerBO.getExpireAt();
-        Object data = timerBO.getData();
-        JSONObject obj = new JSONObject();
-        obj.put("type", data.getClass());
-        obj.put("data", data);
-        this.data = obj.toJSONString();
-        this.cycle = timerBO.getCycle() != null ? timerBO.getCycle() : false;
-        this.exec = timerBO.getExec() != null ? timerBO.getExec() : true;
+    public TimerDO(ScheduleTask task) {
+        this.timerId = task.getTaskId();
+        this.type = task.getBizType();
+        this.expire = task.getDelay();
+        this.expireAt = task.getExpireAt();
+        this.exec = task.getExec();
+        this.cycle = task.timed();
+        Object data = task.getData();
+        if (data != null) {
+            JSONObject obj = new JSONObject();
+            obj.put("type", data.getClass());
+            obj.put("data", data);
+            this.data = obj.toJSONString();
+        }
     }
+
 }

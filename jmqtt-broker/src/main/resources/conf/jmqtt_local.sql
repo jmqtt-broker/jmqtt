@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS `jmqtt_session`
     `property`     varchar(500) DEFAULT NULL COMMENT 'mqtt5 client连接属性',
     `version`      int          DEFAULT NULL COMMENT 'mqtt客户端版本',
     `address`      varchar(50)  DEFAULT NULL COMMENT '客户端地址',
-    `clean_start` tinyint DEFAULT NULL COMMENT '断开后是否清空会话',
-    `keepalive` int DEFAULT NULL COMMENT '心跳周期',
+    `clean_start`  tinyint      DEFAULT NULL COMMENT '断开后是否清空会话',
+    `keepalive`    int          DEFAULT NULL COMMENT '心跳周期',
     PRIMARY KEY (`id`),
     UNIQUE KEY `s_client_id` (`client_id`)
 ) ENGINE = InnoDB
@@ -109,14 +109,14 @@ CREATE TABLE IF NOT EXISTS `broker_config`
 -- DROP TABLE `schedule_task`;
 CREATE TABLE IF NOT EXISTS `schedule_task`
 (
-    `timer_id`  varchar(64) COLLATE utf8mb4_general_ci NOT NULL COMMENT 'timerId，与任务类型组合唯一',
-    `type`      varchar(20) COLLATE utf8mb4_general_ci NOT NULL COMMENT '任务类型，如session过期任务',
-    `expire_at` bigint                                 NOT NULL COMMENT '过期时间点（时间戳）',
-    `expire`    int                                    NOT NULL COMMENT '有效时间（秒）',
-    `data`      text COLLATE utf8mb4_general_ci        NOT NULL COMMENT '关联数据',
-    `cycle`     tinyint                                NOT NULL COMMENT '是否为周期任务',
-    `exec`      tinyint                                NOT NULL COMMENT '是否需要执行',
-    PRIMARY KEY (`timer_id`, `type`)
+    `timer_id`  varchar(64) NOT NULL COMMENT 'timerId，与任务类型组合唯一',
+    `type`      varchar(20) NOT NULL COMMENT '任务类型，如session过期任务',
+    `expire_at` bigint      NOT NULL COMMENT '过期时间点（时间戳）',
+    `expire`    bigint      NOT NULL COMMENT '有效时间（秒）',
+    `data`      text DEFAULT NULL COMMENT '关联数据',
+    `cycle`     tinyint     NOT NULL COMMENT '是否为周期任务',
+    `exec`      tinyint     NOT NULL COMMENT '是否需要执行',
+    PRIMARY KEY (`timer_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_general_ci;

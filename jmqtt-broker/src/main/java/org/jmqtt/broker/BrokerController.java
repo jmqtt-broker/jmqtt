@@ -13,6 +13,7 @@ import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.config.NettyConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
+import org.jmqtt.broker.common.helper.TimerUtils;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.processor.RequestProcessor;
@@ -269,6 +270,7 @@ public class BrokerController {
             this.remotingServer.start();
         }
         brokerOnline();
+        TimerUtils.restoreTask();
         LogUtil.info(log, "JMqtt Server start success.");
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
     }
