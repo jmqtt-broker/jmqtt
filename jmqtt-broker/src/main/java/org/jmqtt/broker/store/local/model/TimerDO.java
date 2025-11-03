@@ -8,7 +8,6 @@ import javax.persistence.Table;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = {"timerId", "type"})
 @ToString

@@ -5,8 +5,6 @@ import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.jmqtt.broker.store.local.LocalDB;
-import org.jmqtt.broker.store.local.mapper.LocalScheduleTaskMapper;
 import org.jmqtt.broker.store.local.model.TimerDO;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
 
@@ -72,7 +70,11 @@ public class ScheduleTask implements TimerTask, Closeable {
         close();
         this.delay = delay;
         this.expireAt = System.currentTimeMillis() + delay * 1000;
-        return start();
+        ScheduleTask task = start();
+        if (this.persist.get()) {
+            PersistHelper.store(new TimerDO(task));
+        }
+        return task;
     }
 
     public void refresh() {
@@ -91,8 +93,7 @@ public class ScheduleTask implements TimerTask, Closeable {
         if (cancel.compareAndSet(false, true) && this.timeout != null) {
             this.timeout.cancel();
             if (this.persist.get()) {
-                LocalDB.getInstance().operate(session ->
-                        session.getMapper(LocalScheduleTaskMapper.class).del(this.taskId));
+                PersistHelper.del(this.taskId);
             }
         }
     }
@@ -105,10 +106,14 @@ public class ScheduleTask implements TimerTask, Closeable {
                 // 定时任务
                 this.timeout = addTask(this, this.delay);
             } else if (this.persist.get()) {
-                LocalDB.getInstance().operate(session ->
-                        session.getMapper(LocalScheduleTaskMapper.class).del(this.taskId));
+                PersistHelper.del(this.taskId);
             }
         }
+    }
+
+
+    private static Timeout addTask(TimerTask task, long dealy) {
+        return TIMER.newTimeout(task, dealy, TimeUnit.SECONDS);
     }
 
     public boolean timed() {
@@ -121,14 +126,9 @@ public class ScheduleTask implements TimerTask, Closeable {
         this.bizType = bizType;
         this.exec = exec;
         if (persist) {
-            LocalDB.getInstance().operate(session ->
-                    session.getMapper(LocalScheduleTaskMapper.class).storeTask(new TimerDO(this)));
+            PersistHelper.store(new TimerDO(this));
         }
         return this;
-    }
-
-    public static Timeout addTask(TimerTask task, long dealy) {
-        return TIMER.newTimeout(task, dealy, TimeUnit.SECONDS);
     }
 
     public static ScheduleTask delayTask(String taskId, TimerTask task, long delay) {

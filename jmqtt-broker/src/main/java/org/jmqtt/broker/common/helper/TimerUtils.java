@@ -3,12 +3,11 @@ package org.jmqtt.broker.common.helper;
 import com.alibaba.fastjson.JSONObject;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.jmqtt.broker.common.future.PersistHelper;
 import org.jmqtt.broker.common.future.ScheduleTask;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
-import org.jmqtt.broker.store.local.LocalDB;
-import org.jmqtt.broker.store.local.mapper.LocalScheduleTaskMapper;
 import org.jmqtt.broker.store.local.model.TimerDO;
 
 import java.util.List;
@@ -117,8 +116,7 @@ public class TimerUtils {
 
     public static void restoreTask() {
         // 系统故障或重启，从本地恢复重启前的调度任务
-        List<TimerDO> tasks = LocalDB.getInstance().operate(session ->
-                session.getMapper(LocalScheduleTaskMapper.class).getAll());
+        List<TimerDO> tasks = PersistHelper.getAll();
         tasks.forEach(timerDO -> {
             ScheduleTask load = restore(timerDO);
             if (load != null) {
@@ -151,8 +149,7 @@ public class TimerUtils {
         } else {
             if (exec != null && exec) {
                 log.info("restore task: {}, expired, execute callback.", timer.getTimerId());
-                LocalDB.getInstance().operate(session ->
-                        session.getMapper(LocalScheduleTaskMapper.class).del(timer.getTimerId()));
+                PersistHelper.del(timer.getTimerId());
                 return new ScheduleTask(timer.getTimerId(), timeout -> timeoutHook.get(timer.getType()).accept(obj),
                         0, timer.getCycle() ? ScheduleTask.TaskType.TIMED : ScheduleTask.TaskType.DELAY).start();
             }

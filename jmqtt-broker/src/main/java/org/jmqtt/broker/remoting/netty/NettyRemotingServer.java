@@ -223,6 +223,7 @@ public class NettyRemotingServer implements RemotingService {
                     LogUtil.warn(log, "Reject mqtt request,cause={}", ex.getMessage());
                 }
             } else {
+                log.warn("Mqtt解码失败。");
                 ctx.close();
             }
         }
