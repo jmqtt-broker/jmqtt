@@ -9,7 +9,7 @@ import javax.persistence.Table;
 @Getter
 @Setter
 @AllArgsConstructor
-@EqualsAndHashCode(of = {"timerId", "type"})
+@EqualsAndHashCode(of = {"timerId"})
 @ToString
 @Table(name = "schedule_task")
 public class TimerDO {
@@ -18,11 +18,11 @@ public class TimerDO {
 
     private String type;
 
-    private String data;
-
     private long expire;
 
     private long expireAt;
+
+    private String data;
 
     private Boolean cycle;
 

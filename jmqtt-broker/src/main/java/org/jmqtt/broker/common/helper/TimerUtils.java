@@ -138,8 +138,9 @@ public class TimerUtils {
             } else {
                 obj = ((JSONObject) data).toJavaObject(clazz);
             }
-        } catch (ClassNotFoundException e) {
+        } catch (Exception e) {
             log.error("schedule task dirty data.");
+            PersistHelper.del(timer.getTimerId());
             return null;
         }
         if (remain > 0) {
