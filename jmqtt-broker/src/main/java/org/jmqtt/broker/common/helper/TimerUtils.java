@@ -34,7 +34,7 @@ public class TimerUtils {
         timeoutHook.put(TimerType.WILL.name(), obj -> {
             Message will = (Message) obj;
             willTimeout(will);
-            removeTask(will.getClientId());
+            removeTask(TimerType.WILL.name() + will.getClientId());
         });
     }
 
@@ -51,15 +51,11 @@ public class TimerUtils {
     }
 
     public static void stopSessionTimeout(String clientId) {
-        stopTimeout(clientId, TimerType.SESSION);
-    }
-
-    public static void stopTimeout(String clientId, TimerType timerType) {
-        Optional.ofNullable(removeTask(timerType.name() + clientId)).ifPresent(ScheduleTask::close);
+        Optional.ofNullable(removeTask(TimerType.SESSION.name() + clientId)).ifPresent(ScheduleTask::close);
     }
 
     public static void sessionTimeoutImmediately(String clientId) {
-        executeImmediately(clientId, TimerType.SESSION);
+        Optional.ofNullable(removeTask(TimerType.SESSION.name() + clientId)).ifPresent(ScheduleTask::executeImmediately);
     }
 
     public static void startWillTimeout(String clientId, Message will) {
@@ -77,15 +73,11 @@ public class TimerUtils {
     }
 
     public static void stopWillTimeout(String clientId) {
-        stopTimeout(clientId, TimerType.WILL);
+        Optional.ofNullable(removeTask(TimerType.WILL.name() + clientId)).ifPresent(ScheduleTask::close);
     }
 
     public static void sendWillImmediately(String clientId) {
-        executeImmediately(clientId, TimerType.WILL);
-    }
-
-    private static void executeImmediately(String clientId, TimerType timerType) {
-        Optional.ofNullable(removeTask(timerType.name() + clientId)).ifPresent(ScheduleTask::executeImmediately);
+        Optional.ofNullable(removeTask(TimerType.WILL.name() + clientId)).ifPresent(ScheduleTask::executeImmediately);
     }
 
     private static void sessionTimeout(String clientId) {
