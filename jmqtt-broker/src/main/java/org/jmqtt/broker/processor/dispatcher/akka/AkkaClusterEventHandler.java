@@ -137,4 +137,12 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                 .actorSelection(path + "/user/" + AkkaConst.AKKA_RECEIVER);
         selection.tell(letter, akka.actor.ActorRef.noSender());
     }
+
+    public void sendByPath(Event event, String path) {
+        log.debug("akka send path: {}", path);
+        ActorSelection selection = Adapter.toClassic(system)
+                .actorSelection(path + "/user/" + AkkaConst.CLUSTER_EVENT_SUBSCRIBER);
+        selection.tell(event, akka.actor.ActorRef.noSender());
+    }
+
 }

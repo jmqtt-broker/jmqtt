@@ -18,6 +18,8 @@ public class SubscriptionDO implements Serializable {
     @Id
     private Long id;
 
+    private String brokerId;
+
     private String clientId;
 
     private String topic;

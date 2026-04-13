@@ -41,7 +41,7 @@ public class Receiver extends AbstractBehavior<Letter> {
         responseHandlerMap.put(EventCode.BROKER_STATE.getCode(), this::brokerStatus);
         responseHandlerMap.put(EventCode.BROKER_STATE_REQUEST.getCode(), this::reportBrokerInfo);
         responseHandlerMap.put(EventCode.SESSION_STATE_RESPONSE.getCode(), this::onlineResponse);
-        responseHandlerMap.put(EventCode.SUBSCRIPTION_RESPONSE.getCode(), this::subscriptionResponse);
+        // responseHandlerMap.put(EventCode.SUBSCRIPTION_RESPONSE.getCode(), this::subscriptionResponse);
         responseHandlerMap.put(EventCode.DISPATCHER_SHARE_SUBSCRIPTION_MSG.getCode(), this::dispatcherShareSubscriptionMsg);
         responseHandlerMap.put(EventCode.KICK_CONNECTION.getCode(), this::kickConnection);
     }
@@ -109,7 +109,7 @@ public class Receiver extends AbstractBehavior<Letter> {
         }
     }
 
-    private void subscriptionResponse(Letter letter) {
+    /*private void subscriptionResponse(Letter letter) {
         Event event = letter.getMessage();
         Object body = event.getBody();
         if (body instanceof SubscriptionRetainMessage) {
@@ -122,7 +122,7 @@ public class Receiver extends AbstractBehavior<Letter> {
             }
             BrokerContext.getRetainMessageDispatcher().appendMessage(sm);
         }
-    }
+    }*/
 
     private void onlineResponse(Letter letter) {
         Event event = letter.getMessage();

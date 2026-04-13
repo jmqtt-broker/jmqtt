@@ -7,13 +7,16 @@ import org.jmqtt.broker.common.helper.TimerUtils;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.Message;
+import org.jmqtt.broker.common.model.MessageHeader;
 import org.jmqtt.broker.common.model.SessionConnect;
-import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
+import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.processor.dispatcher.event.EventHandler;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
+import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionStore;
+import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 import org.slf4j.Logger;
@@ -37,6 +40,7 @@ public class EventConsumeHandler {
     private int maxPollNum;
     private int pollWaitInterval;
     private SessionStore sessionStore;
+    private MessageStore messageStore;
     private Map<Integer, EventHandler> eventHandlerMap = new ConcurrentHashMap<>();
 
     public EventConsumeHandler(BrokerController brokerController) {
@@ -46,10 +50,16 @@ public class EventConsumeHandler {
         this.maxPollNum = brokerController.getBrokerConfig().getMaxPollEventNum();
         this.pollWaitInterval = brokerController.getBrokerConfig().getPollWaitInterval();
         this.sessionStore = brokerController.getSessionStore();
+        this.messageStore = brokerController.getMessageStore();
+
+        eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
+        eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unsubscription);
         eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
         eventHandlerMap.put(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), this::dispatcherMessage);
         eventHandlerMap.put(EventCode.DISPATCHER_WILL_MESSAGE.getCode(), this::dispatcherMessage);
         eventHandlerMap.put(EventCode.KICK_CONNECTION.getCode(), this::kickConnection);
+        eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
+        eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
     }
 
     // 集群方式1: consume event from cluster
@@ -92,15 +102,21 @@ public class EventConsumeHandler {
     }
 
     private void dispatcherMessage(Event event) {
-        Message message = (Message) event.getBody();
-        // 普通节点只保存来自本节点的保留消息，keeper保存集群中所有保留消息
-        if (BrokerContext.getBrokerId().equals(event.getFromBroker()) || ClusterHelper.isKeeper()) {
-            BrokerContext.getMessageStore().retainHandle(message);
-        }
-        byte[] payload = message.getPayload();
-        if (payload != null && payload.length > 0) {
-            this.innerMessageDispatcher.appendMessage(message);
-        }
+        this.innerMessageDispatcher.appendMessage((Message) event.getBody());
+    }
+
+    public void subscription(Event event) {
+        Subscription subscription = (Subscription) event.getBody();
+        BrokerContext.getSessionStore().storeSubscription(subscription.getClientId(), subscription);
+        BrokerContext.getSubscriptionMatcher().subscribe(subscription);
+    }
+
+    public void unsubscription(Event event) {
+        Subscription subscription = (Subscription) event.getBody();
+        String topic = subscription.getTopic();
+        String clientId = subscription.getClientId();
+        BrokerContext.getSessionStore().delSubscription(clientId, topic);
+        BrokerContext.getSubscriptionMatcher().unSubscribe(topic, clientId);
     }
 
     private void clearClientSession(Event event) {
@@ -128,6 +144,23 @@ public class EventConsumeHandler {
             Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(s -> {
                 Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B, "Server terminated connection.");
             });
+        }
+    }
+
+    private void storeRetain(Event event) {
+        Object body = event.getBody();
+        if (body instanceof Message) {
+            Message message = (Message) body;
+            String topic = (String) message.getHeader(MessageHeader.TOPIC);
+            messageStore.storeRetainMessage(topic, message);
+        }
+    }
+
+    private void clearRetain(Event event) {
+        Object body = event.getBody();
+        if (body instanceof String) {
+            String topic = (String) body;
+            messageStore.clearRetainMessage(topic);
         }
     }
 

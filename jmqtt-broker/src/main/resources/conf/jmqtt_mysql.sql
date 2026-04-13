@@ -118,7 +118,8 @@ CREATE TABLE IF NOT EXISTS `jmqtt_session`
 CREATE TABLE IF NOT EXISTS `jmqtt_subscription`
 (
     `id`        bigint(20)   NOT NULL COMMENT '主键',
-    `client_id` varchar(64)  NOT NULL COMMENT '客户端id',
+    `broker_id` varchar(100)  NOT NULL COMMENT 'brokerId',
+    `client_id` varchar(100)  NOT NULL COMMENT '客户端id',
     `topic`     varchar(128) NOT NULL COMMENT '订阅的topic',
     `qos`       tinyint(4)   NOT NULL COMMENT '对应的qos',
     `opt` varchar(100)  DEFAULT NULL COMMENT '订阅选项',

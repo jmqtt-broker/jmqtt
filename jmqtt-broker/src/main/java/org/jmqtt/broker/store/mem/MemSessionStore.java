@@ -115,6 +115,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         LocalDB.getInstance().operate(sqlSession -> {
             SubscriptionDO subscriptionDO = new SubscriptionDO();
             subscriptionDO.setId(IdWorker.getId());
+            subscriptionDO.setBrokerId(subscription.getBrokerId());
             subscriptionDO.setClientId(clientId);
             subscriptionDO.setTopic(subscription.getTopic());
             subscriptionDO.setQos(subscription.getQos());
@@ -150,7 +151,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         );
         Set<Subscription> set = new HashSet<>();
         for (SubscriptionDO item : subscriptionDOList) {
-            Subscription subscription = new Subscription(item.getClientId(), item.getTopic(), item.getQos());
+            Subscription subscription = new Subscription(item.getBrokerId(), item.getClientId(), item.getTopic(), item.getQos());
             Optional.ofNullable(item.getOpt()).ifPresent(opt -> {
                 subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
             });
@@ -164,11 +165,14 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         SubscriptionDO subscriptionDO = LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(LocalSubscriptionMapper.class).queryOneSubscription(clientId, topic)
         );
-        Subscription subscription = new Subscription(subscriptionDO.getClientId(), subscriptionDO.getTopic(), subscriptionDO.getQos());
-        Optional.ofNullable(subscriptionDO.getOpt()).ifPresent(opt -> {
-            subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
-        });
-        return subscription;
+        if (subscriptionDO != null) {
+            Subscription subscription = new Subscription(subscriptionDO.getBrokerId(), subscriptionDO.getClientId(), subscriptionDO.getTopic(), subscriptionDO.getQos());
+            Optional.ofNullable(subscriptionDO.getOpt()).ifPresent(opt -> {
+                subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
+            });
+            return subscription;
+        }
+        return null;
     }
 
     @Override

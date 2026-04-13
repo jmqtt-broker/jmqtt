@@ -127,12 +127,14 @@ COMMENT ON TABLE "JMQTT_SESSION" IS '客户端会话状态';
 -- ----------------------------
 CREATE TABLE "JMQTT_SUBSCRIPTION" (
                                       "ID" NUMBER(20,0) NOT NULL,
-                                      "CLIENT_ID" NVARCHAR2(64) NOT NULL,
+                                      "BROKER_ID" NVARCHAR2(100) NOT NULL,
+                                      "CLIENT_ID" NVARCHAR2(100) NOT NULL,
                                       "TOPIC" NVARCHAR2(128) NOT NULL,
                                       "QOS" NUMBER(4,0) NOT NULL,
                                       "OPT" NVARCHAR2(100)
 );
 COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."ID" IS '主键';
+COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."BROKER_ID" IS 'brokerId';
 COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."CLIENT_ID" IS '客户端id';
 COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."TOPIC" IS '订阅的topic';
 COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."QOS" IS '对应的qos';

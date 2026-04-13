@@ -3,6 +3,7 @@ package org.jmqtt.broker.processor.protocol;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.processor.HighPerformanceMessageHandler;
+import org.jmqtt.broker.processor.dispatcher.DefaultDispatcherInnerMessage;
 import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.store.MessageStore;
@@ -17,6 +18,7 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
 
     private MessageStore messageStore;
     private ClusterEventHandler clusterEventHandler;
+    private DefaultDispatcherInnerMessage dispatcherInnerMessage;
 
     public AbstractMessageProcessor(BrokerController brokerController) {
         super(brokerController.getBrokerConfig().isHighPerformance(), brokerController.getSessionStore());
@@ -25,12 +27,11 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
     }
 
     protected void processMessage(Message message) {
-        if (ClusterHelper.lightning()) {
-            CompletableFuture.runAsync(() -> {
-                ClusterHelper.sendToOneKeeper(ClusterHelper.getEvent(EventCode.DISPATCHER_FOR_SHARE_SUBSCRIPTION, message));
-            });
+        messageStore.retainHandle(message);
+        byte[] payload = message.getPayload();
+        if (payload != null && payload.length > 0) {
+            dispatcherInnerMessage.appendMessage(message);
         }
-        sendMessage2Cluster(message);
     }
 
     /**

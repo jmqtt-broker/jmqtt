@@ -107,15 +107,9 @@ public interface MessageStore {
                     message.putHeader(MessageHeader.TOPIC, topic);
                 }
                 if (qos == 0 || payload == null || payload.length == 0) {
-                    clearRetainMessage(topic);
-                    Event event = ClusterHelper.getEvent(EventCode.CLEAR_RETAIN_MSG, message);
-                    ClusterHelper.sendToKeeper(event);
+                    ClusterHelper.clearRetainMessage(topic);
                 } else {
-                    storeRetainMessage(topic, message);
-                    if (!ClusterHelper.isKeeper()) {
-                        Event event = ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, message);
-                        ClusterHelper.sendToKeeper(event);
-                    }
+                    ClusterHelper.storeRetainMessage(message);
                 }
             });
         }

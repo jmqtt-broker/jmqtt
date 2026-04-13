@@ -54,8 +54,8 @@ public class UnSubscribeProcessor implements RequestProcessor {
             }
             Subscription subscription = sessionStore.getOneSubscription(clientId, topic);
             if (subscription != null) {
-                ClusterHelper.reportUnsubscriptionToKeeper(subscription);
                 sessionStore.delSubscription(clientId, topic);
+                ClusterHelper.unSubscribeToCluster(subscription);
             }
         }
         MqttUnsubAckMessage unsubAckMessage = MessageUtil.getUnSubAckMessage(MessageUtil.getMessageId(mqttMessage), reasonCode);

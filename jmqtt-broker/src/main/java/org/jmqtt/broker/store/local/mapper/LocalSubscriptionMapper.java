@@ -11,8 +11,8 @@ import java.util.List;
 
 public interface LocalSubscriptionMapper extends Mapper<SubscriptionDO> {
 
-    @Insert("INSERT INTO jmqtt_subscription(id, client_id,topic,qos,opt) " +
-            "VALUES(#{id},#{clientId},#{topic},#{qos},#{opt})" +
+    @Insert("INSERT INTO jmqtt_subscription(id, broker_id, client_id,topic,qos,opt) " +
+            "VALUES(#{id},#{brokerId},#{clientId},#{topic},#{qos},#{opt})" +
             " on DUPLICATE key update qos = #{qos},opt = #{opt}")
     Long storeSubscription(SubscriptionDO subscriptionDO);
 
@@ -22,10 +22,10 @@ public interface LocalSubscriptionMapper extends Mapper<SubscriptionDO> {
     @Delete("DELETE FROM jmqtt_subscription WHERE client_id = #{clientId} AND topic = #{topic}")
     Integer delSubscription(@Param("clientId") String clientId, @Param("topic") String topic);
 
-    @Select("SELECT client_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
+    @Select("SELECT broker_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
     List<SubscriptionDO> querySubscription(String clientId);
 
-    @Select("SELECT client_id,topic,qos,opt FROM jmqtt_subscription " +
+    @Select("SELECT broker_id, client_id,topic,qos,opt FROM jmqtt_subscription " +
             "WHERE client_id = #{clientId} and topic = #{topic}")
     SubscriptionDO queryOneSubscription(@Param("clientId") String clientId, @Param("topic") String topic);
 }

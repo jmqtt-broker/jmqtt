@@ -34,10 +34,10 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
     public KeeperSubscriber(ActorContext<Letter> context) {
         super(context);
         eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::sessionState);
-        eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
-        eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
-        eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
-        eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unSubscription);
+        // eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
+        // eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
+        // eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
+        // eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unSubscription);
         eventHandlerMap.put(EventCode.DISPATCHER_FOR_SHARE_SUBSCRIPTION.getCode(), this::dispatcherMsgForShareSubscription);
     }
 
@@ -94,7 +94,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         }
     }
 
-    private void storeRetain(Letter letter) {
+    /*private void storeRetain(Letter letter) {
         Event event = letter.getMessage();
         Object body = event.getBody();
         if (body instanceof Message) {
@@ -102,9 +102,9 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             String topic = (String) message.getHeader(MessageHeader.TOPIC);
             BrokerContext.getMessageStore().storeRetainMessage(topic, message);
         }
-    }
+    }*/
 
-    private void clearRetain(Letter letter) {
+    /*private void clearRetain(Letter letter) {
         Event event = letter.getMessage();
         Object body = event.getBody();
         if (body instanceof Message) {
@@ -112,9 +112,9 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             String topic = (String) message.getHeader(MessageHeader.TOPIC);
             BrokerContext.getMessageStore().clearRetainMessage(topic);
         }
-    }
+    }*/
 
-    private void subscription(Letter letter) {
+    /*private void subscription(Letter letter) {
         Event event = letter.getMessage();
         if (letter.isSync() && BrokerContext.getBrokerId().equals(event.getFromBroker())) {
             return;
@@ -135,9 +135,9 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
                 ClusterHelper.syncToKeeper(letter);
             }
         }
-    }
+    }*/
 
-    private void unSubscription(Letter letter) {
+    /*private void unSubscription(Letter letter) {
         Object body = letter.getMessage().getBody();
         if (body instanceof Subscription) {
             Subscription subscription = (Subscription) body;
@@ -146,7 +146,7 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             BrokerContext.getSubscriptionMatcher().unSubscribe(topic, clientId);
             BrokerContext.getSessionStore().delSubscription(clientId, topic);
         }
-    }
+    }*/
 
     private void dispatcherMsgForShareSubscription(Letter letter) {
         Event event = letter.getMessage();

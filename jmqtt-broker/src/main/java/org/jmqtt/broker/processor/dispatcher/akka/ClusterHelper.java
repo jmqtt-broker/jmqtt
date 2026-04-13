@@ -5,6 +5,7 @@ import akka.cluster.typed.Cluster;
 import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
+import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.common.akka.AkkaConst;
@@ -95,21 +96,28 @@ public class ClusterHelper {
         AKKA_HANDLER.sendByPath(letter, path);
     }
 
+    public static void sendByPath(Event event, String path) {
+        AKKA_HANDLER.sendByPath(event, path);
+    }
+
     public static boolean reportSessionToKeeper(SessionState sessionState) {
         return sendToOneKeeper(getEvent(EventCode.SESSION_STATE, sessionState));
     }
 
-    public static boolean reportUnsubscriptionToKeeper(Subscription subscription) {
-        return sendToKeeper(getEvent(EventCode.UNSUBSCRIPTION, subscription));
+    public static void subscribeToCluster(Subscription subscription) {
+        AKKA_HANDLER.sendEvent(getEvent(EventCode.SUBSCRIPTION, subscription));
     }
 
-    public static boolean reportSubscriptionToKeeper(Subscription subscription) {
-        return sendToOneKeeper(getEvent(EventCode.SUBSCRIPTION, subscription));
+    public static void unSubscribeToCluster(Subscription subscription) {
+        AKKA_HANDLER.sendEvent(getEvent(EventCode.UNSUBSCRIPTION, subscription));
     }
 
-    public static void refreshAkkaMembers() {
-        SortedSet<Member> members = Cluster.get(AKKA_HANDLER.getSystem()).state().members();
-        // members.foreach(m -> {});
+    public static void storeRetainMessage(Message message) {
+        AKKA_HANDLER.sendEvent(ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, message));
+    }
+
+    public static void clearRetainMessage(String topic) {
+        AKKA_HANDLER.sendEvent(ClusterHelper.getEvent(EventCode.CLEAR_RETAIN_MSG, topic));
     }
 
 }

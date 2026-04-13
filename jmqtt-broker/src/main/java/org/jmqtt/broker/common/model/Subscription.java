@@ -1,9 +1,6 @@
 package org.jmqtt.broker.common.model;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Objects;
 import java.util.StringJoiner;
@@ -14,8 +11,10 @@ import java.util.StringJoiner;
 @Getter
 @Setter
 @NoArgsConstructor
+@ToString
 @EqualsAndHashCode(of = {"clientId", "topic"})
 public class Subscription {
+    private String brokerId;
     private String clientId;
     private int qos;
     private String topic;
@@ -27,12 +26,11 @@ public class Subscription {
         this.qos = qos;
     }
 
-    @Override
-    public String toString() {
-        return new StringJoiner(", ", Subscription.class.getSimpleName() + "[", "]")
-            .add("clientId='" + clientId + "'")
-            .add("qos=" + qos)
-            .add("topic='" + topic + "'")
-            .toString();
+    public Subscription(String brokerId, String clientId,String topic,int qos){
+        this.brokerId = brokerId;
+        this.clientId = clientId;
+        this.topic = topic;
+        this.qos = qos;
     }
+
 }

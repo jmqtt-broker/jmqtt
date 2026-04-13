@@ -14,17 +14,17 @@ public interface SubscriptionMapper extends Mapper<SubscriptionDO> {
     @Insert("<script>" +
             "<if test=\"'${dbType}' == 'oracle'\">" +
             "MERGE INTO JMQTT_SUBSCRIPTION a " +
-            "USING (SELECT #{id} AS ID, #{clientId} AS CLIENT_ID, #{topic} AS TOPIC," +
+            "USING (SELECT #{id} AS ID, #{brokerId} AS BROKER_ID, #{clientId} AS CLIENT_ID, #{topic} AS TOPIC," +
             " #{qos} AS QOS, #{opt} AS OPT FROM DUAL) b " +
             "ON (a.CLIENT_ID = b.CLIENT_ID AND a.TOPIC = b.TOPIC) " +
             "WHEN MATCHED THEN " +
             "UPDATE SET QOS = b.QOS, OPT = b.OPT " +
             "WHEN NOT MATCHED THEN " +
-            "INSERT (ID, CLIENT_ID, TOPIC, QOS, OPT) VALUES " +
-            "(b.ID, b.CLIENT_ID, b.TOPIC, b.QOS, b.OPT)" +
+            "INSERT (ID, BROKER_ID, CLIENT_ID, TOPIC, QOS, OPT) VALUES " +
+            "(b.ID, b.BROKER_ID, b.CLIENT_ID, b.TOPIC, b.QOS, b.OPT)" +
             "</if>" +
             "<if test=\"'${dbType}' != 'oracle'\">" +
-            "INSERT INTO jmqtt_subscription(id, client_id,topic,qos,opt) VALUES(#{id},#{clientId},#{topic},#{qos},#{opt})" +
+            "INSERT INTO jmqtt_subscription(id, broker_id, client_id,topic,qos,opt) VALUES(#{id}, #{brokerId}, #{clientId},#{topic},#{qos},#{opt})" +
             "<if test=\"'${dbType}' == 'mysql'\">" +
             "  on DUPLICATE key update qos = #{qos},opt = #{opt}" +
             "</if>" +
@@ -42,6 +42,6 @@ public interface SubscriptionMapper extends Mapper<SubscriptionDO> {
     @Delete("DELETE FROM jmqtt_subscription WHERE client_id = #{clientId} AND topic = #{topic}")
     Integer delSubscription(@Param("clientId") String clientId, @Param("topic") String topic);
 
-    @Select("SELECT client_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
+    @Select("SELECT broker_id, client_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
     List<SubscriptionDO> querySubscription(String clientId);
 }
