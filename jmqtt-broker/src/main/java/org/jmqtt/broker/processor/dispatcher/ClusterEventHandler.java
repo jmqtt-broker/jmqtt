@@ -1,6 +1,7 @@
 package org.jmqtt.broker.processor.dispatcher;
 
 import org.jmqtt.broker.common.config.BrokerConfig;
+import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
 
 import java.util.List;

@@ -40,7 +40,7 @@ public interface SessionStore {
         SessionState session = getSession(clientId);
         long onlineTime = Optional.ofNullable(session.getOnlineTime()).orElse(0L);
         long cur = System.currentTimeMillis();
-        if (session.getState() == SessionState.StateEnum.ONLINE && (onlineTime > 0 && cur < onlineTime)) {
+        if (SessionState.StateEnum.ONLINE.equals(session.getState()) && (onlineTime > 0 && cur < onlineTime)) {
             return;
         }
         Optional.ofNullable(session.getVersion()).ifPresent(v -> {

@@ -6,15 +6,14 @@ import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.helper.TimerUtils;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
-import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.broker.common.model.MessageHeader;
-import org.jmqtt.broker.common.model.SessionConnect;
-import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.common.model.*;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.dispatcher.event.EventHandler;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.MessageStore;
+import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
@@ -52,6 +51,7 @@ public class EventConsumeHandler {
         this.sessionStore = brokerController.getSessionStore();
         this.messageStore = brokerController.getMessageStore();
 
+        eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::clientOnOffline);
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unsubscription);
         eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
@@ -101,22 +101,44 @@ public class EventConsumeHandler {
 
     }
 
+    public void clientOnOffline(Event event) {
+        SessionState session = (SessionState) event.getBody();
+        if (!BrokerContext.getBrokerId().equals(session.getBrokerId())) {
+            sessionStore.storeSession(session);
+        }
+        if (SessionState.StateEnum.ONLINE.equals(session.getState())) {
+            // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回
+
+        }
+    }
+
     private void dispatcherMessage(Event event) {
-        this.innerMessageDispatcher.appendMessage((Message) event.getBody());
+        if (ClusterHelper.lightning()) {
+            this.innerMessageDispatcher.appendMessage((Message) event.getBody());
+        } else {
+            MessageWapper wapper = (MessageWapper) event.getBody();
+            if (BrokerContext.getBrokerId().equals(wapper.getTargetBrokerId())) {
+                this.innerMessageDispatcher.appendMessage(wapper.getMessage());
+            }
+        }
     }
 
     public void subscription(Event event) {
         Subscription subscription = (Subscription) event.getBody();
-        BrokerContext.getSessionStore().storeSubscription(subscription.getClientId(), subscription);
-        BrokerContext.getSubscriptionMatcher().subscribe(subscription);
+        if (!BrokerContext.getBrokerId().equals(subscription.getBrokerId())) {
+            sessionStore.storeSubscription(subscription.getClientId(), subscription);
+            BrokerContext.getSubscriptionMatcher().subscribe(subscription);
+        }
     }
 
     public void unsubscription(Event event) {
         Subscription subscription = (Subscription) event.getBody();
-        String topic = subscription.getTopic();
-        String clientId = subscription.getClientId();
-        BrokerContext.getSessionStore().delSubscription(clientId, topic);
-        BrokerContext.getSubscriptionMatcher().unSubscribe(topic, clientId);
+        if (!BrokerContext.getBrokerId().equals(subscription.getBrokerId())) {
+            String topic = subscription.getTopic();
+            String clientId = subscription.getClientId();
+            sessionStore.delSubscription(clientId, topic);
+            BrokerContext.getSubscriptionMatcher().unSubscribe(topic, clientId);
+        }
     }
 
     private void clearClientSession(Event event) {

@@ -34,8 +34,6 @@ import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
 import org.slf4j.Logger;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -121,7 +119,7 @@ public class ConnectProcessor implements RequestProcessor {
                 // 从集群/本服务器中查询是否存在该clientId的设备
                 SessionState sessionState = sessionStore.getSession(clientId);
                 boolean notifyClearOtherSession = true;
-                if (sessionState.getState() == SessionState.StateEnum.ONLINE) {
+                if (SessionState.StateEnum.ONLINE.equals(sessionState.getState())) {
                     ClientSession previousClient = ConnectManager.getInstance().getClient(clientId);
                     if (previousClient != null) {
                         Mqtt5Utils.sendDisconnectAndClose(previousClient, (byte) 0x8E, "Session taken over.");
@@ -129,7 +127,7 @@ public class ConnectProcessor implements RequestProcessor {
                         notifyClearOtherSession = false;
                     }
                 }
-                if (sessionState.getState() == SessionState.StateEnum.NULL) {
+                if (SessionState.StateEnum.NULL.equals(sessionState.getState())) {
                     clientSession = new ClientSession(clientId, cleanSession, mqttVersion, ctx);
                     sessionPresent = false;
                     // notifyClearOtherSession = false;
@@ -192,7 +190,7 @@ public class ConnectProcessor implements RequestProcessor {
                 // 存储 session 会话
                 sessionStore.storeSession(ss);
                 if (ClusterHelper.lightning()) {
-                    ClusterHelper.reportSessionToKeeper(ss);
+                    ClusterHelper.sendSessionToCluster(ss);
                 }
                 if (notifyClearOtherSession) {
                     SessionConnect sc = new SessionConnect();

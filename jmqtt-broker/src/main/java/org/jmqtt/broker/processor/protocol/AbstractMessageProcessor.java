@@ -37,8 +37,8 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
     /**
      * 向集群分发消息:第一阶段
      */
-    private void sendMessage2Cluster(Message message) {
+    /*private void sendMessage2Cluster(Message message) {
         this.clusterEventHandler.sendEvent(ClusterHelper.getEvent(EventCode.DISPATCHER_CLIENT_MESSAGE, message));
-    }
+    }*/
 
 }

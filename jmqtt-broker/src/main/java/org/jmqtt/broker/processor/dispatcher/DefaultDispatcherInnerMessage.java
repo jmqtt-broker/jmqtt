@@ -20,7 +20,6 @@ import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
-import org.jmqtt.common.event.EventCode;
 import org.jmqtt.common.helper.RejectHandler;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
 import org.slf4j.Logger;
@@ -123,12 +122,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                     try {
                         String pubClientId = message.getClientId();
                         String topic = TopicAliasManager.getRealTopic(message);
-                        Set<Subscription> subscriptions;
-                        if (ClusterHelper.lightning()) {
-                            subscriptions = subscriptionMatcher.match(topic, pubClientId, true);
-                        } else {
-                            subscriptions = subscriptionMatcher.match(topic, pubClientId);
-                        }
+                        Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
                         for (Subscription subscription : subscriptions) {
                             String subClientId = subscription.getClientId();
                             String targetBrokerId = subscription.getBrokerId();
@@ -177,14 +171,14 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                                 } else {
                                     CompletableFuture.runAsync(() -> {
                                         SessionState session = sessionStore.getSession(subscription.getClientId());
-                                        if (session.getState() != SessionState.StateEnum.ONLINE) {
+                                        if (!SessionState.StateEnum.ONLINE.equals(session.getState())) {
                                             storeOffline(subscription.getClientId(), message);
                                         }
                                     });
                                 }
                             } else {
                                 // 订阅topic的client不在当前broker，需要把消息发送给目标所在的broker，由目标broker进行发送
-                                ClusterHelper.sendByPath(ClusterHelper.getEvent(EventCode.DISPATCHER_CLIENT_MESSAGE, message), targetBrokerId);
+                                ClusterHelper.sendMessageToCluster(message, targetBrokerId);
                             }
                         }
                     } catch (Exception ex) {
@@ -207,9 +201,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
     }
 
     private void storeOffline(String clientId, Message message) {
-        if (!ClusterHelper.lightning() || ClusterHelper.isKeeper()) {
-            sessionStore.storeOfflineMsg(clientId, message);
-        }
+        sessionStore.storeOfflineMsg(clientId, message);
     }
 
     private boolean checkPackageSize(ClientSession clientSession, int remainingLength) {

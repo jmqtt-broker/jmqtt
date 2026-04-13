@@ -42,8 +42,6 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
     private ActorSystem<Void> system;
     private EventConsumeHandler eventConsumeHandler;
 
-    private ActorRef<Topic.Command<Letter>> keeperTopic;
-    private ActorRef<Letter> keeperSubscriber;
     private ActorRef<ClusterEvent.ClusterDomainEvent> clusterListener;
     private ActorRef<Letter> receiver;
 
@@ -64,12 +62,6 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                     topic = context.spawn(Topic.create(Event.class, "jmqtt-event"), AkkaConst.CLUSTER_EVENT);
                     subscriber = context.spawn(Subscriber.create(this.eventConsumeHandler), AkkaConst.CLUSTER_EVENT_SUBSCRIBER);
                     topic.tell(Topic.subscribe(subscriber));
-                    // 广播给拥有keeper角色的节点
-                    keeperTopic = context.spawn(Topic.create(Letter.class, "jmqtt-keeper"), AkkaConst.KEEPER_TOPIC);
-                    if (Cluster.get(context.getSystem()).selfMember().hasRole(AkkaConst.KEEPER)) {
-                        keeperSubscriber = context.spawn(KeeperSubscriber.create(), AkkaConst.KEEPER_SUBSCRIBER);
-                        keeperTopic.tell(Topic.subscribe(keeperSubscriber));
-                    }
                     clusterListener = context.spawn(AkkaClusterEventListener.create(), AkkaConst.CLUSTER_LISTENER);
                     receiver = context.spawn(Receiver.create(), AkkaConst.AKKA_RECEIVER);
                     address = new Address(AkkaConst.SYSTEM_PROTOCOL, akkaConfig.getSystemName(), akkaConfig.getHost(), Integer.parseInt(akkaConfig.getPort()));
@@ -102,13 +94,7 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
         return null;
     }
 
-    public void sendToKeeper(Event event) {
-        String path = Cluster.get(system).selfMember().hasRole(AkkaConst.KEEPER) ? selfPath : selfPathWithAddress;
-        Letter letter = new Letter(event, path);
-        keeperTopic.tell(Topic.publish(letter));
-    }
-
-    public void sendToOneKeeper(Event event) {
+    /*public void sendToOneKeeper(Event event) {
         // sendTokeeper(event);
         Option<Member> memberOpt = Cluster.get(system).state().members().find(
                 m -> m.hasRole(AkkaConst.KEEPER) && m.status().equals(MemberStatus.up())
@@ -125,11 +111,11 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
         } else {
             log.warn("can not find keeper node.");
         }
-    }
+    }*/
 
-    public void syncToKeeper(Letter letter) {
+    /*public void syncToKeeper(Letter letter) {
         keeperTopic.tell(Topic.publish(letter));
-    }
+    }*/
 
     public void sendByPath(Letter letter, String path) {
         log.debug("akka send path: {}", path);
