@@ -92,7 +92,7 @@ public class TimerUtils {
         Optional.ofNullable(will.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
             if ((boolean) retain) {
                 log.info("will message store as retain, clientId: {}", clientId);
-                BrokerContext.getMessageStore().storeRetainMessage((String) will.getHeader(MessageHeader.TOPIC), will);
+                BrokerContext.getMessageStore().retainHandle(will);
             }
         });
         BrokerContext.getMessageStore().clearWillMessage(clientId);

@@ -15,7 +15,8 @@ import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
-import org.jmqtt.common.akka.Letter;
+import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
+import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 import org.slf4j.Logger;
@@ -51,6 +52,7 @@ public class EventConsumeHandler {
         this.sessionStore = brokerController.getSessionStore();
         this.messageStore = brokerController.getMessageStore();
 
+        eventHandlerMap.put(EventCode.BROKER_ONLINE.getCode(), this::brokerOnline);
         eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::clientOnOffline);
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unsubscription);
@@ -99,6 +101,12 @@ public class EventConsumeHandler {
 
     public void shutdown() {
 
+    }
+
+    private void brokerOnline(Event event) {
+        BrokerInfo brokerInfo = (BrokerInfo) event.getBody();
+        BrokerDO broker = new BrokerDO(brokerInfo);
+        BrokerContext.getLocalStore().storeBroker(broker);
     }
 
     public void clientOnOffline(Event event) {

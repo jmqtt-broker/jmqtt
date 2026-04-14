@@ -1,6 +1,5 @@
 package org.jmqtt.broker.store.local;
 
-import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 
 import java.util.List;

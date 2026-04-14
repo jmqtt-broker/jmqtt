@@ -1,9 +1,5 @@
 package org.jmqtt.broker;
 
-import akka.actor.ActorSelection;
-import akka.actor.typed.javadsl.Adapter;
-import akka.cluster.MemberStatus;
-import akka.cluster.typed.Cluster;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,8 +39,8 @@ import org.jmqtt.broker.store.redis.RedisMessageStore;
 import org.jmqtt.broker.store.redis.RedisSessionStore;
 import org.jmqtt.broker.subscribe.DefaultSubscriptionTreeMatcher;
 import org.jmqtt.broker.subscribe.SubscriptionMatcher;
-import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.config.JmqttConst;
+import org.jmqtt.common.entity.BrokerInfo;
 import org.jmqtt.common.event.EventCode;
 import org.jmqtt.common.helper.RejectHandler;
 import org.jmqtt.common.helper.ThreadFactoryImpl;
@@ -345,7 +341,10 @@ public class BrokerController {
         brokerInfo.setOnlineAt(System.currentTimeMillis());
         localStore.storeBroker(brokerInfo);
         if (ClusterHelper.lightning()) {
-            AkkaClusterEventHandler handler = (AkkaClusterEventHandler) clusterEventHandler;
+            BrokerInfo info = new BrokerInfo();
+            MixAll.copyProperties(brokerInfo, info);
+            ClusterHelper.sendToCluster(ClusterHelper.getEvent(EventCode.BROKER_ONLINE, info));
+            /*AkkaClusterEventHandler handler = (AkkaClusterEventHandler) clusterEventHandler;
             Cluster cluster = Cluster.get(handler.getSystem());
             Letter letter = new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE_REQUEST, true), handler.getSelfPathWithAddress());
             cluster.state().members().foreach(member -> {
@@ -355,7 +354,7 @@ public class BrokerController {
                     selection.tell(letter, akka.actor.ActorRef.noSender());
                 }
                 return member;
-            });
+            });*/
         }
     }
 

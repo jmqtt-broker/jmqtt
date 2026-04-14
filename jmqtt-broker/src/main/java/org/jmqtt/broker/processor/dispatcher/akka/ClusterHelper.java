@@ -50,11 +50,11 @@ public class ClusterHelper {
         Event_HANDLER.sendEvent(event);
     }
 
-    public static void sendByPath(Letter letter, String path) {
+    /*public static void sendByPath(Letter letter, String path) {
         if (LIGHTNING) {
             ((AkkaClusterEventHandler) Event_HANDLER).sendByPath(letter, path);
         }
-    }
+    }*/
 
     public static void sendByPath(Event event, String path) {
         if (LIGHTNING) {

@@ -85,7 +85,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
                 innerMessageDispatcher.appendMessage(willMessage);
                 Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
                     if ((boolean) retain) {
-                        messageStore.storeRetainMessage((String) willMessage.getHeader(MessageHeader.TOPIC), willMessage);
+                        messageStore.retainHandle(willMessage);
                     }
                 });
                 messageStore.clearWillMessage(clientId);
