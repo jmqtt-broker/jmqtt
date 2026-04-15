@@ -271,6 +271,7 @@ public class ConnectProcessor implements RequestProcessor {
         Set<Subscription> subscriptions = sessionStore.getSubscriptions(clientId);
         for (Subscription subscription : subscriptions) {
             this.subscriptionMatcher.subscribe(subscription);
+            ClusterHelper.subscribeToCluster(subscription);
         }
         return clientSession;
     }

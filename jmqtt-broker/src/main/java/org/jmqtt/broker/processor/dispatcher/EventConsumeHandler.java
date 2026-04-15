@@ -58,7 +58,7 @@ public class EventConsumeHandler {
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unsubscription);
         eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
         eventHandlerMap.put(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), this::dispatcherMessage);
-        eventHandlerMap.put(EventCode.DISPATCHER_WILL_MESSAGE.getCode(), this::dispatcherMessage);
+
         eventHandlerMap.put(EventCode.KICK_CONNECTION.getCode(), this::kickConnection);
         eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
         eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
@@ -124,9 +124,9 @@ public class EventConsumeHandler {
         if (ClusterHelper.lightning()) {
             this.innerMessageDispatcher.appendMessage((Message) event.getBody());
         } else {
-            MessageWapper wapper = (MessageWapper) event.getBody();
+            SourceWapper wapper = (SourceWapper) event.getBody();
             if (BrokerContext.getBrokerId().equals(wapper.getTargetBrokerId())) {
-                this.innerMessageDispatcher.appendMessage(wapper.getMessage());
+                this.innerMessageDispatcher.appendMessage((Message) wapper.getSource());
             }
         }
     }

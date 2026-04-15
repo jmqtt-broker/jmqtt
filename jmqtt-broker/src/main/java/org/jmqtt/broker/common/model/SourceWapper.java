@@ -7,9 +7,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class MessageWapper {
+public class SourceWapper {
 
-    private Message message;
+    private Object source;
 
     // 要发送给该broker
     private String targetBrokerId;

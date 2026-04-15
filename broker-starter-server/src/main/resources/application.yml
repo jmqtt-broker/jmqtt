@@ -114,10 +114,12 @@ jmqtt:
       # 服务监听的ip，为空时默认为0.0.0.0，监听所有地址
       bind-host: ${akka-bind-host:}
       # 服务绑定的本地端口，为空时取akka.port
-      bind-port: ${akka-bind-port:25251}
-      # akka集群种子节点列表，可以只配置一个种子节点，其他节点都连接该种子节点，也可以配置多个种子节点，但列表中的第一个种子
-      # 节点必须启动，否则akka集群会关闭。
+      bind-port: ${akka-bind-port:}
+      # 当前节点角色，keeper节点存储集群所有在线客户端、保留消息、订阅关系等，worker只负责存储当前节点连接客户端相关数据
+      # 集群环境建议至少3个种子节点，将3个种子节点设置为keeper角色，负责集群的数据维护，worker节点负责对外提供服务
+      roles: ${akka-roles:keeper}
+      # akka集群种子节点列表，集群环境下至少配置3个种子节点。种子节点可以重启
 #      cluster-nodes: ${seed-nodes:127.0.0.1:25251}
-      cluster-nodes: ${seed-nodes:10.0.0.15:25251}
+      cluster-nodes: ${seed-nodes:10.0.0.15:25251,10.0.0.15:25252}
 #      cluster-nodes: ${seed-nodes:h162827k90.iok.la:17420}
 

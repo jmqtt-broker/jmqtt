@@ -12,13 +12,13 @@ public enum EventCode {
 
     DISPATCHER_CLIENT_MESSAGE(2,"DISPATCHER_CLIENT_MESSAGE","向集群分发客户端发送的消息"),
 
-    DISPATCHER_WILL_MESSAGE(3,"DISPATCHER_WILL_MESSAGE","向集群分发will消息"),
+    // DISPATCHER_WILL_MESSAGE(3,"DISPATCHER_WILL_MESSAGE","向集群分发will消息"),
 
     BROKER_ONLINE(41, "BROKER_ONLINE", "集群节点上线通知"),
-    // BROKER_STATE(4, "BROKER_STATE", "集群节点信息响应"),
+    BROKER_INFO(4, "BROKER_INFO", "向刚上线的节点同步当前节点信息"),
 
     SESSION_STATE(5, "SESSION_STATE", "集群客户端上下线"),
-    SESSION_STATE_RESPONSE(6, "SESSION_STATE_RESPONSE", "客户端上下线，Keeper节点回复worker节点"),
+    // SESSION_STATE_RESPONSE(6, "SESSION_STATE_RESPONSE", "客户端上下线，Keeper节点回复worker节点"),
 
     SUBSCRIPTION(7, "SUBSCRIPTION", "订阅"),
     // SUBSCRIPTION_RESPONSE(8, "SUBSCRIPTION_RESPONSE", "Keeper订阅后返回保留消息"),

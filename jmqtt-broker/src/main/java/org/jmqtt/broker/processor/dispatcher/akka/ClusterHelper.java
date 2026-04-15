@@ -4,11 +4,10 @@ import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.broker.common.model.MessageWapper;
+import org.jmqtt.broker.common.model.SourceWapper;
 import org.jmqtt.broker.common.model.Subscription;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.store.SessionState;
-import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
@@ -25,7 +24,7 @@ public class ClusterHelper {
 
     private static final BrokerConfig BROKER_CONFIG;
 
-    private static final ClusterEventHandler Event_HANDLER;
+    private static final ClusterEventHandler EVENT_HANDLER;
 
     static {
         BROKER_CONFIG = BrokerContext.getBrokerConfig();
@@ -35,7 +34,7 @@ public class ClusterHelper {
         } else {
             LIGHTNING = false;
         }
-        Event_HANDLER = BrokerContext.getBrokerController().getClusterEventHandler();
+        EVENT_HANDLER = BrokerContext.getBrokerController().getClusterEventHandler();
     }
 
     public static boolean lightning() {
@@ -47,49 +46,47 @@ public class ClusterHelper {
     }
 
     public static void sendToCluster(Event event) {
-        Event_HANDLER.sendEvent(event);
+        EVENT_HANDLER.sendEvent(event);
     }
 
-    /*public static void sendByPath(Letter letter, String path) {
+    public static void sendToCluster(Event event, String targetBrokerId) {
         if (LIGHTNING) {
-            ((AkkaClusterEventHandler) Event_HANDLER).sendByPath(letter, path);
+            ((AkkaClusterEventHandler) EVENT_HANDLER).sendByPath(event, targetBrokerId);
+        } else {
+            event.setBody(new SourceWapper(event.getBody(), targetBrokerId));
+            EVENT_HANDLER.sendEvent(event);
         }
-    }*/
+    }
 
     public static void sendByPath(Event event, String path) {
         if (LIGHTNING) {
-            ((AkkaClusterEventHandler) Event_HANDLER).sendByPath(event, path);
+            ((AkkaClusterEventHandler) EVENT_HANDLER).sendByPath(event, path);
         }
     }
 
     public static boolean sendSessionToCluster(SessionState sessionState) {
-        return Event_HANDLER.sendEvent(getEvent(EventCode.SESSION_STATE, sessionState));
+        return EVENT_HANDLER.sendEvent(getEvent(EventCode.SESSION_STATE, sessionState));
     }
 
     public static void sendMessageToCluster(Message message, String targetBrokerId) {
         Event event = ClusterHelper.getEvent(EventCode.DISPATCHER_CLIENT_MESSAGE, message);
-        if (LIGHTNING) {
-            ((AkkaClusterEventHandler) Event_HANDLER).sendByPath(event, targetBrokerId);
-        } else {
-            event.setBody(new MessageWapper(message, targetBrokerId));
-            Event_HANDLER.sendEvent(event);
-        }
+        sendToCluster(event, targetBrokerId);
     }
 
     public static void subscribeToCluster(Subscription subscription) {
-        Event_HANDLER.sendEvent(getEvent(EventCode.SUBSCRIPTION, subscription));
+        EVENT_HANDLER.sendEvent(getEvent(EventCode.SUBSCRIPTION, subscription));
     }
 
     public static void unSubscribeToCluster(Subscription subscription) {
-        Event_HANDLER.sendEvent(getEvent(EventCode.UNSUBSCRIPTION, subscription));
+        EVENT_HANDLER.sendEvent(getEvent(EventCode.UNSUBSCRIPTION, subscription));
     }
 
     public static void storeRetainMessage(Message message) {
-        Event_HANDLER.sendEvent(ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, message));
+        EVENT_HANDLER.sendEvent(ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, message));
     }
 
     public static void clearRetainMessage(String topic) {
-        Event_HANDLER.sendEvent(ClusterHelper.getEvent(EventCode.CLEAR_RETAIN_MSG, topic));
+        EVENT_HANDLER.sendEvent(ClusterHelper.getEvent(EventCode.CLEAR_RETAIN_MSG, topic));
     }
 
 }

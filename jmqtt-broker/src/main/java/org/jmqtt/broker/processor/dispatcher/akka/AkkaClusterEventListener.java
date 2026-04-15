@@ -1,19 +1,27 @@
 package org.jmqtt.broker.processor.dispatcher.akka;
 
-import akka.actor.ActorSelection;
 import akka.actor.Address;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.*;
+import akka.actor.typed.javadsl.AbstractBehavior;
+import akka.actor.typed.javadsl.ActorContext;
+import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.Receive;
 import akka.cluster.ClusterEvent;
 import akka.cluster.Member;
 import akka.cluster.typed.Cluster;
 import akka.cluster.typed.Subscribe;
 import org.jmqtt.broker.common.helper.BrokerContext;
+import org.jmqtt.broker.common.helper.MixAll;
+import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.store.local.LocalStore;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
-import org.jmqtt.common.akka.AkkaConst;
-import org.jmqtt.common.akka.Letter;
+import org.jmqtt.common.entity.BrokerInfo;
+import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
+import scala.math.Ordering;
+
+import java.util.Collection;
+import java.util.Comparator;
 
 public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.ClusterDomainEvent> {
 
@@ -39,28 +47,37 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
     }
 
     private Behavior<ClusterEvent.ClusterDomainEvent> onMemberJoined(ClusterEvent.MemberJoined event) {
-        getContext().getLog().info("Member joined: {}", event.member());
-        /*Address address = event.member().address();
-        AkkaClusterEventHandler handler = (AkkaClusterEventHandler) BrokerContext.getBrokerController().getClusterEventHandler();
-        ActorSelection selection = Adapter.toClassic(getContext().getSystem())
-                .actorSelection(handler.getReceiver().path().toStringWithAddress(address));
-        Letter letter = new Letter(ClusterHelper.getEvent(EventCode.BROKER_STATE_REQUEST, true), handler.getSelfPathWithAddress());
-        selection.tell(letter, Adapter.toClassic(getContext().getSelf()));*/
+        Member joinMember = event.member();
+        getContext().getLog().info("Member joined: {}", joinMember);
+        Cluster cluster = Cluster.get(getContext().getSystem());
+        Member self = cluster.selfMember();
+        if (!self.equals(joinMember)) {
+            String addr = joinMember.address().toString();
+            // 当前broker信息需要同步给刚加入集群的节点
+            syncBrokerInfo(addr);
+            // 判断当前节点是否为最早上线的broker，如果是，将在线的client、所有订阅、所有retain消息同步给刚加入集群的节点
+            Member earliestMember = cluster.state().members().min(Ordering.comparatorToOrdering(Comparator.comparingInt(Member::upNumber)));
+            if (self.equals(earliestMember)) {
+                syncRetainMessage(addr);
 
+            }
+        }
         return this;
     }
 
     private Behavior<ClusterEvent.ClusterDomainEvent> onMemberRemoved(ClusterEvent.MemberRemoved event) {
         Member member = event.member();
         getContext().getLog().info("Member removed: {}", member);
-        Address address = member.address();
-        String brokerId = address.toString();
-        LocalStore localStore = BrokerContext.getBrokerController().getLocalStore();
-        BrokerDO brokerDO = localStore.getBroker(brokerId);
-        if (brokerDO != null) {
-            brokerDO.setStatus(false);
-            brokerDO.setOfflineAt(System.currentTimeMillis());
-            localStore.storeBroker(brokerDO);
+        if (!Cluster.get(getContext().getSystem()).selfMember().equals(member)) {
+            Address address = member.address();
+            String brokerId = address.toString();
+            LocalStore localStore = BrokerContext.getBrokerController().getLocalStore();
+            BrokerDO brokerDO = localStore.getBroker(brokerId);
+            if (brokerDO != null) {
+                brokerDO.setStatus(false);
+                brokerDO.setOfflineAt(System.currentTimeMillis());
+                localStore.storeBroker(brokerDO);
+            }
         }
         return this;
     }
@@ -73,6 +90,27 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
     private Behavior<ClusterEvent.ClusterDomainEvent> onUnreachableMember(ClusterEvent.UnreachableMember event) {
         getContext().getLog().info("Member unreachable: {}", event.member());
         return this;
+    }
+
+    private void syncBrokerInfo(String address) {
+        BrokerDO broker = BrokerContext.getLocalStore().getBroker(BrokerContext.getBrokerId());
+        BrokerInfo info = new BrokerInfo();
+        MixAll.copyProperties(broker, info);
+        Event e = ClusterHelper.getEvent(EventCode.BROKER_ONLINE, info);
+        ClusterHelper.sendToCluster(e, address);
+
+    }
+
+    private void syncRetainMessage(String address) {
+        Collection<Message> retains = BrokerContext.getMessageStore().getAllRetainMsg();
+        retains.forEach(m -> {
+            Event e = ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, m);
+            ClusterHelper.sendToCluster(e, address);
+        });
+    }
+
+    public void syncOnlineClient(String address) {
+        // BrokerContext.getSessionStore().getSession()
     }
 
 }
