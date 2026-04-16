@@ -53,15 +53,12 @@ public class EventConsumeHandler {
         this.messageStore = brokerController.getMessageStore();
 
         eventHandlerMap.put(EventCode.BROKER_ONLINE.getCode(), this::brokerOnline);
-        eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::clientOnOffline);
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unsubscription);
         eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
         eventHandlerMap.put(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), this::dispatcherMessage);
 
         eventHandlerMap.put(EventCode.KICK_CONNECTION.getCode(), this::kickConnection);
-        eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
-        eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
     }
 
     // 集群方式1: consume event from cluster
@@ -109,17 +106,6 @@ public class EventConsumeHandler {
         BrokerContext.getLocalStore().storeBroker(broker);
     }
 
-    public void clientOnOffline(Event event) {
-        SessionState session = (SessionState) event.getBody();
-        if (!BrokerContext.getBrokerId().equals(session.getBrokerId())) {
-            sessionStore.storeSession(session);
-        }
-        if (SessionState.StateEnum.ONLINE.equals(session.getState())) {
-            // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回
-
-        }
-    }
-
     private void dispatcherMessage(Event event) {
         if (ClusterHelper.lightning()) {
             this.innerMessageDispatcher.appendMessage((Message) event.getBody());
@@ -136,6 +122,9 @@ public class EventConsumeHandler {
         if (!BrokerContext.getBrokerId().equals(subscription.getBrokerId())) {
             sessionStore.storeSubscription(subscription.getClientId(), subscription);
             BrokerContext.getSubscriptionMatcher().subscribe(subscription);
+            if (ClusterHelper.isKeeper()) {
+
+            }
         }
     }
 
@@ -163,8 +152,10 @@ public class EventConsumeHandler {
             return;
         }
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
-        Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E, "Session taken over.");
-        sessionStore.clearSession(clientId, sc.getCleanStart());
+        if (clientSession != null) {
+            Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E, "Session taken over.");
+            sessionStore.clearSession(clientId, sc.getCleanStart());
+        }
     }
 
     private void kickConnection(Event event) {
@@ -174,23 +165,6 @@ public class EventConsumeHandler {
             Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(s -> {
                 Mqtt5Utils.sendDisconnectAndClose(s, (byte) 0x8B, "Server terminated connection.");
             });
-        }
-    }
-
-    private void storeRetain(Event event) {
-        Object body = event.getBody();
-        if (body instanceof Message) {
-            Message message = (Message) body;
-            String topic = (String) message.getHeader(MessageHeader.TOPIC);
-            messageStore.storeRetainMessage(topic, message);
-        }
-    }
-
-    private void clearRetain(Event event) {
-        Object body = event.getBody();
-        if (body instanceof String) {
-            String topic = (String) body;
-            messageStore.clearRetainMessage(topic);
         }
     }
 

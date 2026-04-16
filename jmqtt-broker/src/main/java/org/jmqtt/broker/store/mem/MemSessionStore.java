@@ -176,6 +176,22 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
     }
 
     @Override
+    public Set<Subscription> getAllSubscription() {
+        List<SubscriptionDO> subscriptionDOList = LocalDB.getInstance().operate(sqlSession ->
+                sqlSession.getMapper(LocalSubscriptionMapper.class).queryAllSubscription()
+        );
+        Set<Subscription> set = new HashSet<>();
+        for (SubscriptionDO item : subscriptionDOList) {
+            Subscription subscription = new Subscription(item.getBrokerId(), item.getClientId(), item.getTopic(), item.getQos());
+            Optional.ofNullable(item.getOpt()).ifPresent(opt -> {
+                subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
+            });
+            set.add(subscription);
+        }
+        return set;
+    }
+
+    @Override
     public boolean cacheInflowMsg(String clientId, Message message) {
         ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
         if (v == null) {

@@ -189,9 +189,7 @@ public class ConnectProcessor implements RequestProcessor {
                 }
                 // 存储 session 会话
                 sessionStore.storeSession(ss);
-                if (ClusterHelper.lightning()) {
-                    ClusterHelper.sendSessionToCluster(ss);
-                }
+                ClusterHelper.sendSessionToCluster(ss);
                 if (notifyClearOtherSession) {
                     SessionConnect sc = new SessionConnect();
                     sc.setClientId(clientId);
@@ -252,7 +250,7 @@ public class ConnectProcessor implements RequestProcessor {
         message.setStoreTime(System.currentTimeMillis());
         message.setClientId(clientId);
         messageStore.storeWillMessage(clientId, message);
-        messageStore.clearRetainMessage(willTopic);
+        ClusterHelper.clearRetainMessage(willTopic);
         LogUtil.info(log, "[WillMessageStore] : {} store will message:{}", clientId, message);
     }
 

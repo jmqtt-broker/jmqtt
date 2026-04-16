@@ -48,7 +48,7 @@ public interface MessageStore {
             clearWillMessage(clientId);
             Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
                 if ((boolean) retain) {
-                    clearRetainMessage((String) willMessage.getHeader(MessageHeader.TOPIC));
+                    ClusterHelper.clearRetainMessage((String) willMessage.getHeader(MessageHeader.TOPIC));
                 }
             });
         }

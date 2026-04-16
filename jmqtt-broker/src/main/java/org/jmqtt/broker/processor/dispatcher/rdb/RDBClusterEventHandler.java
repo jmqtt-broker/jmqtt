@@ -90,7 +90,7 @@ public class RDBClusterEventHandler extends AbstractDBStore implements ClusterEv
             } else {
                 body = ((JSONObject) data).toJavaObject(Class.forName(className));
             }
-            Event event = new Event(eventDO.getEventCode(),body,eventDO.getGmtCreate(),eventDO.getJmqttIp());
+            Event event = new Event(eventDO.getEventCode(),body,eventDO.getGmtCreate(),BrokerContext.getBrokerId());
             events.add(event);
         }
 

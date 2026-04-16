@@ -106,6 +106,11 @@ public interface SessionStore {
      */
     Set<Subscription> getSubscriptions(String clientId);
 
+    default Set<Subscription> getAllSubscription() {
+
+        return new HashSet<>();
+    }
+
     default Subscription getOneSubscription(String clientId, String topic) {
         return null;
     }

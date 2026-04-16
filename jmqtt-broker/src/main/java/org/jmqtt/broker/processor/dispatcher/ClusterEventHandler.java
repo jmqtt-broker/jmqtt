@@ -30,6 +30,10 @@ public interface ClusterEventHandler {
      */
     boolean sendEvent(Event event);
 
+    default void sendToKeeper(Letter letter) {
+
+    }
+
     /**
      * consume cluster event: cluster push event to node
      * 集群方式1：集群主动push消息过来,在实现类中消费事件后调用 EventConsumeHandler.consumeEvent()方法来让Jmqtt处理事件

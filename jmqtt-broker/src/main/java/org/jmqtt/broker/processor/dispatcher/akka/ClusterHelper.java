@@ -3,14 +3,16 @@ package org.jmqtt.broker.processor.dispatcher.akka;
 import org.jmqtt.broker.common.config.AkkaConfig;
 import org.jmqtt.broker.common.config.BrokerConfig;
 import org.jmqtt.broker.common.helper.BrokerContext;
-import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.broker.common.model.SourceWapper;
-import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.store.SessionState;
+import org.jmqtt.common.akka.AkkaConst;
+import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.config.JmqttConst;
 import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
+
+import java.util.Optional;
 
 /**
  * 集群相关操作
@@ -22,6 +24,8 @@ public class ClusterHelper {
      */
     private static final Boolean LIGHTNING;
 
+    private static final Boolean KEEPER;
+
     private static final BrokerConfig BROKER_CONFIG;
 
     private static final ClusterEventHandler EVENT_HANDLER;
@@ -31,14 +35,21 @@ public class ClusterHelper {
         AkkaConfig akka = BrokerContext.getBrokerConfig().getAkka();
         if (akka != null && akka.getEnable()) {
             LIGHTNING = JmqttConst.MEM.equals(BROKER_CONFIG.getStore());
+            KEEPER = Optional.ofNullable(akka.getRoles()).filter(roles ->
+                    roles.contains(AkkaConst.KEEPER)).isPresent() && LIGHTNING;
         } else {
             LIGHTNING = false;
+            KEEPER = false;
         }
         EVENT_HANDLER = BrokerContext.getBrokerController().getClusterEventHandler();
     }
 
     public static boolean lightning() {
         return LIGHTNING;
+    }
+
+    public static boolean isKeeper() {
+        return KEEPER;
     }
 
     public static Event getEvent(EventCode code, Object body) {
@@ -51,21 +62,25 @@ public class ClusterHelper {
 
     public static void sendToCluster(Event event, String targetBrokerId) {
         if (LIGHTNING) {
-            ((AkkaClusterEventHandler) EVENT_HANDLER).sendByPath(event, targetBrokerId);
+            sendEvent(event, targetBrokerId);
         } else {
             event.setBody(new SourceWapper(event.getBody(), targetBrokerId));
             EVENT_HANDLER.sendEvent(event);
         }
     }
 
-    public static void sendByPath(Event event, String path) {
-        if (LIGHTNING) {
-            ((AkkaClusterEventHandler) EVENT_HANDLER).sendByPath(event, path);
-        }
+    public static void sendLetter(Letter letter, String address) {
+        ((AkkaClusterEventHandler) EVENT_HANDLER).sendByPath(letter, address);
     }
 
-    public static boolean sendSessionToCluster(SessionState sessionState) {
-        return EVENT_HANDLER.sendEvent(getEvent(EventCode.SESSION_STATE, sessionState));
+    public static void sendEvent(Event event, String address) {
+        ((AkkaClusterEventHandler) EVENT_HANDLER).sendByPath(event, address);
+    }
+
+    public static void sendSessionToCluster(SessionState sessionState) {
+        if (lightning()) {
+            EVENT_HANDLER.sendToKeeper(Letter.of(getEvent(EventCode.SESSION_STATE, sessionState)));
+        }
     }
 
     public static void sendMessageToCluster(Message message, String targetBrokerId) {
@@ -74,19 +89,50 @@ public class ClusterHelper {
     }
 
     public static void subscribeToCluster(Subscription subscription) {
-        EVENT_HANDLER.sendEvent(getEvent(EventCode.SUBSCRIPTION, subscription));
+        if (lightning()) {
+            EVENT_HANDLER.sendEvent(getEvent(EventCode.SUBSCRIPTION, subscription));
+        }
     }
 
     public static void unSubscribeToCluster(Subscription subscription) {
-        EVENT_HANDLER.sendEvent(getEvent(EventCode.UNSUBSCRIPTION, subscription));
+        if (lightning()) {
+            EVENT_HANDLER.sendEvent(getEvent(EventCode.UNSUBSCRIPTION, subscription));
+        }
     }
 
     public static void storeRetainMessage(Message message) {
-        EVENT_HANDLER.sendEvent(ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, message));
+        if (lightning()) {
+            EVENT_HANDLER.sendToKeeper(Letter.of(ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, message)));
+        } else {
+            String topic = (String) message.getHeader(MessageHeader.TOPIC);
+            BrokerContext.getMessageStore().storeRetainMessage(topic, message);
+        }
     }
 
     public static void clearRetainMessage(String topic) {
-        EVENT_HANDLER.sendEvent(ClusterHelper.getEvent(EventCode.CLEAR_RETAIN_MSG, topic));
+        if (lightning()) {
+            EVENT_HANDLER.sendToKeeper(Letter.of(ClusterHelper.getEvent(EventCode.CLEAR_RETAIN_MSG, topic)));
+        } else {
+            BrokerContext.getMessageStore().clearRetainMessage(topic);
+        }
+    }
+
+    public static void storeOfflineMessage(String clientId, Message message) {
+        if (lightning()) {
+            EVENT_HANDLER.sendToKeeper(Letter.of(ClusterHelper.getEvent(
+                    EventCode.STORE_OFFLINE_MSG, new OfflineMessageDTO(clientId, message))));
+        } else {
+            BrokerContext.getSessionStore().storeOfflineMsg(clientId, message);
+        }
+    }
+
+    public static void clearOfflineMessage(String clientId) {
+        if (lightning()) {
+            EVENT_HANDLER.sendToKeeper(Letter.of(ClusterHelper.getEvent(
+                    EventCode.STORE_OFFLINE_MSG, clientId)));
+        } else {
+            BrokerContext.getSessionStore().clearOfflineMsg(clientId);
+        }
     }
 
 }

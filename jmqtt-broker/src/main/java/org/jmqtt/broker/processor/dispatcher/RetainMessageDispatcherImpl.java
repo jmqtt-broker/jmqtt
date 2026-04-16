@@ -8,6 +8,7 @@ import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
 import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.processor.HighPerformanceMessageHandler;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
 import org.jmqtt.broker.remoting.util.MessageUtil;
@@ -130,7 +131,7 @@ public class RetainMessageDispatcherImpl extends HighPerformanceMessageHandler i
                                             } else {
                                                 // retain消息过期了，删除
                                                 log.info("[Subscribe] -> retain message expired, delete.");
-                                                BrokerContext.getMessageStore().clearRetainMessage((String) retainMsg.getHeader(MessageHeader.TOPIC));
+                                                ClusterHelper.clearRetainMessage((String) retainMsg.getHeader(MessageHeader.TOPIC));
                                             }
                                         } else {
                                             MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, clientId);

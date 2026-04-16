@@ -10,8 +10,6 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.pubsub.Topic;
 import akka.actor.typed.pubsub.Topic.Command;
 import akka.cluster.ClusterEvent;
-import akka.cluster.Member;
-import akka.cluster.MemberStatus;
 import akka.cluster.typed.Cluster;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -26,8 +24,6 @@ import org.jmqtt.common.akka.AkkaConst;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
 import org.slf4j.Logger;
-import scala.Option;
-import scala.collection.immutable.SortedSet;
 
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +38,8 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
     private ActorSystem<Void> system;
     private EventConsumeHandler eventConsumeHandler;
 
+    private ActorRef<Topic.Command<Letter>> keeperTopic;
+    private ActorRef<Letter> keeperSubscriber;
     private ActorRef<ClusterEvent.ClusterDomainEvent> clusterListener;
     private ActorRef<Letter> receiver;
 
@@ -62,6 +60,12 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
                     topic = context.spawn(Topic.create(Event.class, "jmqtt-event"), AkkaConst.CLUSTER_EVENT);
                     subscriber = context.spawn(Subscriber.create(this.eventConsumeHandler), AkkaConst.CLUSTER_EVENT_SUBSCRIBER);
                     topic.tell(Topic.subscribe(subscriber));
+                    // 广播给拥有keeper角色的节点
+                    keeperTopic = context.spawn(Topic.create(Letter.class, "jmqtt-keeper"), AkkaConst.KEEPER_TOPIC);
+                    if (Cluster.get(context.getSystem()).selfMember().hasRole(AkkaConst.KEEPER)) {
+                        keeperSubscriber = context.spawn(KeeperSubscriber.create(), AkkaConst.KEEPER_SUBSCRIBER);
+                        keeperTopic.tell(Topic.subscribe(keeperSubscriber));
+                    }
                     clusterListener = context.spawn(AkkaClusterEventListener.create(), AkkaConst.CLUSTER_LISTENER);
                     receiver = context.spawn(Receiver.create(), AkkaConst.AKKA_RECEIVER);
                     address = new Address(AkkaConst.SYSTEM_PROTOCOL, akkaConfig.getSystemName(), akkaConfig.getHost(), Integer.parseInt(akkaConfig.getPort()));
@@ -94,33 +98,15 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
         return null;
     }
 
-    /*public void sendToOneKeeper(Event event) {
-        // sendTokeeper(event);
-        Option<Member> memberOpt = Cluster.get(system).state().members().find(
-                m -> m.hasRole(AkkaConst.KEEPER) && m.status().equals(MemberStatus.up())
-        );
-        if (!memberOpt.isEmpty()) {
-            Member member = memberOpt.get();
-            if (member != null) {
-                Address address = member.address();
-                String targetPath = address.toString() + "/user/" + AkkaConst.KEEPER_SUBSCRIBER;
-                ActorSelection selection = Adapter.toClassic(system).actorSelection(targetPath);
-                String path = Cluster.get(system).selfMember().hasRole(AkkaConst.KEEPER) ? selfPath : selfPathWithAddress;
-                selection.tell(new Letter(event, path), akka.actor.ActorRef.noSender());
-            }
-        } else {
-            log.warn("can not find keeper node.");
-        }
-    }*/
-
-    /*public void syncToKeeper(Letter letter) {
+    @Override
+    public void sendToKeeper(Letter letter) {
         keeperTopic.tell(Topic.publish(letter));
-    }*/
+    }
 
     public void sendByPath(Letter letter, String path) {
         log.debug("akka send path: {}", path);
         ActorSelection selection = Adapter.toClassic(system)
-                .actorSelection(path + "/user/" + AkkaConst.AKKA_RECEIVER);
+                .actorSelection(path + "/user/" + AkkaConst.KEEPER_SUBSCRIBER);
         selection.tell(letter, akka.actor.ActorRef.noSender());
     }
 

@@ -30,7 +30,7 @@ public interface SessionService {
         } else if (ClusterHelper.lightning()) {
             BrokerDO broker = BrokerContext.getLocalStore().getBroker(brokerId);
             if (Optional.ofNullable(broker).map(BrokerDO::getStatus).orElse(false)) {
-                ClusterHelper.sendByPath(ClusterHelper.getEvent(EventCode.KICK_CONNECTION, clientId), brokerId);
+                ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.KICK_CONNECTION, clientId), brokerId);
             }
         } else {
             ClusterHelper.sendToCluster(ClusterHelper.getEvent(EventCode.KICK_CONNECTION, clientId));

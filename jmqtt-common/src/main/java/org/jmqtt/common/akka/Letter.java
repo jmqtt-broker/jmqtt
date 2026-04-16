@@ -25,6 +25,14 @@ public class Letter {
         this.message = message;
     }
 
+    public static Letter of(Event event) {
+        return new Letter(event, null);
+    }
+
+    public static Letter of(Event event, String responsePath) {
+        return new Letter(event, responsePath);
+    }
+
     @Override
     public String toString() {
         return JSONObject.toJSONString(this);
