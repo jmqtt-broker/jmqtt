@@ -33,7 +33,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
 
     public KeeperSubscriber(ActorContext<Letter> context) {
         super(context);
-        eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::clientOnOffline);
         eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
         eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
         // eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::sessionState);
@@ -60,21 +59,6 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             }
             return this;
         }).build();
-    }
-
-    public void clientOnOffline(Letter letter) {
-        if (!BrokerContext.getBrokerId().equals(letter.getMessage().getFromBroker())) {
-            SessionState session = (SessionState) letter.getMessage().getBody();
-            if (!BrokerContext.getBrokerId().equals(session.getBrokerId())) {
-                BrokerContext.getSessionStore().storeSession(session);
-            }
-            if (SessionState.StateEnum.ONLINE.equals(session.getState())) {
-                // 如果是客户端上线，需要查看客户端是否存在离线消息，存在则返回
-
-            } else {
-                BrokerContext.getSessionStore().clearSession(session.getClientId(), true);
-            }
-        }
     }
 
     private void storeRetain(Letter letter) {

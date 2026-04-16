@@ -82,7 +82,7 @@ public class TimerUtils {
 
     private static void sessionTimeout(String clientId) {
         log.info("session expired. clientId: {}", clientId);
-        BrokerContext.getSessionStore().clearSession(clientId, false);
+        BrokerContext.getSessionStore().clearSession(clientId, true);
     }
 
     private static void willTimeout(Message will) {

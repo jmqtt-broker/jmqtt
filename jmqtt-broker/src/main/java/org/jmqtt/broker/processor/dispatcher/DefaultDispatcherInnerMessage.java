@@ -201,7 +201,7 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
     }
 
     private void storeOffline(String clientId, Message message) {
-        sessionStore.storeOfflineMsg(clientId, message);
+        ClusterHelper.storeOfflineMessage(clientId, message);
     }
 
     private boolean checkPackageSize(ClientSession clientSession, int remainingLength) {

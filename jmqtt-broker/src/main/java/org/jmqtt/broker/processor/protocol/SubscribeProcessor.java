@@ -111,13 +111,16 @@ public class SubscribeProcessor implements RequestProcessor {
             subscription.setOption(option);
             this.sessionStore.storeSubscription(clientId, subscription);
             boolean subRs = this.subscriptionMatcher.subscribe(subscription);
-            Collection<Message> retainMessages = messageStore.getRetainMsg(subTopic);
-            if (!retainMessages.isEmpty()) {
-                SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMessages, subscription, subRs);
-                BrokerContext.getRetainMessageDispatcher().appendMessage(message);
+            if (ClusterHelper.lightning()) {
+                // 将订阅广播给其他节点
+                ClusterHelper.subscribeToCluster(subscription);
+            } else {
+                Collection<Message> retainMessages = messageStore.getRetainMsg(subTopic);
+                if (!retainMessages.isEmpty()) {
+                    SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMessages, subscription, subRs);
+                    BrokerContext.getRetainMessageDispatcher().appendMessage(message);
+                }
             }
-            // 将订阅广播给其他节点
-            ClusterHelper.subscribeToCluster(subscription);
         }
     }
 

@@ -1,5 +1,6 @@
 package org.jmqtt.broker.processor.dispatcher;
 
+import io.netty.handler.codec.mqtt.MqttMessage;
 import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
@@ -12,6 +13,7 @@ import org.jmqtt.broker.processor.dispatcher.event.EventHandler;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
 import org.jmqtt.broker.remoting.session.ClientSession;
 import org.jmqtt.broker.remoting.session.ConnectManager;
+import org.jmqtt.broker.remoting.util.MessageUtil;
 import org.jmqtt.broker.store.MessageStore;
 import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.SessionStore;
@@ -21,6 +23,7 @@ import org.jmqtt.common.event.Event;
 import org.jmqtt.common.event.EventCode;
 import org.slf4j.Logger;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,7 +58,9 @@ public class EventConsumeHandler {
         eventHandlerMap.put(EventCode.BROKER_ONLINE.getCode(), this::brokerOnline);
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unsubscription);
-        eventHandlerMap.put(EventCode.CLEAR_SESSION.getCode(), this::clearClientSession);
+        eventHandlerMap.put(EventCode.SEND_RETAIN_MSG.getCode(), this::sendRetainMessage);
+        eventHandlerMap.put(EventCode.SEND_OFFLINE_MSG.getCode(), this::sendOfflineMessage);
+        eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::clientOnOffline);
         eventHandlerMap.put(EventCode.DISPATCHER_CLIENT_MESSAGE.getCode(), this::dispatcherMessage);
 
         eventHandlerMap.put(EventCode.KICK_CONNECTION.getCode(), this::kickConnection);
@@ -119,18 +124,30 @@ public class EventConsumeHandler {
 
     public void subscription(Event event) {
         Subscription subscription = (Subscription) event.getBody();
-        if (!BrokerContext.getBrokerId().equals(subscription.getBrokerId())) {
+        if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
             sessionStore.storeSubscription(subscription.getClientId(), subscription);
-            BrokerContext.getSubscriptionMatcher().subscribe(subscription);
+            boolean subRes = BrokerContext.getSubscriptionMatcher().subscribe(subscription);
             if (ClusterHelper.isKeeper()) {
-
+                if (ClusterHelper.isEarliestKeeper()) {
+                    Collection<Message> retainMsgs = messageStore.getRetainMsg(subscription.getTopic());
+                    if (!retainMsgs.isEmpty()) {
+                        // TODO 待优化
+                        SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMsgs, subscription, subRes);
+                        ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SEND_RETAIN_MSG, message), event.getFromBroker());
+                    }
+                }
             }
         }
     }
 
+    public void sendRetainMessage(Event event) {
+        SubscriptionRetainMessage message = (SubscriptionRetainMessage) event.getBody();
+        BrokerContext.getRetainMessageDispatcher().appendMessage(message);
+    }
+
     public void unsubscription(Event event) {
         Subscription subscription = (Subscription) event.getBody();
-        if (!BrokerContext.getBrokerId().equals(subscription.getBrokerId())) {
+        if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
             String topic = subscription.getTopic();
             String clientId = subscription.getClientId();
             sessionStore.delSubscription(clientId, topic);
@@ -138,23 +155,46 @@ public class EventConsumeHandler {
         }
     }
 
-    private void clearClientSession(Event event) {
-        // if event from current node, ignore the event
-        if (BrokerContext.getBrokerId().equals(event.getFromBroker())) {
-            LogUtil.debug(log, "Event from current node,ignore the event,fromBroker:{}", event.getFromBroker());
-            return;
+    private void clientOnOffline(Event event) {
+        if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
+            SessionState session = (SessionState) event.getBody();
+            BrokerContext.getSessionStore().storeSession(session);
+            String clientId = session.getClientId();
+            if (SessionState.StateEnum.ONLINE.equals(session.getState())) {
+                // 如果是客户端上线，查看本地有无在线的client，如果有则踢掉连接
+                ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
+                if (clientSession != null) {
+                    Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E, "Session taken over.");
+                    sessionStore.clearSession(clientId, true);
+                } else {
+                    // 需要查看客户端是否存在离线消息，存在则返回
+                    if (ClusterHelper.isEarliestKeeper()) {
+                        Collection<Message> allOfflineMsg = BrokerContext.getSessionStore().getAllOfflineMsg(clientId);
+                        if (!allOfflineMsg.isEmpty()) {
+                            // TODO 待优化
+                            ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SEND_OFFLINE_MSG,
+                                    new OfflineMessageList(clientId, allOfflineMsg)), event.getFromBroker());
+                            BrokerContext.getSessionStore().clearOfflineMsg(clientId);
+                        }
+                    }
+                    TimerUtils.sessionTimeoutImmediately(clientId);
+                    TimerUtils.stopWillTimeout(clientId);
+                }
+            } else {
+                BrokerContext.getSessionStore().clearSession(session.getClientId(), session.getCleanStart());
+            }
         }
-        SessionConnect sc = (SessionConnect) event.getBody();
-        String clientId = sc.getClientId();
-        if (!ConnectManager.getInstance().containClient(clientId)) {
-            TimerUtils.sessionTimeoutImmediately(clientId);
-            TimerUtils.stopWillTimeout(clientId);
-            return;
-        }
+    }
+
+    public void sendOfflineMessage(Event event) {
+        OfflineMessageList offlineMsg = (OfflineMessageList) event.getBody();
+        String clientId = offlineMsg.getClientId();
         ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
         if (clientSession != null) {
-            Mqtt5Utils.sendDisconnectAndClose(clientSession, (byte) 0x8E, "Session taken over.");
-            sessionStore.clearSession(clientId, sc.getCleanStart());
+            offlineMsg.getOfflineList().forEach(msg -> {
+                MqttMessage mqttMessage = MessageUtil.getPubMessage(msg, false);
+                clientSession.getCtx().writeAndFlush(mqttMessage);
+            });
         }
     }
 

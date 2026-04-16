@@ -10,6 +10,7 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.pubsub.Topic;
 import akka.actor.typed.pubsub.Topic.Command;
 import akka.cluster.ClusterEvent;
+import akka.cluster.Member;
 import akka.cluster.typed.Cluster;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -24,7 +25,10 @@ import org.jmqtt.common.akka.AkkaConst;
 import org.jmqtt.common.akka.Letter;
 import org.jmqtt.common.event.Event;
 import org.slf4j.Logger;
+import scala.collection.Iterable;
+import scala.math.Ordering;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -115,6 +119,15 @@ public class AkkaClusterEventHandler implements ClusterEventHandler {
         ActorSelection selection = Adapter.toClassic(system)
                 .actorSelection(path + "/user/" + AkkaConst.CLUSTER_EVENT_SUBSCRIBER);
         selection.tell(event, akka.actor.ActorRef.noSender());
+    }
+
+    public String getEarliestKeeper() {
+        Member earliestKeeper = ((Iterable<Member>) Cluster.get(system).state().members().filter(m -> m.hasRole(AkkaConst.KEEPER)))
+                .min(Ordering.comparatorToOrdering(Comparator.comparingInt(Member::upNumber)));
+        if (earliestKeeper != null) {
+            return earliestKeeper.address().toString();
+        }
+        return null;
     }
 
 }

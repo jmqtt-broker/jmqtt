@@ -48,12 +48,7 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
         String clientId = NettyUtil.getClientId(channel);
         if (StringUtils.isNotEmpty(clientId)) {
             Optional.ofNullable(ConnectManager.getInstance().getClient(clientId)).ifPresent(session -> {
-                if (session.isCleanStart()) {
-                    sessionStore.clearSession(clientId, true);
-                } else {
-                    offlineSession(session);
-                    TimerUtils.startSessionTimeout(clientId);
-                }
+                offlineSession(session);
                 if (session.normalDisconnection()) {
                     // 收到DISCONNECT报文而断开的连接属于正常断开，不发送遗嘱消息，仅异常断开的连接发送遗嘱消息
                     if (session.publishWill()) {
@@ -95,6 +90,11 @@ public class ClientLifeCycleHookService implements ChannelEventListener {
 
     private void offlineSession(ClientSession clientSession) {
         String clientId = clientSession.getClientId();
+        if (clientSession.isCleanStart()) {
+            sessionStore.clearSession(clientId, true);
+        } else {
+            TimerUtils.startSessionTimeout(clientId);
+        }
         SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis(), clientSession.getVersion());
         SessionState exist = BrokerContext.getSessionStore().getSession(clientId);
         if (exist != null) {

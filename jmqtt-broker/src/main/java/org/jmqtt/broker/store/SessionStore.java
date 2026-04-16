@@ -52,20 +52,19 @@ public interface SessionStore {
                 TimerUtils.sendWillImmediately(clientId);
             }
         });
+        SessionState update = new SessionState(clientId, SessionState.StateEnum.NULL);
         if (cleanStart) {
             clearOfflineMsg(clientId);
             clearSubscriptionAndSubTree(clientId);
         } else {
-            clearSubscription(clientId);
+            update.setState(SessionState.StateEnum.OFFLINE);
         }
+        MixAll.copyProperties(session, update);
+        storeSession(update);
+        ConnectManager.getInstance().removeClient(clientId);
         releaseInflowMsg(clientId, null);
         releaseOutflowMsg(clientId, null);
         releaseOutflowSecMsgId(clientId, null);
-        SessionState update = new SessionState(clientId, SessionState.StateEnum.NULL);
-        MixAll.copyProperties(session, update);
-        update.setState(SessionState.StateEnum.NULL);
-        storeSession(update);
-        ConnectManager.getInstance().removeClient(clientId);
     }
 
     /**

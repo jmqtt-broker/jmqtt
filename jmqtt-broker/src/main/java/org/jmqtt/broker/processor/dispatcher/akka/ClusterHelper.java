@@ -52,6 +52,10 @@ public class ClusterHelper {
         return KEEPER;
     }
 
+    public static boolean isEarliestKeeper() {
+        return lightning() && BrokerContext.getBrokerId().equals(((AkkaClusterEventHandler) EVENT_HANDLER).getEarliestKeeper());
+    }
+
     public static Event getEvent(EventCode code, Object body) {
         return new Event(code.getCode(), body, System.currentTimeMillis(), BrokerContext.getBrokerId());
     }
@@ -78,9 +82,10 @@ public class ClusterHelper {
     }
 
     public static void sendSessionToCluster(SessionState sessionState) {
-        if (lightning()) {
+        /*if (lightning()) {
             EVENT_HANDLER.sendToKeeper(Letter.of(getEvent(EventCode.SESSION_STATE, sessionState)));
-        }
+        }*/
+        EVENT_HANDLER.sendEvent(getEvent(EventCode.SESSION_STATE, sessionState));
     }
 
     public static void sendMessageToCluster(Message message, String targetBrokerId) {

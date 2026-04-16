@@ -190,14 +190,14 @@ public class ConnectProcessor implements RequestProcessor {
                 // 存储 session 会话
                 sessionStore.storeSession(ss);
                 ClusterHelper.sendSessionToCluster(ss);
-                if (notifyClearOtherSession) {
+                /*if (notifyClearOtherSession) {
                     SessionConnect sc = new SessionConnect();
                     sc.setClientId(clientId);
                     sc.setCleanStart(cleanSession);
                     Event event = new Event(EventCode.CLEAR_SESSION.getCode(), sc,
                             System.currentTimeMillis(), BrokerContext.getBrokerId());
                     clusterEventHandler.sendEvent(event);
-                }
+                }*/
                 NettyUtil.setClientId(ctx.channel(), clientId);
                 ConnectManager.getInstance().putClient(clientId, clientSession);
                 MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, responseProperties);
@@ -257,7 +257,7 @@ public class ConnectProcessor implements RequestProcessor {
     private ClientSession createNewClientSession(String clientId, int version, ChannelHandlerContext ctx) {
         ClientSession clientSession = new ClientSession(clientId, true, version, ctx);
         //clear previous sessions
-        this.sessionStore.clearSession(clientId, false);
+        this.sessionStore.clearSession(clientId, true);
         return clientSession;
     }
 

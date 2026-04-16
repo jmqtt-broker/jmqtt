@@ -67,6 +67,7 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
                 if (joinMember.hasRole(AkkaConst.KEEPER)) {
                     syncOnlineClient(addr);
                     syncRetainMessage(addr);
+                    syncOfflineMessage(addr);
                 }
                 // 同步订阅关系
                 syncSubscription(addr);
