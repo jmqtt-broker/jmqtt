@@ -62,24 +62,19 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
     }
 
     private void storeRetain(Letter letter) {
-        if (!BrokerContext.getBrokerId().equals(letter.getMessage().getFromBroker())) {
-            Object body = letter.getMessage().getBody();
-            if (body instanceof Message) {
-                Message message = (Message) body;
-                String topic = (String) message.getHeader(MessageHeader.TOPIC);
-                BrokerContext.getMessageStore().storeRetainMessage(topic, message);
-            }
+        Object body = letter.getMessage().getBody();
+        if (body instanceof Message) {
+            Message message = (Message) body;
+            String topic = (String) message.getHeader(MessageHeader.TOPIC);
+            BrokerContext.getMessageStore().storeRetainMessage(topic, message);
         }
     }
 
-
     private void clearRetain(Letter letter) {
-        if (!BrokerContext.getBrokerId().equals(letter.getMessage().getFromBroker())) {
-            Object body = letter.getMessage().getBody();
-            if (body instanceof String) {
-                String topic = (String) body;
-                BrokerContext.getMessageStore().clearRetainMessage(topic);
-            }
+        Object body = letter.getMessage().getBody();
+        if (body instanceof String) {
+            String topic = (String) body;
+            BrokerContext.getMessageStore().clearRetainMessage(topic);
         }
     }
 

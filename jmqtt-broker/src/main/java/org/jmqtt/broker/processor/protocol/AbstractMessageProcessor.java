@@ -4,6 +4,7 @@ import org.jmqtt.broker.BrokerController;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.processor.HighPerformanceMessageHandler;
 import org.jmqtt.broker.processor.dispatcher.DefaultDispatcherInnerMessage;
+import org.jmqtt.broker.processor.dispatcher.InnerMessageDispatcher;
 import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.dispatcher.ClusterEventHandler;
 import org.jmqtt.broker.store.MessageStore;
@@ -18,12 +19,13 @@ public abstract class AbstractMessageProcessor extends HighPerformanceMessageHan
 
     private MessageStore messageStore;
     private ClusterEventHandler clusterEventHandler;
-    private DefaultDispatcherInnerMessage dispatcherInnerMessage;
+    private InnerMessageDispatcher dispatcherInnerMessage;
 
     public AbstractMessageProcessor(BrokerController brokerController) {
         super(brokerController.getBrokerConfig().isHighPerformance(), brokerController.getSessionStore());
         this.messageStore = brokerController.getMessageStore();
         this.clusterEventHandler = brokerController.getClusterEventHandler();
+        this.dispatcherInnerMessage = brokerController.getInnerMessageDispatcher();
     }
 
     protected void processMessage(Message message) {

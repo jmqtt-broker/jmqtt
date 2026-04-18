@@ -88,8 +88,8 @@ public class ClusterHelper {
         EVENT_HANDLER.sendEvent(getEvent(EventCode.SESSION_STATE, sessionState));
     }
 
-    public static void sendMessageToCluster(Message message, String targetBrokerId) {
-        Event event = ClusterHelper.getEvent(EventCode.DISPATCHER_CLIENT_MESSAGE, message);
+    public static void sendMessageToCluster(MessageDispatchDTO dispatch, String targetBrokerId) {
+        Event event = ClusterHelper.getEvent(EventCode.DISPATCHER_CLIENT_MESSAGE, dispatch);
         sendToCluster(event, targetBrokerId);
     }
 

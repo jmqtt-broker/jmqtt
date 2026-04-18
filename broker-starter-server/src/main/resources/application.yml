@@ -116,10 +116,11 @@ jmqtt:
       # 服务绑定的本地端口，为空时取akka.port
       bind-port: ${akka-bind-port:}
       # 当前节点角色，keeper节点存储集群所有在线客户端、保留消息、订阅关系等，worker只负责存储当前节点连接客户端相关数据
-      # 集群环境建议至少3个种子节点，将3个种子节点设置为keeper角色，负责集群的数据维护，worker节点负责对外提供服务
+      # 集群环境建议至少3个种子节点，将3个种子节点设置为keeper角色，负责集群的数据维护
+      # 除3个keeper节点外，横向扩展其他worker节点处理客户端连接，当然keeper节点也可以处理客户端连接
       roles: ${akka-roles:keeper}
       # akka集群种子节点列表，集群环境下至少配置3个种子节点。种子节点可以重启
 #      cluster-nodes: ${seed-nodes:127.0.0.1:25251}
-      cluster-nodes: ${seed-nodes:10.0.0.15:25251,10.0.0.15:25252}
+      cluster-nodes: ${seed-nodes:10.0.0.6:25251,10.0.0.15:25251,10.0.0.15:25252}
 #      cluster-nodes: ${seed-nodes:h162827k90.iok.la:17420}
 

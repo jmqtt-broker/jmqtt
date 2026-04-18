@@ -14,6 +14,7 @@ import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.helper.MixAll;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.Subscription;
+import org.jmqtt.broker.common.model.SubscriptionSyncDTO;
 import org.jmqtt.broker.store.local.LocalStore;
 import org.jmqtt.broker.store.rdb.daoobject.BrokerDO;
 import org.jmqtt.common.akka.AkkaConst;
@@ -60,9 +61,7 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
             String addr = joinMember.address().toString();
             // 当前broker信息需要同步给刚加入集群的节点
             syncBrokerInfo(addr);
-            Member earliestKeeper = ((Iterable<Member>)cluster.state().members().filter(m -> m.hasRole(AkkaConst.KEEPER)))
-                    .min(Ordering.comparatorToOrdering(Comparator.comparingInt(Member::upNumber)));
-            if (self.hasRole(AkkaConst.KEEPER) && self.equals(earliestKeeper)) {
+            if (ClusterHelper.isEarliestKeeper()) {
                 // 同步有效会话的Client、所有订阅关系、所有retain消息、离线消息
                 if (joinMember.hasRole(AkkaConst.KEEPER)) {
                     syncOnlineClient(addr);
@@ -114,9 +113,11 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
 
     private void syncRetainMessage(String address) {
         Collection<Message> retains = BrokerContext.getMessageStore().getAllRetainMsg();
-        retains.forEach(m -> {
-            ClusterHelper.sendLetter(Letter.of(ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, m)), address);
-        });
+        if (!retains.isEmpty()) {
+            retains.forEach(m -> {
+                ClusterHelper.sendLetter(Letter.of(ClusterHelper.getEvent(EventCode.STORE_RETAIN_MSG, m)), address);
+            });
+        }
     }
 
     public void syncOnlineClient(String address) {
@@ -129,9 +130,9 @@ public class AkkaClusterEventListener extends AbstractBehavior<ClusterEvent.Clus
 
     public void syncSubscription(String address) {
         Set<Subscription> subscriptionSet = BrokerContext.getSessionStore().getAllSubscription();
-        subscriptionSet.forEach(s -> {
-            ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SUBSCRIPTION, s), address);
-        });
+        if (!subscriptionSet.isEmpty()) {
+            ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SUBSCRIPTION_SYNC, new SubscriptionSyncDTO(subscriptionSet)), address);
+        }
     }
 
 }

@@ -22,7 +22,7 @@ public interface LocalSubscriptionMapper extends Mapper<SubscriptionDO> {
     @Delete("DELETE FROM jmqtt_subscription WHERE client_id = #{clientId} AND topic = #{topic}")
     Integer delSubscription(@Param("clientId") String clientId, @Param("topic") String topic);
 
-    @Select("SELECT broker_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
+    @Select("SELECT broker_id, client_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
     List<SubscriptionDO> querySubscription(String clientId);
 
     @Select("SELECT broker_id, client_id,topic,qos,opt FROM jmqtt_subscription " +

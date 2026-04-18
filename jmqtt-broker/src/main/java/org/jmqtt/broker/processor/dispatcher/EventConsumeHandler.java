@@ -57,6 +57,7 @@ public class EventConsumeHandler {
 
         eventHandlerMap.put(EventCode.BROKER_ONLINE.getCode(), this::brokerOnline);
         eventHandlerMap.put(EventCode.SUBSCRIPTION.getCode(), this::subscription);
+        eventHandlerMap.put(EventCode.SUBSCRIPTION_SYNC.getCode(), this::subscriptionSync);
         eventHandlerMap.put(EventCode.UNSUBSCRIPTION.getCode(), this::unsubscription);
         eventHandlerMap.put(EventCode.SEND_RETAIN_MSG.getCode(), this::sendRetainMessage);
         eventHandlerMap.put(EventCode.SEND_OFFLINE_MSG.getCode(), this::sendOfflineMessage);
@@ -113,7 +114,8 @@ public class EventConsumeHandler {
 
     private void dispatcherMessage(Event event) {
         if (ClusterHelper.lightning()) {
-            this.innerMessageDispatcher.appendMessage((Message) event.getBody());
+            MessageDispatchDTO dispatch = (MessageDispatchDTO) event.getBody();
+            this.innerMessageDispatcher.send(dispatch.getSubscription(), dispatch.getMessage());
         } else {
             SourceWapper wapper = (SourceWapper) event.getBody();
             if (BrokerContext.getBrokerId().equals(wapper.getTargetBrokerId())) {
@@ -127,16 +129,24 @@ public class EventConsumeHandler {
         if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
             sessionStore.storeSubscription(subscription.getClientId(), subscription);
             boolean subRes = BrokerContext.getSubscriptionMatcher().subscribe(subscription);
-            if (ClusterHelper.isKeeper()) {
-                if (ClusterHelper.isEarliestKeeper()) {
-                    Collection<Message> retainMsgs = messageStore.getRetainMsg(subscription.getTopic());
-                    if (!retainMsgs.isEmpty()) {
-                        // TODO 待优化
-                        SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMsgs, subscription, subRes);
-                        ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SEND_RETAIN_MSG, message), event.getFromBroker());
-                    }
+            if (ClusterHelper.isEarliestKeeper()) {
+                Collection<Message> retainMsgs = messageStore.getRetainMsg(subscription.getTopic());
+                if (!retainMsgs.isEmpty()) {
+                    // TODO 待优化
+                    SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMsgs, subscription, subRes);
+                    ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SEND_RETAIN_MSG, message), event.getFromBroker());
                 }
             }
+        }
+    }
+
+    public void subscriptionSync(Event event) {
+        SubscriptionSyncDTO sync = (SubscriptionSyncDTO) event.getBody();
+        if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
+            sync.getSubscriptions().forEach(subscription -> {
+                sessionStore.storeSubscription(subscription.getClientId(), subscription);
+                BrokerContext.getSubscriptionMatcher().subscribe(subscription);
+            });
         }
     }
 

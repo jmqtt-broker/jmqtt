@@ -1,5 +1,6 @@
 package org.jmqtt.broker.acl.impl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jmqtt.broker.acl.AuthValid;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
@@ -20,7 +21,7 @@ public class DefaultAuthValid implements AuthValid {
 
     @Override
     public boolean clientIdVerify(String clientId) {
-        return true;
+        return clientId != null && !clientId.isEmpty();
     }
 
     @Override

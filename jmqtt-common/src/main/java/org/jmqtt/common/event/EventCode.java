@@ -21,6 +21,7 @@ public enum EventCode {
     // SESSION_STATE_RESPONSE(6, "SESSION_STATE_RESPONSE", "客户端上下线，Keeper节点回复worker节点"),
 
     SUBSCRIPTION(7, "SUBSCRIPTION", "订阅"),
+    SUBSCRIPTION_SYNC(8, "SUBSCRIPTION_SYNC", "订阅同步"),
     // SUBSCRIPTION_RESPONSE(8, "SUBSCRIPTION_RESPONSE", "Keeper订阅后返回保留消息"),
     UNSUBSCRIPTION(9, "UNSUBSCRIPTION", "取消订阅"),
 

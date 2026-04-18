@@ -6,10 +6,7 @@ import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import org.jmqtt.broker.common.helper.BrokerContext;
 import org.jmqtt.broker.common.log.JmqttLogger;
 import org.jmqtt.broker.common.log.LogUtil;
-import org.jmqtt.broker.common.model.Message;
-import org.jmqtt.broker.common.model.MessageHeader;
-import org.jmqtt.broker.common.model.Subscription;
-import org.jmqtt.broker.common.model.SubscriptionOption;
+import org.jmqtt.broker.common.model.*;
 import org.jmqtt.broker.processor.HighPerformanceMessageHandler;
 import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.protocol.mqtt5.TopicAliasManager;
@@ -124,61 +121,12 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                         String topic = TopicAliasManager.getRealTopic(message);
                         Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
                         for (Subscription subscription : subscriptions) {
-                            String subClientId = subscription.getClientId();
                             String targetBrokerId = subscription.getBrokerId();
                             if (BrokerContext.getBrokerId().equals(targetBrokerId)) {
-                                if (ConnectManager.getInstance().containClient(subClientId)) {
-                                    ClientSession clientSession = ConnectManager.getInstance().getClient(subClientId);
-                                    if (clientSession.isMqtt5() && checkPackageSize(clientSession, (Integer) message.getHeader(MessageHeader.REMAINING_LENGTH))) {
-                                        log.warn("exceeding message, clientId: {}, stop publish.", subClientId);
-                                        continue;
-                                    }
-                                    SubscriptionOption option = subscription.getOption();
-                                    if (option != null) {
-                                        if (option.getNoLocal() && pubClientId.equals(subClientId)) {
-                                            continue;
-                                        }
-                                    }
-                                    int qos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
-                                    int messageId = clientSession.generateMessageId();
-                                    message.putHeader(MessageHeader.QOS, qos);
-                                    message.setMsgId(messageId);
-                                    if (qos > 0) {
-                                        cacheOutflowMsg(subClientId, message);
-                                    }
-                                    if (clientSession.isMqtt5()) {
-                                        if (message.validity()) {
-                                            // 该消息具有时效性，需要判断是否过期
-                                            if (message.alive() > 0) {
-                                                write(clientSession, subscription, message);
-                                            } else {
-                                                LogUtil.warn(log, "message expired. {}", JSON.toJSONString(message));
-                                                // 如果是保留消息则删除
-                                                Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).ifPresent(r -> {
-                                                    if ((boolean) r) {
-                                                        CompletableFuture.runAsync(() -> ClusterHelper.clearRetainMessage(topic));
-                                                    }
-                                                });
-                                            }
-                                        } else {
-                                            // 消息未设置过期间隔，发送
-                                            write(clientSession, subscription, message);
-                                        }
-                                    } else {
-                                        // 不是mqtt5客户端，直接发送
-                                        write(clientSession, subscription, message);
-                                    }
-                                } else {
-                                    CompletableFuture.runAsync(() -> {
-                                        SessionState session = sessionStore.getSession(subscription.getClientId());
-                                        if (!SessionState.StateEnum.ONLINE.equals(session.getState())) {
-                                            storeOffline(subscription.getClientId(), message);
-                                        }
-                                    });
-                                }
+                                send(subscription, message);
                             } else {
                                 // 订阅topic的client不在当前broker，需要把消息发送给目标所在的broker，由目标broker进行发送
-                                ClusterHelper.sendMessageToCluster(message, targetBrokerId);
+                                ClusterHelper.sendMessageToCluster(new MessageDispatchDTO(subscription, message), targetBrokerId);
                             }
                         }
                     } catch (Exception ex) {
@@ -186,6 +134,62 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
                     }
                 }
             }
+        }
+    }
+
+    @Override
+    public void send(Subscription subscription, Message message) {
+        String subClientId = subscription.getClientId();
+        String pubClientId = message.getClientId();
+        if (ConnectManager.getInstance().containClient(subClientId)) {
+            ClientSession clientSession = ConnectManager.getInstance().getClient(subClientId);
+            if (clientSession.isMqtt5() && checkPackageSize(clientSession, (Integer) message.getHeader(MessageHeader.REMAINING_LENGTH))) {
+                log.warn("exceeding message, clientId: {}, stop publish.", subClientId);
+                return;
+            }
+            SubscriptionOption option = subscription.getOption();
+            if (option != null) {
+                if (option.getNoLocal() && pubClientId.equals(subClientId)) {
+                    return;
+                }
+            }
+            int qos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
+            int messageId = clientSession.generateMessageId();
+            message.putHeader(MessageHeader.QOS, qos);
+            message.setMsgId(messageId);
+            if (qos > 0) {
+                cacheOutflowMsg(subClientId, message);
+            }
+            if (clientSession.isMqtt5()) {
+                if (message.validity()) {
+                    // 该消息具有时效性，需要判断是否过期
+                    if (message.alive() > 0) {
+                        write(clientSession, subscription, message);
+                    } else {
+                        LogUtil.warn(log, "message expired. {}", JSON.toJSONString(message));
+                        // 如果是保留消息则删除
+                        Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).ifPresent(r -> {
+                            if ((boolean) r) {
+                                String topic = TopicAliasManager.getRealTopic(message);
+                                CompletableFuture.runAsync(() -> ClusterHelper.clearRetainMessage(topic));
+                            }
+                        });
+                    }
+                } else {
+                    // 消息未设置过期间隔，发送
+                    write(clientSession, subscription, message);
+                }
+            } else {
+                // 不是mqtt5客户端，直接发送
+                write(clientSession, subscription, message);
+            }
+        } else {
+            CompletableFuture.runAsync(() -> {
+                SessionState session = sessionStore.getSession(subscription.getClientId());
+                if (!SessionState.StateEnum.ONLINE.equals(session.getState())) {
+                    storeOffline(subscription.getClientId(), message);
+                }
+            });
         }
     }
 
