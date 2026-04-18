@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS `jmqtt_subscription`
     `client_id` varchar(100)  NOT NULL COMMENT '客户端id',
     `topic`     varchar(128) NOT NULL COMMENT '订阅的topic',
     `qos`       tinyint(4)   NOT NULL COMMENT '对应的qos',
+    `sub_res`   boolean   COMMENT '订阅结果, true新订阅，false订阅已存在，重复订阅',
     `opt`       varchar(100) DEFAULT NULL COMMENT '订阅选项',
     PRIMARY KEY (`id`),
     UNIQUE KEY `sub_client_id_topic` (`client_id`, `topic`) USING BTREE

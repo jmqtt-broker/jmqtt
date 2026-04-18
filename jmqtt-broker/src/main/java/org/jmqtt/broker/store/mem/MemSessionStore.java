@@ -119,6 +119,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
             subscriptionDO.setClientId(clientId);
             subscriptionDO.setTopic(subscription.getTopic());
             subscriptionDO.setQos(subscription.getQos());
+            subscriptionDO.setSubRes(subscription.getSubRes());
             Optional.ofNullable(subscription.getOption()).ifPresent(opt -> {
                 subscriptionDO.setOpt(JSON.toJSONString(opt));
             });
@@ -151,7 +152,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         );
         Set<Subscription> set = new HashSet<>();
         for (SubscriptionDO item : subscriptionDOList) {
-            Subscription subscription = new Subscription(item.getBrokerId(), item.getClientId(), item.getTopic(), item.getQos());
+            Subscription subscription = new Subscription(item.getBrokerId(), item.getClientId(), item.getTopic(), item.getQos(), item.getSubRes());
             Optional.ofNullable(item.getOpt()).ifPresent(opt -> {
                 subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
             });
@@ -166,7 +167,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
                 sqlSession.getMapper(LocalSubscriptionMapper.class).queryOneSubscription(clientId, topic)
         );
         if (subscriptionDO != null) {
-            Subscription subscription = new Subscription(subscriptionDO.getBrokerId(), subscriptionDO.getClientId(), subscriptionDO.getTopic(), subscriptionDO.getQos());
+            Subscription subscription = new Subscription(subscriptionDO.getBrokerId(), subscriptionDO.getClientId(), subscriptionDO.getTopic(), subscriptionDO.getQos(), subscriptionDO.getSubRes());
             Optional.ofNullable(subscriptionDO.getOpt()).ifPresent(opt -> {
                 subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
             });
@@ -182,7 +183,7 @@ public class MemSessionStore extends AbstractMemStore implements SessionStore {
         );
         Set<Subscription> set = new HashSet<>();
         for (SubscriptionDO item : subscriptionDOList) {
-            Subscription subscription = new Subscription(item.getBrokerId(), item.getClientId(), item.getTopic(), item.getQos());
+            Subscription subscription = new Subscription(item.getBrokerId(), item.getClientId(), item.getTopic(), item.getQos(), item.getSubRes());
             Optional.ofNullable(item.getOpt()).ifPresent(opt -> {
                 subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
             });

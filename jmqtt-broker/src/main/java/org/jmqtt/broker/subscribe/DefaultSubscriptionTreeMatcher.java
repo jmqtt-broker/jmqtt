@@ -37,7 +37,7 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
     }
 
     @Override
-    public boolean subscribe(Subscription subscription) {
+    public void subscribe(Subscription subscription) {
         try {
             String topic = subscription.getTopic();
             TreeNode currentNode = recursionGetTreeNode(topic, root);
@@ -48,18 +48,25 @@ public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
                         if (sub.getQos() != subscription.getQos()) {
                             sub.setQos(subscription.getQos());
                         }
-                        return false;
+                        if (subscription.getSubRes() == null) {
+                            subscription.setSubRes(false);
+                            sub.setSubRes(false);
+                        } else {
+                            sub.setSubRes(subscription.getSubRes());
+                        }
+                        return;
                     }
                 }
             } else {
+                if (subscription.getSubRes() == null) {
+                    subscription.setSubRes(true);
+                }
                 currentNode.addSubscriber(subscription);
             }
         } catch (Exception ex) {
             LogUtil.warn(log, "[Subscription] -> Subscribe failed,clientId={},topic={},qos={}",
                     subscription.getClientId(), subscription.getTopic(), subscription.getQos());
-            return true;
         }
-        return true;
     }
 
     @Override

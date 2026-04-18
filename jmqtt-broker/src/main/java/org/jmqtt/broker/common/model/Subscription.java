@@ -18,6 +18,7 @@ public class Subscription {
     private String clientId;
     private int qos;
     private String topic;
+    private Boolean subRes = true;
     private SubscriptionOption option;
 
     public Subscription(String clientId,String topic,int qos){
@@ -26,11 +27,12 @@ public class Subscription {
         this.qos = qos;
     }
 
-    public Subscription(String brokerId, String clientId,String topic,int qos){
+    public Subscription(String brokerId, String clientId,String topic,int qos, Boolean subRes){
         this.brokerId = brokerId;
         this.clientId = clientId;
         this.topic = topic;
         this.qos = qos;
+        this.subRes = subRes;
     }
 
 }

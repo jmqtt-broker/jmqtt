@@ -127,15 +127,15 @@ public class EventConsumeHandler {
     public void subscription(Event event) {
         Subscription subscription = (Subscription) event.getBody();
         if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
+            BrokerContext.getSubscriptionMatcher().subscribe(subscription);
             sessionStore.storeSubscription(subscription.getClientId(), subscription);
-            boolean subRes = BrokerContext.getSubscriptionMatcher().subscribe(subscription);
-            if (ClusterHelper.isEarliestKeeper()) {
-                Collection<Message> retainMsgs = messageStore.getRetainMsg(subscription.getTopic());
-                if (!retainMsgs.isEmpty()) {
-                    // TODO 待优化
-                    SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMsgs, subscription, subRes);
-                    ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SEND_RETAIN_MSG, message), event.getFromBroker());
-                }
+        }
+        if (ClusterHelper.isEarliestKeeper()) {
+            Collection<Message> retainMsgs = messageStore.getRetainMsg(subscription.getTopic());
+            if (!retainMsgs.isEmpty()) {
+                // TODO 待优化
+                SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMsgs, subscription);
+                ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SEND_RETAIN_MSG, message), event.getFromBroker());
             }
         }
     }
@@ -144,8 +144,8 @@ public class EventConsumeHandler {
         SubscriptionSyncDTO sync = (SubscriptionSyncDTO) event.getBody();
         if (!BrokerContext.getBrokerId().equals(event.getFromBroker())) {
             sync.getSubscriptions().forEach(subscription -> {
-                sessionStore.storeSubscription(subscription.getClientId(), subscription);
                 BrokerContext.getSubscriptionMatcher().subscribe(subscription);
+                sessionStore.storeSubscription(subscription.getClientId(), subscription);
             });
         }
     }
@@ -184,7 +184,7 @@ public class EventConsumeHandler {
                             // TODO 待优化
                             ClusterHelper.sendEvent(ClusterHelper.getEvent(EventCode.SEND_OFFLINE_MSG,
                                     new OfflineMessageList(clientId, allOfflineMsg)), event.getFromBroker());
-                            BrokerContext.getSessionStore().clearOfflineMsg(clientId);
+                            ClusterHelper.clearOfflineMessage(clientId);
                         }
                     }
                     TimerUtils.sessionTimeoutImmediately(clientId);

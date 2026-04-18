@@ -107,7 +107,6 @@ public class RetainMessageDispatcherImpl extends HighPerformanceMessageHandler i
                     try {
                         Collection<Message> retainList = message.getMessageList();
                         Subscription subscription = message.getSubscription();
-                        Boolean subRes = message.getSubRes();
                         if (!retainList.isEmpty()) {
                             String clientId = subscription.getClientId();
                             ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
@@ -122,8 +121,13 @@ public class RetainMessageDispatcherImpl extends HighPerformanceMessageHandler i
                                     cacheOutflowMsg(clientId, retainMsg);
                                 }
                                 if (clientSession.isMqtt5()) {
+                                    if (option != null) {
+                                        if (option.getNoLocal() && retainMsg.getClientId().equals(clientId)) {
+                                            return;
+                                        }
+                                    }
                                     if (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE.value() == option.getRetainHandling() ||
-                                            (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subRes)) {
+                                            (MqttSubscriptionOption.RetainedHandlingPolicy.SEND_AT_SUBSCRIBE_IF_NOT_YET_EXISTS.value() == option.getRetainHandling() && subscription.getSubRes())) {
                                         if (retainMsg.validity()) {
                                             if (retainMsg.alive() > 0) {
                                                 MqttPublishMessage publishMessage = MessageUtil.getPubMessage(retainMsg, false, option, clientId);

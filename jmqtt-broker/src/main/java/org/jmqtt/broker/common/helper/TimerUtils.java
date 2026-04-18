@@ -7,7 +7,9 @@ import org.jmqtt.broker.common.future.PersistHelper;
 import org.jmqtt.broker.common.future.ScheduleTask;
 import org.jmqtt.broker.common.model.Message;
 import org.jmqtt.broker.common.model.MessageHeader;
+import org.jmqtt.broker.processor.dispatcher.akka.ClusterHelper;
 import org.jmqtt.broker.processor.protocol.mqtt5.Mqtt5Utils;
+import org.jmqtt.broker.store.SessionState;
 import org.jmqtt.broker.store.local.model.TimerDO;
 
 import java.util.List;
@@ -82,7 +84,11 @@ public class TimerUtils {
 
     private static void sessionTimeout(String clientId) {
         log.info("session expired. clientId: {}", clientId);
+        SessionState session = BrokerContext.getSessionStore().getSession(clientId);
         BrokerContext.getSessionStore().clearSession(clientId, true);
+        SessionState sessionState = new SessionState(clientId, SessionState.StateEnum.NULL);
+        sessionState.setCleanStart(true);
+        ClusterHelper.sendSessionToCluster(sessionState);
     }
 
     private static void willTimeout(Message will) {

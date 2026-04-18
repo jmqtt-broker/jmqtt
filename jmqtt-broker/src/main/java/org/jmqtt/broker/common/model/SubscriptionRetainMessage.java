@@ -17,6 +17,4 @@ public class SubscriptionRetainMessage {
 
     private Subscription subscription;
 
-    private Boolean subRes = true;
-
 }

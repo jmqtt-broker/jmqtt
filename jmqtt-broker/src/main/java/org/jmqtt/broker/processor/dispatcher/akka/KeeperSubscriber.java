@@ -35,6 +35,8 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
         super(context);
         eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
         eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
+        eventHandlerMap.put(EventCode.STORE_OFFLINE_MSG.getCode(), this::storeOfflineMessage);
+        eventHandlerMap.put(EventCode.CLEAR_OFFLINE_MSG.getCode(), this::clearOfflineMessage);
         // eventHandlerMap.put(EventCode.SESSION_STATE.getCode(), this::sessionState);
         // eventHandlerMap.put(EventCode.STORE_RETAIN_MSG.getCode(), this::storeRetain);
         // eventHandlerMap.put(EventCode.CLEAR_RETAIN_MSG.getCode(), this::clearRetain);
@@ -76,6 +78,16 @@ public class KeeperSubscriber extends AbstractBehavior<Letter> {
             String topic = (String) body;
             BrokerContext.getMessageStore().clearRetainMessage(topic);
         }
+    }
+
+    public void storeOfflineMessage(Letter letter) {
+        OfflineMessageDTO offlineMessage = (OfflineMessageDTO) letter.getMessage().getBody();
+        BrokerContext.getSessionStore().storeOfflineMsg(offlineMessage.getSubClientId(), offlineMessage.getMessage());
+    }
+
+    public void clearOfflineMessage(Letter letter) {
+        String clientId = (String) letter.getMessage().getBody();
+        BrokerContext.getSessionStore().clearOfflineMsg(clientId);
     }
 
     /*private void sessionState(Letter letter) {

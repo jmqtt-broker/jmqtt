@@ -140,18 +140,11 @@ public class DefaultDispatcherInnerMessage extends HighPerformanceMessageHandler
     @Override
     public void send(Subscription subscription, Message message) {
         String subClientId = subscription.getClientId();
-        String pubClientId = message.getClientId();
         if (ConnectManager.getInstance().containClient(subClientId)) {
             ClientSession clientSession = ConnectManager.getInstance().getClient(subClientId);
             if (clientSession.isMqtt5() && checkPackageSize(clientSession, (Integer) message.getHeader(MessageHeader.REMAINING_LENGTH))) {
                 log.warn("exceeding message, clientId: {}, stop publish.", subClientId);
                 return;
-            }
-            SubscriptionOption option = subscription.getOption();
-            if (option != null) {
-                if (option.getNoLocal() && pubClientId.equals(subClientId)) {
-                    return;
-                }
             }
             int qos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
             int messageId = clientSession.generateMessageId();

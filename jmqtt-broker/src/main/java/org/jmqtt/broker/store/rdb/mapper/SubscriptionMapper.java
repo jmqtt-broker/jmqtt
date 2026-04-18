@@ -15,21 +15,21 @@ public interface SubscriptionMapper extends Mapper<SubscriptionDO> {
             "<if test=\"'${dbType}' == 'oracle'\">" +
             "MERGE INTO JMQTT_SUBSCRIPTION a " +
             "USING (SELECT #{id} AS ID, #{brokerId} AS BROKER_ID, #{clientId} AS CLIENT_ID, #{topic} AS TOPIC," +
-            " #{qos} AS QOS, #{opt} AS OPT FROM DUAL) b " +
+            " #{qos} AS QOS,#{subRes} AS SUB_RES, #{opt} AS OPT FROM DUAL) b " +
             "ON (a.CLIENT_ID = b.CLIENT_ID AND a.TOPIC = b.TOPIC) " +
             "WHEN MATCHED THEN " +
-            "UPDATE SET QOS = b.QOS, OPT = b.OPT " +
+            "UPDATE SET QOS = b.QOS, SUB_RES=b.SUB_RES, OPT = b.OPT " +
             "WHEN NOT MATCHED THEN " +
-            "INSERT (ID, BROKER_ID, CLIENT_ID, TOPIC, QOS, OPT) VALUES " +
-            "(b.ID, b.BROKER_ID, b.CLIENT_ID, b.TOPIC, b.QOS, b.OPT)" +
+            "INSERT (ID, BROKER_ID, CLIENT_ID, TOPIC, QOS, SUB_RES, OPT) VALUES " +
+            "(b.ID, b.BROKER_ID, b.CLIENT_ID, b.TOPIC, b.QOS, b.SUB_RES, b.OPT)" +
             "</if>" +
             "<if test=\"'${dbType}' != 'oracle'\">" +
-            "INSERT INTO jmqtt_subscription(id, broker_id, client_id,topic,qos,opt) VALUES(#{id}, #{brokerId}, #{clientId},#{topic},#{qos},#{opt})" +
+            "INSERT INTO jmqtt_subscription(id, broker_id, client_id,topic,qos, sub_res,opt) VALUES(#{id}, #{brokerId}, #{clientId},#{topic},#{qos},#{subRes},#{opt})" +
             "<if test=\"'${dbType}' == 'mysql'\">" +
-            "  on DUPLICATE key update qos = #{qos},opt = #{opt}" +
+            "  on DUPLICATE key update qos = #{qos}, sub_res=#{subRes},opt = #{opt}" +
             "</if>" +
             "<if test=\"'${dbType}' == 'postgresql'\">" +
-            "on conflict(client_id, topic) do update set qos = #{qos},opt = #{opt}" +
+            "on conflict(client_id, topic) do update set qos = #{qos}, sub_res=#{subRes},opt = #{opt}" +
             "</if>" +
             "</if>" +
             "</script>"
@@ -42,6 +42,6 @@ public interface SubscriptionMapper extends Mapper<SubscriptionDO> {
     @Delete("DELETE FROM jmqtt_subscription WHERE client_id = #{clientId} AND topic = #{topic}")
     Integer delSubscription(@Param("clientId") String clientId, @Param("topic") String topic);
 
-    @Select("SELECT broker_id, client_id,topic,qos,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
+    @Select("SELECT broker_id, client_id,topic,qos,sub_res,opt FROM jmqtt_subscription WHERE client_id = #{clientId}")
     List<SubscriptionDO> querySubscription(String clientId);
 }

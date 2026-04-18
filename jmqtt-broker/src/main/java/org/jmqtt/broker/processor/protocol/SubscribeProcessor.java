@@ -106,18 +106,18 @@ public class SubscribeProcessor implements RequestProcessor {
         String clientId = clientSession.getClientId();
         for (Topic topic : validTopicList) {
             String subTopic = topic.getTopicName();
-            Subscription subscription = new Subscription(BrokerContext.getBrokerId(), clientId, subTopic, topic.getQos());
+            Subscription subscription = new Subscription(BrokerContext.getBrokerId(), clientId, subTopic, topic.getQos(), null);
             SubscriptionOption option = topic.getOption();
             subscription.setOption(option);
+            this.subscriptionMatcher.subscribe(subscription);
             this.sessionStore.storeSubscription(clientId, subscription);
-            boolean subRs = this.subscriptionMatcher.subscribe(subscription);
             if (ClusterHelper.lightning()) {
                 // 将订阅广播给其他节点
                 ClusterHelper.subscribeToCluster(subscription);
             } else {
                 Collection<Message> retainMessages = messageStore.getRetainMsg(subTopic);
                 if (!retainMessages.isEmpty()) {
-                    SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMessages, subscription, subRs);
+                    SubscriptionRetainMessage message = new SubscriptionRetainMessage(retainMessages, subscription);
                     BrokerContext.getRetainMessageDispatcher().appendMessage(message);
                 }
             }

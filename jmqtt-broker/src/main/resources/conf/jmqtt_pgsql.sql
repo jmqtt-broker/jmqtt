@@ -152,6 +152,7 @@ CREATE TABLE IF NOT EXISTS "jmqtt_subscription"
     "client_id" varchar(100) COLLATE "pg_catalog"."default"  NOT NULL,
     "topic"     varchar(128) COLLATE "pg_catalog"."default" NOT NULL,
     "qos" int2 NOT NULL,
+    "sub_res" boolean NOT NULL,
     "opt" varchar(100) COLLATE "pg_catalog"."default",
     CONSTRAINT "jmqtt_subscription_pkey" PRIMARY KEY ("id")
 )
@@ -161,6 +162,7 @@ COMMENT ON COLUMN "jmqtt_subscription"."broker_id" IS 'brokerId';
 COMMENT ON COLUMN "jmqtt_subscription"."client_id" IS '客户端id';
 COMMENT ON COLUMN "jmqtt_subscription"."topic" IS '订阅的topic';
 COMMENT ON COLUMN "jmqtt_subscription"."qos" IS '对应的qos';
+COMMENT ON COLUMN "jmqtt_subscription"."sub_res" IS '订阅结果';
 COMMENT ON TABLE "jmqtt_subscription" IS '客户端订阅关系';
 
 -- ----------------------------

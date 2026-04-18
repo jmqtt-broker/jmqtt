@@ -26,5 +26,7 @@ public class SubscriptionDO implements Serializable {
 
     private Integer qos;
 
+    private Boolean subRes;
+
     private String opt;
 }

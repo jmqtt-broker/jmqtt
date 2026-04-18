@@ -16,9 +16,8 @@ public interface SubscriptionMatcher {
     /**
      * add subscribe
      * @param subscription  subscription
-     * @return  true: add new subscription success. false: subscription exist.
      */
-    boolean subscribe(Subscription subscription);
+    void subscribe(Subscription subscription);
 
     boolean unSubscribe(String topic,String clientId);
 

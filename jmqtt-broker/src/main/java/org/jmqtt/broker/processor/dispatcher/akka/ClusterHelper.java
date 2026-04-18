@@ -134,7 +134,7 @@ public class ClusterHelper {
     public static void clearOfflineMessage(String clientId) {
         if (lightning()) {
             EVENT_HANDLER.sendToKeeper(Letter.of(ClusterHelper.getEvent(
-                    EventCode.STORE_OFFLINE_MSG, clientId)));
+                    EventCode.CLEAR_OFFLINE_MSG, clientId)));
         } else {
             BrokerContext.getSessionStore().clearOfflineMsg(clientId);
         }

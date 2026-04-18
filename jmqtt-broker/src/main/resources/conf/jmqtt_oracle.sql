@@ -131,6 +131,7 @@ CREATE TABLE "JMQTT_SUBSCRIPTION" (
                                       "CLIENT_ID" NVARCHAR2(100) NOT NULL,
                                       "TOPIC" NVARCHAR2(128) NOT NULL,
                                       "QOS" NUMBER(4,0) NOT NULL,
+                                      "SUB_RES" CHAR(1),
                                       "OPT" NVARCHAR2(100)
 );
 COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."ID" IS '主键';
@@ -138,6 +139,7 @@ COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."BROKER_ID" IS 'brokerId';
 COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."CLIENT_ID" IS '客户端id';
 COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."TOPIC" IS '订阅的topic';
 COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."QOS" IS '对应的qos';
+COMMENT ON COLUMN "JMQTT_SUBSCRIPTION"."SUB_RES" IS '订阅结果';
 COMMENT ON TABLE "JMQTT_SUBSCRIPTION" IS '客户端订阅关系';
 
 -- ----------------------------

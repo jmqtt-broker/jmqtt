@@ -75,6 +75,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
         subscriptionDO.setClientId(clientId);
         subscriptionDO.setTopic(subscription.getTopic());
         subscriptionDO.setQos(subscription.getQos());
+        subscriptionDO.setSubRes(subscription.getSubRes());
         Optional.ofNullable(subscription.getOption()).ifPresent(opt -> {
             subscriptionDO.setOpt(JSON.toJSONString(opt));
         });
@@ -106,7 +107,7 @@ public class RDBSessionStore extends AbstractDBStore implements SessionStore {
                 sqlSession -> getMapper(sqlSession, subscriptionMapperClass).querySubscription(clientId));
         Set<Subscription> set = new HashSet<>();
         for (SubscriptionDO item : subscriptionDOList) {
-            Subscription subscription = new Subscription(item.getBrokerId(), item.getClientId(), item.getTopic(), item.getQos());
+            Subscription subscription = new Subscription(item.getBrokerId(), item.getClientId(), item.getTopic(), item.getQos(), item.getSubRes());
             Optional.ofNullable(item.getOpt()).ifPresent(opt -> {
                 subscription.setOption(JSON.parseObject(opt).toJavaObject(SubscriptionOption.class));
             });
