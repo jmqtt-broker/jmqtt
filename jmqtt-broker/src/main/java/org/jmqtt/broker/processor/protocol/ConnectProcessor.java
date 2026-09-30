@@ -204,16 +204,22 @@ public class ConnectProcessor implements RequestProcessor {
                 newClientNotify(clientSession);
             }
         } catch (BrokerException be) {
-            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
-            ctx.writeAndFlush(ackMessage);
-            ctx.close();
             LogUtil.warn(log, "[CONNECT remote:{}] -> {} connect failure,returnCode={}", remoteAddress, clientId, returnCode);
+            MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
+            ctx.writeAndFlush(ackMessage).addListener(future -> {
+                if (future.isDone()) {
+                    ctx.close();
+                }
+            });
         } catch (Exception ex) {
             LogUtil.warn(log, "[CONNECT remote:{}] -> Service Unavailable: cause={}", remoteAddress, ex);
             returnCode = MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE;
             MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(returnCode, sessionPresent, null);
-            ctx.writeAndFlush(ackMessage);
-            ctx.close();
+            ctx.writeAndFlush(ackMessage).addListener(future -> {
+                if (future.isDone()) {
+                    ctx.close();
+                }
+            });
         }
     }
 

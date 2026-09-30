@@ -77,7 +77,7 @@ public class Mqtt5Utils {
     public static boolean checkPackageSize(ClientSession clientSession, int remainingLength) {
         boolean res = false;
         // 固定头长度2~5字节，这里直接以5为准
-        int packetSize = remainingLength + 5;
+        int packetSize = getMsgSize(remainingLength);
         String clientId = clientSession.getClientId();
         Integer maxSize = (Integer) BrokerContext.getSessionStore().getClientProperty(clientId, MqttProperties.MqttPropertyType.MAXIMUM_PACKET_SIZE.value());
         if (maxSize != null) {
@@ -93,6 +93,31 @@ public class Mqtt5Utils {
             res = true;
         }
         return res;
+    }
+
+    /**
+     * 固定报头存在于所有的 MQTT 控制报文中，其长度是 2 到 5 个字节。它由两部分组成：
+     * 1. 报文类型与标志位（1 字节）： 第 1 个字节固定占用 1 个字节，高 4 位表示报文类型（如 CONNECT、PUBLISH 等），
+     * 低 4 位是标志位（如 QoS、DUP、RETAIN 等）。
+     * 2. 剩余长度字段（1 到 4 字节）： 从第 2 个字节开始，采用一种“可变字节整数”的编码方式来表示“可变报头 + 有效载荷”的总字节数。
+     * 如果剩余长度在 0~127 字节之间，占用 1 个字节。
+     * 如果剩余长度在 128~16383 字节之间，占用 2 个字节。
+     * 如果剩余长度在 16384~2097151 字节之间，占用 3 个字节。
+     * 如果剩余长度在 2097152~268435455 字节之间，占用 4 个字节。
+     * @param remainingLength
+     * @return
+     */
+    public static int getMsgSize(int remainingLength) {
+        if (remainingLength <= 127) {
+            return 1 + 1 + remainingLength;
+        } else if (remainingLength <= 16383) {
+            return 1 + 2 + remainingLength;
+        } else if (remainingLength <= 2097151) {
+            return 1 + 3 + remainingLength;
+        } else if (remainingLength <= 268435455) {
+            return 1 + 4 + remainingLength;
+        }
+        return 1 + 4 + remainingLength;
     }
 
 }

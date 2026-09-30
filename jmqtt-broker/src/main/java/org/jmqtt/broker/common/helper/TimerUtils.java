@@ -84,7 +84,6 @@ public class TimerUtils {
 
     private static void sessionTimeout(String clientId) {
         log.info("session expired. clientId: {}", clientId);
-        SessionState session = BrokerContext.getSessionStore().getSession(clientId);
         BrokerContext.getSessionStore().clearSession(clientId, true);
         SessionState sessionState = new SessionState(clientId, SessionState.StateEnum.NULL);
         sessionState.setCleanStart(true);
