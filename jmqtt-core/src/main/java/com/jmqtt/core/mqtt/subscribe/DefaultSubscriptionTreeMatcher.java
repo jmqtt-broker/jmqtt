@@ -1,0 +1,333 @@
+package com.jmqtt.core.mqtt.subscribe;
+
+import com.jmqtt.core.common.JmqttConst;
+import com.jmqtt.core.mqtt.model.Subscription;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Slf4j
+public class DefaultSubscriptionTreeMatcher implements SubscriptionMatcher {
+
+    private static final String GROUP_STR = JmqttConst.SHARE_IDENTIFIERS;
+    private static final String SYS_STR = JmqttConst.SYS_IDENTIFIERS;
+    private static final String FILE_STR = JmqttConst.FILE_IDENTIFIERS;
+    private static final Pattern SHARE_PATTERN = Pattern.compile("(\\" + GROUP_STR + ")(/\\w+)/(\\S+)");
+    private final Object lock = new Object();
+    private TreeNode root = new TreeNode(new Token("root"));
+    private Token EMPTY = new Token("");
+    private Token SINGLE = new Token(JmqttConst.WILDCARD_SINGLE);
+    private Token MULTY = new Token(JmqttConst.WILDCARD_MULTY);
+    private Token GROUP = new Token(GROUP_STR);
+
+    //TODO 共享订阅均衡策略（提取到配置文件）
+    private String sharedSubscriptionStrategy = "random";
+
+    public DefaultSubscriptionTreeMatcher() {
+    }
+
+    @Override
+    public void subscribe(Subscription subscription) {
+        try {
+            String topic = subscription.getTopic();
+            TreeNode currentNode = recursionGetTreeNode(topic, root);
+            Set<Subscription> subscriptions = currentNode.getSubscribers();
+            if (subscriptions.contains(subscription)) {
+                for (Subscription sub : subscriptions) {
+                    if (sub.equals(subscription)) {
+                        if (sub.getQos() != subscription.getQos()) {
+                            sub.setQos(subscription.getQos());
+                        }
+                        if (subscription.getSubRes() == null) {
+                            subscription.setSubRes(false);
+                            sub.setSubRes(false);
+                        } else {
+                            sub.setSubRes(subscription.getSubRes());
+                        }
+                        return;
+                    }
+                }
+            } else {
+                if (subscription.getSubRes() == null) {
+                    subscription.setSubRes(true);
+                }
+                currentNode.addSubscriber(subscription);
+            }
+        } catch (Exception ex) {
+            log.warn("[Subscription] -> Subscribe failed,clientId={},topic={},qos={}",
+                    subscription.getClientId(), subscription.getTopic(), subscription.getQos());
+        }
+    }
+
+    @Override
+    public boolean unSubscribe(String topic, String clientId) {
+        TreeNode currentNode = recursionGetTreeNode(topic, root);
+        return currentNode.getSubscribers().remove(new Subscription(clientId, topic, 1));
+    }
+
+    private TreeNode recursionGetTreeNode(String topic, TreeNode node) {
+        String[] tokens = topic.split("/");
+        Token token = new Token(tokens[0]);
+        TreeNode matchNode = node.getChildNodeByToken(token);
+        if (Objects.isNull(matchNode)) {
+            synchronized (lock) {
+                matchNode = node.getChildNodeByToken(token);
+                if (Objects.isNull(matchNode)) {
+                    matchNode = new TreeNode(token);
+                    node.addChild(matchNode);
+                }
+            }
+        }
+        if (tokens.length > 1) {
+            String childTopic = topic.substring(topic.indexOf("/") + 1);
+            return recursionGetTreeNode(childTopic, matchNode);
+        } else {
+            return matchNode;
+        }
+    }
+
+    @Override
+    public Set<Subscription> match(String topic, String clientId) {
+        return match(topic, clientId, false);
+    }
+
+    @Override
+    public Set<Subscription> match(String topic, String clientId, boolean excludeShareSubscription) {
+        Set<Subscription> subscriptions = new HashSet<>();
+        recursionMatch(topic, root, false, subscriptions);
+        //过滤重复的共享订阅者
+        return filterSharedSub(subscriptions, null, clientId, excludeShareSubscription);
+    }
+
+    @Override
+    public Set<Subscription> shareSubscription(String topic, String clientId) {
+        Set<Subscription> subscriptions = new HashSet<>();
+        Set<Subscription> shareSubscriptions = new HashSet<>();
+        recursionMatch(topic, root, false, subscriptions);
+        filterSharedSub(subscriptions, shareSubscriptions, clientId, false);
+        return shareSubscriptions;
+    }
+
+    private Set<Subscription> filterSharedSub(Set<Subscription> subscriptions, Set<Subscription> shareSubscriptions, String clientId, boolean excludeShareSubscription) {
+        Map<String, Set<Subscription>> groupSharedSubs = new HashMap<>();
+        Set<Subscription> filteredSubs = new HashSet<>();
+        for (Subscription sub : subscriptions) {
+            String topic = sub.getTopic();
+            //共享订阅者按topic字串分组
+            if (topic.startsWith(GROUP_STR)) {
+                if (!excludeShareSubscription) {
+                    Set<Subscription> subs = groupSharedSubs.get(topic);
+                    if (Objects.isNull(subs)) {
+                        subs = new HashSet<>();
+                        groupSharedSubs.put(topic, subs);
+                    }
+                    subs.add(sub);
+                }
+            } else {
+                filteredSubs.add(sub);
+            }
+        }
+        if (!excludeShareSubscription) {
+            //按策略从不同订阅组选取订阅者
+            Collection<Set<Subscription>> groups = groupSharedSubs.values();
+            for (Set<Subscription> group : groups) {
+                Subscription sub = selectOneByStrategy(group, clientId, "random");
+                if (sub != null) {
+                    filteredSubs.add(sub);
+                    if (shareSubscriptions != null) {
+                        shareSubscriptions.add(sub);
+                    }
+                }
+            }
+        }
+        return filteredSubs;
+    }
+
+    /**
+     * TODO 按照均衡策略选择一个订阅者;
+     * <pre>
+     * 策略：
+     * random	在所有订阅者中随机选择;
+     * hash	按照发布者 ClientID 的哈希值;
+     * </pre>
+     */
+    private Subscription selectOneByStrategy(Set<Subscription> group, String clientId, String strategy) {
+        if ("random".equals(strategy)) {
+            Iterator<Subscription> it = group.iterator();
+            int t = (int) Math.round(Math.random() * group.size());
+            int i = 0;
+            Subscription sub = null;
+            while (it.hasNext()) {
+                sub = it.next();
+                if (t <= i) {
+                    break;
+                }
+                i++;
+            }
+            return sub;
+        } else {
+            return group.iterator().next();
+        }
+    }
+
+    @Override
+    public boolean isMatch(String pubTopic, String subTopic) {
+        if (pubTopic.equals(subTopic)) {
+            return true;
+        }
+        if (subTopic.startsWith(GROUP_STR)) {
+            Matcher m = SHARE_PATTERN.matcher(subTopic);
+            if (m.find()) {
+                return innerIsMatch(pubTopic, m.group(3));
+            }
+        }
+        return innerIsMatch(pubTopic, subTopic);
+    }
+
+    private boolean innerIsMatch(String pubTopic, String subTopic) {
+        if (pubTopic.equals(subTopic)) {
+            return true;
+        }
+        String[] pubTokenStr = pubTopic.split("/");
+        String[] subTokenStr = subTopic.split("/");
+        int pubLen = pubTokenStr.length;
+        int subLen = subTokenStr.length;
+        if (pubLen != subLen) {
+            Token lastSubToken = new Token(subTokenStr[subLen - 1]);
+            if (subLen > pubLen || (!lastSubToken.equals(MULTY))) {
+                return false;
+            }
+        }
+        for (int i = 0; i < pubLen; i++) {
+            Token pubToken = new Token(pubTokenStr[i]);
+            Token subToken = new Token(subTokenStr[i]);
+            if (subToken.equals(MULTY)) {
+                return true;
+            } else if ((!pubToken.equals(subToken)) && (!subToken.equals(SINGLE))) {
+                return false;
+            }
+            if (i == subLen - 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void recursionMatch(String topic, TreeNode node, boolean isGroupToken,
+                                Set<Subscription> subscriptions) {
+        if (topic == null) {
+            return;
+        }
+        String[] topics = topic.split("/");
+        Token token = new Token(topics[0]);
+        List<TreeNode> childNodes = node.getChildren();
+        if (topics.length > 1) {
+            String nextTopic = topic.substring(topic.indexOf("/") + 1);
+            for (TreeNode itemNode : childNodes) {
+
+                if (isGroupToken) {
+                    recursionMatch(topic, itemNode, false, subscriptions);
+                }
+                if (itemNode.getToken().equals(token) || itemNode.getToken().equals(SINGLE)) {
+                    recursionMatch(nextTopic, itemNode, false, subscriptions);
+                }
+                if (itemNode.getToken().equals(GROUP)) {
+                    recursionMatch(topic, itemNode, true, subscriptions);
+                }
+                if (itemNode.getToken().equals(MULTY)) {
+                    subscriptions.addAll(itemNode.getSubscribers());
+                }
+            }
+        } else {
+            for (TreeNode itemNode : childNodes) {
+                if (itemNode.getToken().equals(token) || itemNode.getToken().equals(SINGLE)
+                        || itemNode.getToken().equals(MULTY)) {
+                    subscriptions.addAll(itemNode.getSubscribers());
+                }
+            }
+        }
+    }
+
+    class Token {
+
+        String token;
+
+        public Token(String token) {
+            this.token = token;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Token token1 = (Token) o;
+            return Objects.equals(token, token1.token);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(token);
+        }
+    }
+
+    class TreeNode {
+
+        private Token token;
+        private Set<Subscription> subscribers = new CopyOnWriteArraySet<>();
+        private List<TreeNode> children = new CopyOnWriteArrayList<>();
+
+        public TreeNode(Token token) {
+            this.token = token;
+        }
+
+        public void addSubscriber(Subscription subscription) {
+            this.subscribers.add(subscription);
+        }
+
+        public void addChild(TreeNode treeNode) {
+            this.children.add(treeNode);
+        }
+
+        public Token getToken() {
+            return token;
+        }
+
+        public Set<Subscription> getSubscribers() {
+            return subscribers;
+        }
+
+        public List<TreeNode> getChildren() {
+            return this.children;
+        }
+
+        ;
+
+        public TreeNode getChildNodeByToken(Token token) {
+            for (TreeNode childNode : this.children) {
+                if (childNode.getToken().equals(token)) {
+                    return childNode;
+                }
+            }
+            return null;
+        }
+    }
+
+    @Override
+    public String getPubTopic(String subTopic) {
+        if (subTopic.startsWith(GROUP_STR)) {
+            Matcher m = SHARE_PATTERN.matcher(subTopic);
+            if (m.find()) {
+                return m.group(3);
+            }
+        }
+        return subTopic;
+    }
+}

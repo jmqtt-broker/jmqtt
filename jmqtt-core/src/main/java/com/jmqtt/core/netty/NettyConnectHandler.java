@@ -1,0 +1,52 @@
+package com.jmqtt.core.netty;
+
+import com.jmqtt.core.netty.helper.NettyUtil;
+import com.jmqtt.core.netty.helper.RemotingHelper;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class NettyConnectHandler extends ChannelDuplexHandler {
+
+    private NettyEventExecutor eventExecutor;
+
+    public NettyConnectHandler(NettyEventExecutor nettyEventExecutor) {
+        this.eventExecutor = nettyEventExecutor;
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) {
+        final String remoteAddr = RemotingHelper.getRemoteAddr(ctx.channel());
+        log.info("[ChannelActive] -> addr = {}", remoteAddr);
+        this.eventExecutor.putNettyEvent(new NettyEvent(remoteAddr, NettyEventType.CONNECT, ctx.channel()));
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) {
+        final String remoteAddr = RemotingHelper.getRemoteAddr(ctx.channel());
+        log.info("[ChannelInactive] -> addr = {}", remoteAddr);
+        this.eventExecutor.putNettyEvent(new NettyEvent(remoteAddr, NettyEventType.CLOSE, ctx.channel()));
+    }
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
+        log.debug("[HEART_BEAT]->已经在规定时间内没有收到消息了");
+        if (evt instanceof IdleStateEvent) {
+            IdleStateEvent event = (IdleStateEvent) evt;
+            if (event.state().equals(IdleState.READER_IDLE)) {
+                final String remoteAddr = RemotingHelper.getRemoteAddr(ctx.channel());
+                this.eventExecutor.putNettyEvent(new NettyEvent(remoteAddr, NettyEventType.IDLE, ctx.channel()));
+            }
+        }
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        String remoteAddr = RemotingHelper.getRemoteAddr(ctx.channel());
+        log.warn("Channel->clientId:{} caught Exception remotingAddr:{}.", NettyUtil.getClientId(ctx.channel()), remoteAddr, cause);
+        this.eventExecutor.putNettyEvent(new NettyEvent(remoteAddr, NettyEventType.EXCEPTION, ctx.channel()));
+    }
+}

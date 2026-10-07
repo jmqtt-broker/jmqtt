@@ -1,0 +1,67 @@
+package com.jmqtt.core.netty;
+
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
+public class NettyEventExecutor implements Runnable {
+
+    private LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<>();
+    private final int maxSize = 100000;
+    private ChannelEventListener listener;
+    boolean stopped = false;
+    private Thread thread;
+
+    public NettyEventExecutor(ChannelEventListener channelEventListener) {
+        this.listener = channelEventListener;
+    }
+
+    public void putNettyEvent(final NettyEvent nettyEvent) {
+        if (this.eventQueue.size() <= maxSize) {
+            this.eventQueue.add(nettyEvent);
+        } else {
+            log.warn("[NettyEvent] -> event queue size[{}] enough, so drop this event {}", this.eventQueue.size(), nettyEvent.toString());
+        }
+    }
+
+    @Override
+    public void run() {
+        while (!this.stopped) {
+            try {
+                NettyEvent nettyEvent = this.eventQueue.poll(3000, TimeUnit.MILLISECONDS);
+                if (nettyEvent != null && listener != null) {
+                    switch (nettyEvent.getEventType()) {
+                        case CONNECT:
+                            listener.onChannelConnect(nettyEvent.getRemoteAddr(), nettyEvent.getChannel());
+                            break;
+                        case CLOSE:
+                            listener.onChannelClose(nettyEvent.getRemoteAddr(), nettyEvent.getChannel());
+                            break;
+                        case EXCEPTION:
+                            listener.onChannelException(nettyEvent.getRemoteAddr(), nettyEvent.getChannel());
+                            break;
+                        case IDLE:
+                            listener.onChannelIdle(nettyEvent.getRemoteAddr(), nettyEvent.getChannel());
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            } catch (Throwable t) {
+                log.warn("[NettyEvent] -> service has exception. ", t);
+            }
+        }
+        log.info("[NettyEvent] -> NettyEventExecutor service end");
+    }
+
+    public void start() {
+        this.thread = new Thread(this);
+        this.thread.start();
+    }
+
+    public void shutdown() {
+        this.stopped = true;
+    }
+}

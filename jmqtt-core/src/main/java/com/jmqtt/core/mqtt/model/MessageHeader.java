@@ -1,0 +1,17 @@
+package com.jmqtt.core.mqtt.model;
+
+public class MessageHeader {
+
+    public static final String TOPIC = "topic";
+
+    public static final String QOS = "qos";
+
+    public static final String RETAIN = "retain";
+
+    public static final String WILL = "will";
+
+    public static final String DUP = "dup";
+
+    public static final String REMAINING_LENGTH = "remainingLength";
+
+}
