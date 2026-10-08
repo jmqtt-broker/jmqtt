@@ -1,4 +1,4 @@
-package com.jmqtt.core.netty;
+package com.jmqtt.core.netty.coder;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;

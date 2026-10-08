@@ -1,0 +1,13 @@
+broker:
+  anonymous: false
+  user: jmqtt
+  password: jmqtt
+
+netty:
+  tcpPort: 1883
+  websocketPort: 1884
+  sslTcpPort: 8883
+  sslWebsocketPort: 8884
+
+cluster:
+  seedNodes: ["127.0.0.1:1883"]

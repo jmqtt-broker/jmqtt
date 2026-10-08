@@ -3,7 +3,7 @@ package com.jmqtt.core.mqtt.processor;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.netty.helper.NettyUtil;
 import com.jmqtt.core.netty.session.ClientSession;
-import com.jmqtt.core.netty.session.ConnectManager;
+import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttUnsubAckMessage;
@@ -26,7 +26,7 @@ public class UnSubscribeProcessor implements RequestProcessor {
         MqttUnsubscribePayload unsubscribePayload = unsubscribeMessage.payload();
         List<String> topics = unsubscribePayload.topics();
         String clientId = NettyUtil.getClientId(ctx.channel());
-        ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
+        ClientSession clientSession = ClientManager.getClient(clientId);
         if (Objects.isNull(clientSession)) {
             log.warn("[UnSubscribe] -> The client is not online.clientId={}", clientId);
         }

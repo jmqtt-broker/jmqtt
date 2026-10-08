@@ -2,7 +2,7 @@ package com.jmqtt.core.mqtt.processor;
 
 import com.jmqtt.core.netty.helper.NettyUtil;
 import com.jmqtt.core.netty.session.ClientSession;
-import com.jmqtt.core.netty.session.ConnectManager;
+import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttReasonCodeAndPropertiesVariableHeader;
@@ -20,7 +20,7 @@ public class DisconnectProcessor implements RequestProcessor {
         ctx.channel().attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).set(true);
         String clientId = NettyUtil.getClientId(ctx.channel());
         log.info("[DISCONNECT remote:{}] -> {} disconnect mqtt server", ctx.channel().remoteAddress(), clientId);
-        ClientSession session = ConnectManager.getInstance().getClient(clientId);
+        ClientSession session = ClientManager.getClient(clientId);
         if (session != null) {
             MqttReasonCodeAndPropertiesVariableHeader header = (MqttReasonCodeAndPropertiesVariableHeader) mqttMessage.variableHeader();
             if (session.isMqtt5() && header.reasonCode() == 0x04) {

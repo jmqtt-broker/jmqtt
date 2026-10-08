@@ -4,7 +4,7 @@ import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.netty.helper.NettyUtil;
 import com.jmqtt.core.mqtt.model.*;
 import com.jmqtt.core.netty.session.ClientSession;
-import com.jmqtt.core.netty.session.ConnectManager;
+import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ public class SubscribeProcessor implements RequestProcessor {
     public void processRequest(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         MqttSubscribeMessage subscribeMessage = (MqttSubscribeMessage) mqttMessage;
         String clientId = NettyUtil.getClientId(ctx.channel());
-        ClientSession clientSession = ConnectManager.getInstance().getClient(clientId);
+        ClientSession clientSession = ClientManager.getClient(clientId);
         List<MqttTopicSubscription> subscriptions = subscribeMessage.payload().topicSubscriptions();
         List<Topic> validTopicList = validTopics(clientSession, subscriptions);
         if (validTopicList == null || validTopicList.size() == 0) {

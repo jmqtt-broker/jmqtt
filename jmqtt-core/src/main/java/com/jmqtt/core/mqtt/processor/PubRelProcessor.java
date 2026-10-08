@@ -2,8 +2,8 @@ package com.jmqtt.core.mqtt.processor;
 
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.netty.helper.NettyUtil;
-import com.jmqtt.core.netty.helper.RemotingHelper;
-import com.jmqtt.core.netty.session.ConnectManager;
+import com.jmqtt.core.netty.helper.ChannelHelper;
+import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ public class PubRelProcessor extends AbstractMessageProcessor implements Request
     public void processRequest(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         String clientId = NettyUtil.getClientId(ctx.channel());
         int msgId = MessageUtil.getMessageId(mqttMessage);
-        if(ConnectManager.getInstance().containClient(clientId)){
+        if(ClientManager.containClient(clientId)){
             // Message message = releaseInflowMsg(clientId,msgId);
             // if(Objects.nonNull(message)){
             //     super.processMessage(message);
@@ -31,7 +31,7 @@ public class PubRelProcessor extends AbstractMessageProcessor implements Request
             // ctx.writeAndFlush(pubComMessage);
         }else{
             log.warn("[PubRelMessage] -> the client：{} disconnect to this server.",clientId);
-            RemotingHelper.closeChannel(ctx.channel());
+            ChannelHelper.closeChannel(ctx.channel());
         }
     }
 }

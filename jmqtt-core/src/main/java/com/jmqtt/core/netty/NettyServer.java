@@ -1,11 +1,13 @@
 package com.jmqtt.core.netty;
 
 import cn.hutool.core.lang.Pair;
-import com.jmqtt.core.common.ThreadFactoryImpl;
 import com.jmqtt.core.common.Control;
+import com.jmqtt.core.common.ThreadFactoryImpl;
 import com.jmqtt.core.mqtt.processor.RequestProcessor;
-import com.jmqtt.core.netty.config.BrokerConfig;
+import com.jmqtt.core.netty.coder.WebSocketDecoder;
+import com.jmqtt.core.netty.coder.WebSocketEncoder;
 import com.jmqtt.core.netty.config.NettyConfig;
+import com.jmqtt.core.netty.event.ChannelEventListener;
 import com.jmqtt.core.netty.helper.NettyUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -34,21 +36,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
 @Slf4j
-public class NettyRemotingServer implements Control {
+public class NettyServer implements Control {
     int coreThreadNum = Runtime.getRuntime().availableProcessors();
     private NettyConfig nettyConfig;
     private EventLoopGroup selectorGroup;
     private EventLoopGroup ioGroup;
     private Class<? extends ServerChannel> clazz;
     private Map<MqttMessageType, Pair<RequestProcessor, ExecutorService>> processorTable;
-    private NettyEventExecutor nettyEventExecutor;
-    private BrokerConfig brokerConfig;
+    private ChannelEventExecutor nettyEventExecutor;
 
-    public NettyRemotingServer(BrokerConfig brokerConfig, NettyConfig nettyConfig, ChannelEventListener listener) {
+    public NettyServer(NettyConfig nettyConfig, ChannelEventListener listener) {
         this.nettyConfig = nettyConfig;
         this.processorTable = new HashMap();
-        this.brokerConfig = brokerConfig;
-        this.nettyEventExecutor = new NettyEventExecutor(listener);
+        this.nettyEventExecutor = new ChannelEventExecutor(listener);
 
         String osName = System.getProperty("os.name").toLowerCase();
         if (osName.contains("linux") && nettyConfig.getUseEpoll()) {
@@ -77,19 +77,19 @@ public class NettyRemotingServer implements Control {
         //Netty event executor start
         this.nettyEventExecutor.start();
         // start TCP server
-        if (nettyConfig.getStartTcp()) {
+        if (nettyConfig.getEnableTcp()) {
             startTcpServer(false, nettyConfig.getTcpPort());
         }
 
-        if (nettyConfig.getStartSslTcp()) {
+        if (nettyConfig.getEnableSslTcp()) {
             startTcpServer(true, nettyConfig.getSslTcpPort());
         }
 
-        if (nettyConfig.getStartWebsocket()) {
+        if (nettyConfig.getEnableWebsocket()) {
             startWebsocketServer(false, nettyConfig.getWebsocketPort());
         }
 
-        if (nettyConfig.getStartSslWebsocket()) {
+        if (nettyConfig.getEnableSslWebsocket()) {
             startWebsocketServer(true, nettyConfig.getSslWebsocketPort());
         }
     }
@@ -99,11 +99,11 @@ public class NettyRemotingServer implements Control {
         bootstrap.group(selectorGroup, ioGroup)
                 .channel(clazz)
                 .option(ChannelOption.SO_BACKLOG, nettyConfig.getTcpBackLog())
-                .childOption(ChannelOption.TCP_NODELAY, nettyConfig.getTcpNoDelay())
+                .childOption(ChannelOption.TCP_NODELAY, nettyConfig.getNoDelay())
                 .childOption(ChannelOption.SO_SNDBUF, nettyConfig.getTcpSndBuf())
                 .option(ChannelOption.SO_RCVBUF, nettyConfig.getTcpRcvBuf())
-                .option(ChannelOption.SO_REUSEADDR, nettyConfig.getTcpReuseAddr())
-                .childOption(ChannelOption.SO_KEEPALIVE, nettyConfig.getTcpKeepAlive())
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, nettyConfig.getSoKeepAlive())
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
@@ -123,8 +123,8 @@ public class NettyRemotingServer implements Control {
                                 .addLast("aggregator", new HttpObjectAggregator(65535))
                                 .addLast("compressor", new HttpContentCompressor())
                                 .addLast("webSocketHandler", new WebSocketServerProtocolHandler("/mqtt", "mqtt,mqttv3.1,mqttv3.1.1,mqtt5.0", false, 65536))
-                                .addLast("webSocket2ByteBufDecoder", new WebSocketDecoder())
-                                .addLast("byteBuf2WebSocketEncoder", new WebSocketEncoder())
+                                .addLast("webSocketDecoder", new WebSocketDecoder())
+                                .addLast("webSocketEncoder", new WebSocketEncoder())
                                 .addLast("mqttDecoder", new MqttDecoder(nettyConfig.getMaxMsgSize()))
                                 .addLast("mqttEncoder", MqttEncoder.INSTANCE)
                                 .addLast("nettyConnectionManager", new NettyConnectHandler(
@@ -137,9 +137,9 @@ public class NettyRemotingServer implements Control {
         }
         try {
             ChannelFuture future = bootstrap.bind(port).sync();
-            log.info("Start webSocket server {}  success,port = {}", useSsl ? "with ssl" : "", port);
+            log.info("Jmqtt webSocket server started, ssl = {}, listening port = {}", useSsl, port);
         } catch (InterruptedException ex) {
-            log.error("Start webSocket server {} failure.", useSsl ? "with ssl" : "", ex);
+            log.info("Jmqtt webSocket server started failure, ssl = {}", useSsl, ex);
         }
     }
 
@@ -148,11 +148,11 @@ public class NettyRemotingServer implements Control {
         bootstrap.group(selectorGroup, ioGroup)
                 .channel(clazz)
                 .option(ChannelOption.SO_BACKLOG, nettyConfig.getTcpBackLog())
-                .childOption(ChannelOption.TCP_NODELAY, nettyConfig.getTcpNoDelay())
+                .childOption(ChannelOption.TCP_NODELAY, nettyConfig.getNoDelay())
                 .childOption(ChannelOption.SO_SNDBUF, nettyConfig.getTcpSndBuf())
                 .option(ChannelOption.SO_RCVBUF, nettyConfig.getTcpRcvBuf())
-                .option(ChannelOption.SO_REUSEADDR, nettyConfig.getTcpReuseAddr())
-                .childOption(ChannelOption.SO_KEEPALIVE, nettyConfig.getTcpKeepAlive())
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, nettyConfig.getSoKeepAlive())
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
@@ -180,9 +180,9 @@ public class NettyRemotingServer implements Control {
         }
         try {
             ChannelFuture future = bootstrap.bind(port).sync();
-            log.info("Start tcp server {} success,port = {}", useSsl ? "with ssl" : "", port);
+            log.info("Jmqtt tcp server started, ssl = {}, listening port = {}", useSsl, port);
         } catch (InterruptedException ex) {
-            log.error("Start tcp server {} failure.", useSsl ? "with ssl" : "", ex);
+            log.info("Jmqtt tcp server start failure, ssl = {}", useSsl, ex);
         }
     }
 
@@ -207,7 +207,7 @@ public class NettyRemotingServer implements Control {
             MqttMessage mqttMessage = (MqttMessage) obj;
             if (mqttMessage != null && mqttMessage.decoderResult().isSuccess()) {
                 MqttMessageType messageType = mqttMessage.fixedHeader().messageType();
-                log.debug("[Remoting] ->clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", NettyUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
+                log.debug("clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", NettyUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
                 Runnable runnable = () -> processorTable.get(messageType).getKey().processRequest(ctx, mqttMessage);
                 try {
                     processorTable.get(messageType).getValue().submit(runnable);

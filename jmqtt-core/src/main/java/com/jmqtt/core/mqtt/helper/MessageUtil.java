@@ -23,13 +23,6 @@ public class MessageUtil {
         return bytes;
     }
 
-    public static byte[] getBytesFromByteBuf(ByteBuf byteBuf) {
-        ByteBuf newBuf = byteBuf.copy();
-        byte[] bytes = new byte[newBuf.readableBytes()];
-        newBuf.readBytes(bytes);
-        return bytes;
-    }
-
     public static MqttUnsubAckMessage getUnSubAckMessage(int messageId, byte reasonCode) {
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.UNSUBACK, false, MqttQoS.AT_MOST_ONCE, false, 0);
         MqttMessageIdVariableHeader idVariableHeader = MqttMessageIdVariableHeader.from(messageId);

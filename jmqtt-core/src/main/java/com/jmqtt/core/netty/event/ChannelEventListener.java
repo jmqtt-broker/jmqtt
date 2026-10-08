@@ -1,4 +1,4 @@
-package com.jmqtt.core.netty;
+package com.jmqtt.core.netty.event;
 
 import io.netty.channel.Channel;
 
