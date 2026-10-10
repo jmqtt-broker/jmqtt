@@ -10,4 +10,4 @@ netty:
   sslWebsocketPort: 8884
 
 cluster:
-  seedNodes: ["127.0.0.1:1883"]
+  seedNodes: ["127.0.0.1:5701"]

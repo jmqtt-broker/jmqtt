@@ -1,13 +1,18 @@
+package com.jmqtt.core.mqtt.store.persist.po;
 
-package com.jmqtt.core.mqtt.store;
-
-import lombok.Getter;
-import lombok.Setter;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.*;
 
 @Getter
 @Setter
-public class SessionDO {
+@TableName("jmqtt_session")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Session {
 
+    @TableId
     private String clientId;
 
     private String brokerId;
@@ -27,5 +32,4 @@ public class SessionDO {
     private Boolean cleanStart;
 
     private Integer keepalive;
-
 }

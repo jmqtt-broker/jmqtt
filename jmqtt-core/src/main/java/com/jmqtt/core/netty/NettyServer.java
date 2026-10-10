@@ -3,7 +3,7 @@ package com.jmqtt.core.netty;
 import cn.hutool.core.lang.Pair;
 import com.jmqtt.core.common.Control;
 import com.jmqtt.core.common.ThreadFactoryImpl;
-import com.jmqtt.core.mqtt.processor.RequestProcessor;
+import com.jmqtt.core.mqtt.control.BaseCtrl;
 import com.jmqtt.core.netty.coder.WebSocketDecoder;
 import com.jmqtt.core.netty.coder.WebSocketEncoder;
 import com.jmqtt.core.netty.config.NettyConfig;
@@ -42,7 +42,7 @@ public class NettyServer implements Control {
     private EventLoopGroup selectorGroup;
     private EventLoopGroup ioGroup;
     private Class<? extends ServerChannel> clazz;
-    private Map<MqttMessageType, Pair<RequestProcessor, ExecutorService>> processorTable;
+    private Map<MqttMessageType, Pair<BaseCtrl, ExecutorService>> processorTable;
     private ChannelEventExecutor nettyEventExecutor;
 
     public NettyServer(NettyConfig nettyConfig, ChannelEventListener listener) {
@@ -197,7 +197,7 @@ public class NettyServer implements Control {
         }
     }
 
-    public void registerProcessor(MqttMessageType mqttType, RequestProcessor processor, ExecutorService executorService) {
+    public void registerProcessor(MqttMessageType mqttType, BaseCtrl processor, ExecutorService executorService) {
         this.processorTable.put(mqttType, new Pair<>(processor, executorService));
     }
 
@@ -208,7 +208,7 @@ public class NettyServer implements Control {
             if (mqttMessage != null && mqttMessage.decoderResult().isSuccess()) {
                 MqttMessageType messageType = mqttMessage.fixedHeader().messageType();
                 log.debug("clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", NettyUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
-                Runnable runnable = () -> processorTable.get(messageType).getKey().processRequest(ctx, mqttMessage);
+                Runnable runnable = () -> processorTable.get(messageType).getKey().processCtrl(ctx, mqttMessage);
                 try {
                     processorTable.get(messageType).getValue().submit(runnable);
                 } catch (RejectedExecutionException ex) {

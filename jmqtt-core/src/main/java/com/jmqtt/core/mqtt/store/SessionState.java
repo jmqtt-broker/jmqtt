@@ -1,11 +1,13 @@
 
 package com.jmqtt.core.mqtt.store;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.map.MapUtil;
 import cn.hutool.json.JSONObject;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import cn.hutool.json.JSONUtil;
+import com.jmqtt.core.mqtt.store.persist.po.Session;
+import lombok.*;
+
 import java.util.Map;
 
 /**
@@ -15,6 +17,7 @@ import java.util.Map;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class SessionState {
 
     private String brokerId;
@@ -42,16 +45,12 @@ public class SessionState {
         this.state = state;
     }
 
-    public SessionState(StateEnum state, String clientId, Integer version,
-                        String address, long onlineTime, Boolean cleanStart,
-                        Integer keepalive) {
-        this.state = state;
-        this.clientId = clientId;
-        this.onlineTime = onlineTime;
-        this.version = version;
-        this.address = address;
-        this.cleanStart = cleanStart;
-        this.keepalive = keepalive;
+    public SessionState(Session session) {
+        BeanUtil.copyProperties(session, this);
+        this.propertyMap = MapUtil.newHashMap();
+        JSONUtil.parseObj(session.getProperty()).forEach((k, v) -> {
+            this.propertyMap.put(Integer.parseInt(k), v);
+        });
     }
 
     public SessionState(StateEnum state, long offlineTime, Integer version) {
@@ -60,20 +59,9 @@ public class SessionState {
         this.version = version;
     }
 
-    // public SessionState(SessionDO sessionDO) {
-    //     try {
-    //         MixAll.copyProperties(sessionDO, this);
-    //         this.state = StateEnum.valueOf(sessionDO.getState());
-    //         String property = sessionDO.getProperty();
-    //         this.propertyMap = StringUtils.isNotBlank(property) ? new HashMap<Integer, Object>(JSONObject.parseObject(property, Map.class)) : null;
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    // }
-
     @Override
     public String toString() {
-        return new JSONObject(this).toString();
+        return JSONUtil.toJsonStr(this);
     }
 
     @Getter

@@ -11,23 +11,16 @@ import lombok.Setter;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * 本服务连接的设备会话信息
- */
 @Getter
 @Setter
 @EqualsAndHashCode(of = {"clientId"})
 @NoArgsConstructor
 public class ClientSession {
 
-    /**
-     * clientId uniqu in a cluseter
-     */
     private String clientId;
     private int version;
     private boolean cleanStart;
     private transient ChannelHandlerContext ctx;
-    private String userName;
 
     private transient AtomicInteger messageIdCounter = new AtomicInteger(1);
 

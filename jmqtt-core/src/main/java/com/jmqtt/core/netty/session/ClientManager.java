@@ -17,11 +17,11 @@ public class ClientManager {
         return CLIENT_STORE.get(clientId);
     }
 
-    public static ClientSession putClient(String clientId,ClientSession clientSession){
-        return CLIENT_STORE.put(clientId,clientSession);
+    public static void putClient(String clientId,ClientSession clientSession){
+        CLIENT_STORE.put(clientId,clientSession);
     }
 
-    public static boolean containClient(String clientId){
+    public static boolean containsClient(String clientId){
         return CLIENT_STORE.containsKey(clientId);
     }
 

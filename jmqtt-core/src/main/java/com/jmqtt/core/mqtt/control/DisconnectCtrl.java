@@ -1,5 +1,11 @@
-package com.jmqtt.core.mqtt.processor;
+package com.jmqtt.core.mqtt.control;
 
+import com.jmqtt.core.cluster.ClusterConfig;
+import com.jmqtt.core.mqtt.auth.JmqttAuth;
+import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.store.MessageStore;
+import com.jmqtt.core.mqtt.store.SessionStore;
+import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import com.jmqtt.core.netty.helper.NettyUtil;
 import com.jmqtt.core.netty.session.ClientSession;
 import com.jmqtt.core.netty.session.ClientManager;
@@ -13,10 +19,14 @@ import lombok.extern.slf4j.Slf4j;
  * 客户端主动发起断开连接：正常断连
  */
 @Slf4j
-public class DisconnectProcessor implements RequestProcessor {
+public class DisconnectCtrl extends BaseCtrl {
+
+    public DisconnectCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore, MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
+        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
+    }
 
     @Override
-    public void processRequest(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
+    public void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         ctx.channel().attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).set(true);
         String clientId = NettyUtil.getClientId(ctx.channel());
         log.info("[DISCONNECT remote:{}] -> {} disconnect mqtt server", ctx.channel().remoteAddress(), clientId);

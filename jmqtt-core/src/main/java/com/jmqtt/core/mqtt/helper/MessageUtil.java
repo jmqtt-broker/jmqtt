@@ -6,11 +6,14 @@ import cn.hutool.json.JSONObject;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.model.SubscriptionOption;
+import com.jmqtt.core.netty.session.ClientSession;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * transfer message from Message and MqttMessage
@@ -153,11 +156,50 @@ public class MessageUtil {
         return new MqttMessage(fixedHeader, variableHeader);
     }
 
-    public static MqttMessage getDisconnectMessage(byte reasonCode, String reasonString) {
+    public static MqttMessage getDisconnectMessage(Reason reason) {
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.DISCONNECT, false, MqttQoS.AT_MOST_ONCE, false, 0);
         MqttProperties properties = new MqttProperties();
-        properties.add(new MqttProperties.StringProperty(MqttProperties.MqttPropertyType.REASON_STRING.value(), reasonString));
-        MqttReasonCodeAndPropertiesVariableHeader variableHeader = new MqttReasonCodeAndPropertiesVariableHeader(reasonCode, properties);
+        properties.add(new MqttProperties.StringProperty(MqttProperties.MqttPropertyType.REASON_STRING.value(), reason.getReasonString()));
+        MqttReasonCodeAndPropertiesVariableHeader variableHeader = new MqttReasonCodeAndPropertiesVariableHeader(reason.getReasonCode(), properties);
         return new MqttMessage(fixedHeader, variableHeader);
     }
+
+    public static void sendDisconnect(ClientSession session, Reason reason) {
+        ChannelHandlerContext ctx = session.getCtx();
+        if (session.isMqtt5()) {
+            ctx.writeAndFlush(MessageUtil.getDisconnectMessage(reason)).addListener(future -> {
+                if (future.isDone() && ctx.channel().isActive()) {
+                    ctx.close();
+                }
+            });
+        } else {
+            ctx.close();
+        }
+    }
+    public static Map<Integer, Object> propertyMap(MqttProperties properties) {
+        if (properties == null || properties.isEmpty()) {
+            return null;
+        }
+        Map<Integer, Object> propertyMap = new HashMap<>();
+        properties.listAll().forEach(p -> {
+            if (p instanceof MqttProperties.BinaryProperty) {
+                propertyMap.put(p.propertyId(), new String((byte[]) p.value()));
+            } else if (p instanceof MqttProperties.UserProperties userProperties) {
+                List<MqttProperties.StringPair> value = userProperties.value();
+                List<Map<String, String>> kvList = value.stream().map(pair -> {
+                    Map<String, String> kv = new HashMap<>();
+                    kv.put("key", pair.key);
+                    kv.put("value", pair.value);
+                    return kv;
+                }).collect(Collectors.toList());
+                if (!kvList.isEmpty()) {
+                    propertyMap.put(p.propertyId(), kvList);
+                }
+            } else {
+                propertyMap.put(p.propertyId(), p.value());
+            }
+        });
+        return propertyMap;
+    }
+
 }

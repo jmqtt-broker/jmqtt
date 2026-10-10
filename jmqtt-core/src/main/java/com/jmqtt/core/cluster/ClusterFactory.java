@@ -10,14 +10,14 @@ public class ClusterFactory {
 
     private static HazelcastInstance CLUSTER;
 
-    public static void clusterFactory(ClusterConfig clusterConfig) {
+    public static void createCluster(ClusterConfig clusterConfig) {
         if (CLUSTER == null) {
             Config config = new Config();
             config.setClusterName(clusterConfig.getClusterName());
             config.setInstanceName(clusterConfig.getCurrentNodeName());
 
             NetworkConfig network = config.getNetworkConfig();
-            network.setPort(5701);
+            network.setPort(clusterConfig.getPort());
             // network.getPortConfig().setAutoIncrement(true);
             // network.getPortConfig().setPortCount(100);
 

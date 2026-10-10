@@ -14,6 +14,11 @@ public class BrokerConfig {
     private String user = "jmqtt";
     private String password = "jmqtt";
 
+    // 单个客户端最大离线消息数
+    private Long maxOfflineMsgNum = 10000L;
+
+    // 客户端默认会话超时时间，3600秒
+    private Integer defaultSessionTimeout = 3600;
 
     // 是否使用服务端默认的心跳周期
     private boolean useServerKeepalive = false;

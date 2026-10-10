@@ -1,5 +1,6 @@
 package com.jmqtt.core.cluster;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,12 +12,12 @@ import java.util.List;
 @NoArgsConstructor
 public class ClusterConfig {
 
-    private String clusterName;
+    private String clusterName = "JMQTT-CLUSTER";
 
-    private String currentNodeName;
+    private String currentNodeName = "JMQTT-CLUSTER-NODE-" + IdWorker.getIdStr();
 
-    private Integer port;
+    private Integer port = 5701;
 
-    private List<String> seedNodes;
+    private List<String> seedNodes = List.of("127.0.0.1:5701");
 
 }

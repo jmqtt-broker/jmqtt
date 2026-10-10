@@ -1,6 +1,12 @@
-package com.jmqtt.core.mqtt.processor;
+package com.jmqtt.core.mqtt.control;
 
+import com.jmqtt.core.cluster.ClusterConfig;
+import com.jmqtt.core.mqtt.auth.JmqttAuth;
+import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
+import com.jmqtt.core.mqtt.store.MessageStore;
+import com.jmqtt.core.mqtt.store.SessionStore;
+import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import com.jmqtt.core.netty.helper.NettyUtil;
 import com.jmqtt.core.mqtt.model.*;
 import com.jmqtt.core.netty.session.ClientSession;
@@ -17,19 +23,19 @@ import java.util.List;
  * TODO mqtt5协议支持
  */
 @Slf4j
-public class SubscribeProcessor implements RequestProcessor {
+public class SubscribeCtrl extends BaseCtrl {
+
+    public SubscribeCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore, MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
+        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
+    }
 
     @Override
-    public void processRequest(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
+    public void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         MqttSubscribeMessage subscribeMessage = (MqttSubscribeMessage) mqttMessage;
         String clientId = NettyUtil.getClientId(ctx.channel());
         ClientSession clientSession = ClientManager.getClient(clientId);
         List<MqttTopicSubscription> subscriptions = subscribeMessage.payload().topicSubscriptions();
         List<Topic> validTopicList = validTopics(clientSession, subscriptions);
-        if (validTopicList == null || validTopicList.size() == 0) {
-            log.warn("[Subscribe] -> Valid all subscribe topic failure,clientId:{}", clientId);
-            return;
-        }
         MqttMessageIdAndPropertiesVariableHeader variableHeader = (MqttMessageIdAndPropertiesVariableHeader) subscribeMessage.variableHeader();
         MqttProperties properties = variableHeader.properties();
 
@@ -60,9 +66,6 @@ public class SubscribeProcessor implements RequestProcessor {
         }
     }
 
-    /**
-     * 返回校验合法的topic
-     */
     private List<Topic> validTopics(ClientSession clientSession, List<MqttTopicSubscription> subscriptions) {
         List<Topic> topicList = new ArrayList<>();
         for (MqttTopicSubscription subscription : subscriptions) {

@@ -2,35 +2,23 @@
 package com.jmqtt.core.mqtt.store;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.jmqtt.core.common.JmqttConst;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.Subscription;
+import com.jmqtt.core.mqtt.store.persist.po.Session;
 import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.handler.codec.mqtt.MqttVersion;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public interface SessionStore {
 
-    /**
-     * session
-     */
-    Map<String, SessionState> memSessionStore = new ConcurrentHashMap<>();
+    SessionState getSession(String clientId);
 
-    default SessionState getSession(String clientId) {
-        return memSessionStore.get(clientId);
-    }
+    List<Session> getSessionList(Collection<String> clientIds);
 
-    default List<SessionDO> getSessionList(Collection<String> clientIds) {
-        return null;
-    }
+    boolean storeSession(SessionState sessionState);
 
-    default boolean storeSession(SessionState sessionState) {
-        return memSessionStore.putIfAbsent(sessionState.getClientId(), sessionState) == null;
-    }
-
-    default void clearSession(String clientId, boolean cleanStart){
+    default void clearSession(String clientId, boolean cleanStart) {
         SessionState session = getSession(clientId);
         long onlineTime = Optional.ofNullable(session.getOnlineTime()).orElse(0L);
         long cur = System.currentTimeMillis();
@@ -61,33 +49,29 @@ public interface SessionStore {
     }
 
     /**
-     * 存储订阅关系
-     * @param clientId      clientId
-     * @param subscription  subscription
-     * @return  return
+     * 保存订阅
+     *
+     * @param subscription subscription
+     * @return return
      */
-    default boolean storeSubscription(String clientId, Subscription subscription) {
-        return false;
-    }
+    boolean storeSubscription(Subscription subscription);
 
     /**
-     * 移除订阅关系
-     * @param clientId  clientId
-     * @param topic     topic
-     * @return  return
+     * 移除订阅
+     *
+     * @param clientId clientId
+     * @param topic    topic
+     * @return return
      */
-    default boolean delSubscription(String clientId,String topic) {
-        return false;
-    }
+    boolean delSubscription(String clientId, String topic);
 
     /**
-     * 清理订阅信息
-     * @param clientId  clientId
-     * @return  return
+     * 清除某个Client的所有
+     *
+     * @param clientId clientId
+     * @return return
      */
-    default boolean clearSubscription(String clientId) {
-        return false;
-    }
+    boolean clearSubscription(String clientId);
 
     default void clearSubscriptionAndSubTree(String clientId) {
         Set<Subscription> subscriptions = getSubscriptions(clientId);
@@ -99,143 +83,126 @@ public interface SessionStore {
 
     /**
      * 获取该clientId的所有的订阅关系
-     * @param clientId  clientId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @return return
      */
-    default Set<Subscription> getSubscriptions(String clientId) {
-        return new HashSet<>();
-    }
+    Set<Subscription> getSubscriptions(String clientId);
 
-    default Set<Subscription> getAllSubscription() {
+    Set<Subscription> getAllSubscription();
 
-        return new HashSet<>();
-    }
-
-    default Subscription getOneSubscription(String clientId, String topic) {
-        return null;
-    }
+    Subscription getOneSubscription(String clientId, String topic);
 
     /**
-     * 缓存qos2 publish报文消息-入栈消息
-     * @param clientId  clientId
-     * @param message   message
-     * @return  return
+     * 缓存入栈消息qos 1, 2 publish
+     *
+     * @param clientId clientId
+     * @param message  message
+     * @return return
      */
-    default boolean cacheInflowMsg(String clientId, Message message) {
-        return false;
-    }
+    boolean cacheInflowMsg(String clientId, Message message);
 
     /**
      * 获取并删除接收到的qos2消息-入栈消息
-     * @param clientId  clientId
-     * @param msgId     msgId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @param msgId    msgId
+     * @return return
      */
-    default Message releaseInflowMsg(String clientId,Integer msgId) {
-        return null;
-    }
+    Message releaseInflowMsg(String clientId, Integer msgId);
 
     /**
      * 获取所有的入栈消息
-     * @param clientId  clientId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @return return
      */
-    default Collection<Message> getAllInflowMsg(String clientId) {
-        return new ArrayList<>();
-    }
+    Collection<Message> getAllInflowMsg(String clientId);
 
     /**
-     * 缓存出栈消息-分发给客户端的qos1,qos2消息
-     * @param clientId  clientId
-     * @param message   message
-     * @return  return
+     * 缓存出栈消息-分发给客户端的qos1, 2消息
+     *
+     * @param clientId clientId
+     * @param message  message
+     * @return return
      */
-    default boolean cacheOutflowMsg(String clientId,Message message) {
-        return false;
-    }
+    boolean cacheOutflowMsg(String clientId, Message message);
 
     /**
      * 获取所有的出栈消息
-     * @param clientId  clientId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @return return
      */
-    default Collection<Message> getAllOutflowMsg(String clientId) {
-        return new ArrayList<>();
-    }
+    Collection<Message> getAllOutflowMsg(String clientId);
 
     /**
      * 获取并删除发送的出栈消息
-     * @param clientId  clientId
-     * @param msgId     msgId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @param msgId    msgId
+     * @return return
      */
-    default Message releaseOutflowMsg(String clientId,Integer msgId) {
-        return null;
-    }
+    Message releaseOutflowMsg(String clientId, Integer msgId);
 
     /**
      * 出栈qos2第二阶段，缓存msgId
-     * @param clientId  clientId
-     * @param msgId     msgId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @param msgId    msgId
+     * @return return
      */
-    default boolean cacheOutflowSecMsgId(String clientId,int msgId) {
-        return false;
-    }
+    boolean cacheOutflowSecMsgId(String clientId, int msgId);
 
     /**
      * 出栈qos2第二阶段，释放msgId
-     * 若为false，说明msgId不存在（异常情况）
-     * @param clientId  clientId
-     * @param msgId     msgId
-     * @return  return
+     * 返回false时说明msgId不存在，异常情况
+     *
+     * @param clientId clientId
+     * @param msgId    msgId
+     * @return return
      */
-    default boolean releaseOutflowSecMsgId(String clientId,Integer msgId) {
-        return false;
-    }
+    boolean releaseOutflowSecMsgId(String clientId, Integer msgId);
 
     /**
      * 获取所有的信息，进行发送
-     * @param clientId  clientId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @return return
      */
-    default List<Integer> getAllOutflowSecMsgId(String clientId) {
-        return new ArrayList<>();
-    }
+    List<Integer> getAllOutflowSecMsgId(String clientId);
 
     /**
      * 缓存离线消息
-     * @param clientId  clientId
-     * @param message   message
-     * @return  return
+     *
+     * @param clientId clientId
+     * @param message  message
+     * @return return
      */
-    default boolean storeOfflineMsg(String clientId,Message message) {
-        return false;
-    }
+    boolean storeOfflineMsg(String clientId, Message message);
 
     /**
      * 获取所有的离线消息
-     * @param clientId  clientId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @return return
      */
-    default Collection<Message> getAllOfflineMsg(String clientId) {
-        return new ArrayList<>();
-    }
+    Collection<Message> getAllOfflineMsg(String clientId);
 
     /**
      * 清理该客户端的离线消息
-     * @param clientId  clientId
-     * @return  return
+     *
+     * @param clientId clientId
+     * @return return
      */
-    default boolean clearOfflineMsg(String clientId) {
-        return false;
-    }
+    boolean clearOfflineMsg(String clientId);
 
     /**
      * 获取某个客户端的某个连接属性
-     * @param clientId      clientId
-     * @param propertyId    propertyId
-     * @return  return
+     *
+     * @param clientId   clientId
+     * @param propertyId propertyId
+     * @return return
      */
     default Object getClientProperty(String clientId, Integer propertyId) {
         /*String key = JmqttConst.CLIENT_PROPERTIES + clientId;

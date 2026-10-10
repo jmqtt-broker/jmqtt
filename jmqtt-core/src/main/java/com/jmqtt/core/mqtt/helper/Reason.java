@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum ReasonCode {
+public enum Reason {
 
 
     SUCCESS((byte) 0x00,"success"),
