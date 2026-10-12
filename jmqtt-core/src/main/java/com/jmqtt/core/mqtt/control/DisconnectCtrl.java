@@ -6,7 +6,7 @@ import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
-import com.jmqtt.core.netty.helper.NettyUtil;
+import com.jmqtt.core.netty.helper.ChannelUtil;
 import com.jmqtt.core.netty.session.ClientSession;
 import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.channel.ChannelHandlerContext;
@@ -28,7 +28,7 @@ public class DisconnectCtrl extends BaseCtrl {
     @Override
     public void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         ctx.channel().attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).set(true);
-        String clientId = NettyUtil.getClientId(ctx.channel());
+        String clientId = ChannelUtil.getClientId(ctx.channel());
         log.info("[DISCONNECT remote:{}] -> {} disconnect mqtt server", ctx.channel().remoteAddress(), clientId);
         ClientSession session = ClientManager.getClient(clientId);
         if (session != null) {

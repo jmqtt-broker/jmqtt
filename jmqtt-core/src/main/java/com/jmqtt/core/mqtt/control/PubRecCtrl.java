@@ -7,7 +7,7 @@ import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
-import com.jmqtt.core.netty.helper.NettyUtil;
+import com.jmqtt.core.netty.helper.ChannelUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
@@ -25,14 +25,15 @@ public class PubRecCtrl extends BaseCtrl {
 
     @Override
     public void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
-        String clientId = NettyUtil.getClientId(ctx.channel());
+        String clientId = ChannelUtil.getClientId(ctx.channel());
         int messageId = MessageUtil.getMessageId(mqttMessage);
-
-        sessionStore.releaseOutflowMsg(clientId,messageId);
-        sessionStore.cacheOutflowSecMsgId(clientId,messageId);
-
         log.debug("[PubRec] -> Receive PubRec message,clientId={},msgId={}",clientId,messageId);
         MqttMessage pubRelMessage = MessageUtil.getPubReplyMessage(messageId, MqttMessageType.PUBREL, (byte) 0x00, null, false);
-        ctx.writeAndFlush(pubRelMessage);
+        ctx.writeAndFlush(pubRelMessage).addListener(future -> {
+            if (future.isSuccess()) {
+                sessionStore.releaseOutflowMsg(clientId,messageId);
+                sessionStore.cacheOutflowSecMsgId(clientId,messageId);
+            }
+        });
     }
 }

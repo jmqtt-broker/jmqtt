@@ -1,6 +1,5 @@
 package com.jmqtt.core.netty;
 
-import cn.hutool.core.lang.Pair;
 import com.jmqtt.core.common.Control;
 import com.jmqtt.core.common.ThreadFactoryImpl;
 import com.jmqtt.core.mqtt.control.BaseCtrl;
@@ -8,7 +7,7 @@ import com.jmqtt.core.netty.coder.WebSocketDecoder;
 import com.jmqtt.core.netty.coder.WebSocketEncoder;
 import com.jmqtt.core.netty.config.NettyConfig;
 import com.jmqtt.core.netty.event.ChannelEventListener;
-import com.jmqtt.core.netty.helper.NettyUtil;
+import com.jmqtt.core.netty.helper.ChannelUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -32,8 +31,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 
 @Slf4j
 public class NettyServer implements Control {
@@ -42,12 +39,12 @@ public class NettyServer implements Control {
     private EventLoopGroup selectorGroup;
     private EventLoopGroup ioGroup;
     private Class<? extends ServerChannel> clazz;
-    private Map<MqttMessageType, Pair<BaseCtrl, ExecutorService>> processorTable;
+    private Map<MqttMessageType, BaseCtrl> ctrlTable;
     private ChannelEventExecutor nettyEventExecutor;
 
     public NettyServer(NettyConfig nettyConfig, ChannelEventListener listener) {
         this.nettyConfig = nettyConfig;
-        this.processorTable = new HashMap();
+        this.ctrlTable = new HashMap();
         this.nettyEventExecutor = new ChannelEventExecutor(listener);
 
         String osName = System.getProperty("os.name").toLowerCase();
@@ -197,8 +194,8 @@ public class NettyServer implements Control {
         }
     }
 
-    public void registerProcessor(MqttMessageType mqttType, BaseCtrl processor, ExecutorService executorService) {
-        this.processorTable.put(mqttType, new Pair<>(processor, executorService));
+    public void registerCtrl(MqttMessageType mqttType, BaseCtrl ctrl) {
+        this.ctrlTable.put(mqttType, ctrl);
     }
 
     class NettyMqttHandler extends ChannelInboundHandlerAdapter {
@@ -207,13 +204,8 @@ public class NettyServer implements Control {
             MqttMessage mqttMessage = (MqttMessage) obj;
             if (mqttMessage != null && mqttMessage.decoderResult().isSuccess()) {
                 MqttMessageType messageType = mqttMessage.fixedHeader().messageType();
-                log.debug("clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", NettyUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
-                Runnable runnable = () -> processorTable.get(messageType).getKey().processCtrl(ctx, mqttMessage);
-                try {
-                    processorTable.get(messageType).getValue().submit(runnable);
-                } catch (RejectedExecutionException ex) {
-                    log.warn("Reject mqtt request,cause={}", ex.getMessage());
-                }
+                log.debug("clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", ChannelUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
+                Thread.startVirtualThread(() -> ctrlTable.get(messageType).processCtrl(ctx, mqttMessage));
             } else {
                 log.warn("Mqtt解码失败。");
                 ctx.close();

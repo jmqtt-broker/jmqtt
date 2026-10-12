@@ -1,7 +1,7 @@
 package com.jmqtt.core.netty.event;
 
 import cn.hutool.core.util.StrUtil;
-import com.jmqtt.core.netty.helper.NettyUtil;
+import com.jmqtt.core.netty.helper.ChannelUtil;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,7 +19,7 @@ public class DefaultChannelEventListener implements ChannelEventListener {
 
     @Override
     public void onChannelClose(String remoteAddr, Channel channel) {
-        String clientId = NettyUtil.getClientId(channel);
+        String clientId = ChannelUtil.getClientId(channel);
         if (StrUtil.isNotEmpty(clientId)) {
 
         }
@@ -27,14 +27,14 @@ public class DefaultChannelEventListener implements ChannelEventListener {
 
     @Override
     public void onChannelIdle(String remoteAddr, Channel channel) {
-        String clientId = NettyUtil.getClientId(channel);
+        String clientId = ChannelUtil.getClientId(channel);
         log.info("onChannelIdle:[{}],ClientId:{{}}", remoteAddr, clientId);
 
     }
 
     @Override
     public void onChannelException(String remoteAddr, Channel channel) {
-        String clientId = NettyUtil.getClientId(channel);
+        String clientId = ChannelUtil.getClientId(channel);
         log.warn("onChannelException:[{}],ClientId:{{}}", remoteAddr, clientId);
 
     }

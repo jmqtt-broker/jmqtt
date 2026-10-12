@@ -5,15 +5,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ThreadFactoryImpl implements ThreadFactory {
 
-    private AtomicInteger counter = new AtomicInteger(0);
-    private String threadName;
+    private final AtomicInteger counter = new AtomicInteger(0);
+    private final String threadName;
+    private final boolean virtualThread;
 
-    public ThreadFactoryImpl(String threadName){
+    public ThreadFactoryImpl(String threadName) {
+        this(threadName, false);
+    }
+
+    public ThreadFactoryImpl(String threadName, boolean virtualThread) {
         this.threadName = threadName;
+        this.virtualThread = virtualThread;
     }
 
     @Override
     public Thread newThread(Runnable r) {
-        return new Thread(r,threadName + "_" + this.counter.incrementAndGet());
+        String name = threadName + "_" + this.counter.incrementAndGet();
+        if (virtualThread) {
+            return Thread.ofVirtual().name(name).unstarted(r);
+        }
+        return new Thread(r, name);
     }
 }

@@ -6,7 +6,7 @@ import io.netty.util.AttributeKey;
 
 import java.util.Optional;
 
-public class NettyUtil {
+public class ChannelUtil {
 
     private static final AttributeKey<String> clientIdAttr = AttributeKey.valueOf("clientId");
 

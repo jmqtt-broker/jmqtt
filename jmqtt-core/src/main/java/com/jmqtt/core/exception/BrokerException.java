@@ -1,16 +1,12 @@
 package com.jmqtt.core.exception;
 
-import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
-import lombok.AllArgsConstructor;
+import com.jmqtt.core.mqtt.helper.Reason;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public class BrokerException extends RuntimeException {
 
-    private MqttConnectReturnCode reasonCode;
-
-    private String reasonString;
+    private Reason reason;
 
     public BrokerException() {
         super();
@@ -20,11 +16,13 @@ public class BrokerException extends RuntimeException {
         super(message);
     }
 
-    public static BrokerException of(MqttConnectReturnCode reasonCode, String reasonString) {
-        BrokerException exception = new BrokerException();
-        exception.reasonCode = reasonCode;
-        exception.reasonString = reasonString;
-        return exception;
+    public BrokerException(Reason reason) {
+        super(reason.getReasonString());
+        this.reason = reason;
+    }
+
+    public static BrokerException of(Reason reason) {
+        return new BrokerException(reason);
     }
 
 }

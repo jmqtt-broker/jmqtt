@@ -14,7 +14,7 @@ import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionState;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
-import com.jmqtt.core.netty.helper.NettyUtil;
+import com.jmqtt.core.netty.helper.ChannelUtil;
 import com.jmqtt.core.netty.session.ClientManager;
 import com.jmqtt.core.netty.session.ClientSession;
 import io.netty.channel.ChannelHandlerContext;
@@ -28,7 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
-public class Mqtt_3_4 implements ConnectHandler {
+public class Mqtt_3_4_connect implements ConnectHandler {
 
     protected final JmqttAuth jmqttAuth;
 
@@ -42,8 +42,8 @@ public class Mqtt_3_4 implements ConnectHandler {
 
     protected final SubscriptionMatcher subscriptionMatcher;
 
-    public Mqtt_3_4(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore,
-                    MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
+    public Mqtt_3_4_connect(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore,
+                            MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
         this.jmqttAuth = jmqttAuth;
         this.brokerConfig = brokerConfig;
         this.clusterConfig = clusterConfig;
@@ -98,8 +98,8 @@ public class Mqtt_3_4 implements ConnectHandler {
         MqttConnectVariableHeader variableHeader = connectMessage.variableHeader();
         int version = variableHeader.version();
         // 给当前连接设置clientId和version
-        NettyUtil.setClientId(ctx.channel(), clientId);
-        NettyUtil.setVersion(ctx.channel(), version);
+        ChannelUtil.setClientId(ctx.channel(), clientId);
+        ChannelUtil.setVersion(ctx.channel(), version);
         // 检测是否存在会话
         boolean sessionPresent = handlePreviousClient(ctx, clientId, cleanStart, version);
         // 处理遗嘱消息
@@ -122,7 +122,6 @@ public class Mqtt_3_4 implements ConnectHandler {
         sessionStore.storeSession(ss);
         connectAck(ctx, sessionPresent, null);
         log.info("[CONNECT success: {}] -> {} connect to this mqtt server", remoteAddress, clientId);
-        // reConnect2SendMessage(clientId);
     }
 
     protected boolean handlePreviousClient(ChannelHandlerContext ctx, String clientId, boolean cleanStart, int version) {

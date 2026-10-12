@@ -1,8 +1,14 @@
 package com.jmqtt.core.exception;
 
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
+import lombok.Getter;
 
+@Getter
 public class ConnectException extends BrokerException {
+
+    private MqttConnectReturnCode reasonCode;
+
+    private String reasonString;
 
     public ConnectException() {
         super();
@@ -13,7 +19,8 @@ public class ConnectException extends BrokerException {
     }
 
     public ConnectException(MqttConnectReturnCode reasonCode, String reasonString) {
-        super(reasonCode, reasonString);
+        this.reasonCode = reasonCode;
+        this.reasonString = reasonString;
     }
 
     public static ConnectException of(MqttConnectReturnCode reasonCode, String reasonString) {

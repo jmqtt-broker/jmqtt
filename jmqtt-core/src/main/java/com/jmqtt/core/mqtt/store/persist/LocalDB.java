@@ -26,7 +26,7 @@ import java.util.function.Function;
 public class LocalDB {
 
     private final String localStoreDriver = "org.h2.Driver";
-    private final String localStoreUrl = "jdbc:h2:file:/opt/jmqtt/jmqtt;AUTO_SERVER=true;MODE=MYSQL;DATABASE_TO_LOWER=TRUE";
+    private final String localStoreUrl = "jdbc:h2:file:/opt/jmqtt/jmqtt;AUTO_SERVER=true;MODE=MYSQL;DATABASE_TO_LOWER=TRUE;WRITE_DELAY=1000";
     private final String localStoreUsername = "root";
     private final String localStorePassword = "123456";
 

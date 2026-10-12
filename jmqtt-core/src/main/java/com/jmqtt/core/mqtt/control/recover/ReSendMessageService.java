@@ -1,7 +1,6 @@
 package com.jmqtt.core.mqtt.control.recover;
 
 import cn.hutool.core.collection.CollUtil;
-import com.jmqtt.core.common.ThreadFactoryImpl;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.store.MessageStore;
@@ -19,19 +18,14 @@ import java.util.concurrent.locks.LockSupport;
 @Slf4j
 public class ReSendMessageService {
 
-    private Thread                thread;
-    private boolean               stoped  = false;
+    private Thread thread;
+    private boolean stoped = false;
     private BlockingQueue<String> clients = new LinkedBlockingQueue<>();
-    private int                   maxSize = 10000;
+    private int maxSize = 10000;
     private SessionStore sessionStore;
     private MessageStore messageStore;
 
-    private ThreadPoolExecutor sendMessageExecutor = new ThreadPoolExecutor(4,
-            4,
-            60,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(10000),
-            new ThreadFactoryImpl("ReSendMessageThread"));
+    private ExecutorService sendMessageExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     public ReSendMessageService(SessionStore sessionStore, MessageStore messageStore) {
         this.sessionStore = sessionStore;
@@ -65,12 +59,12 @@ public class ReSendMessageService {
     }
 
     // TODO 临时占位，需要代码优化
-    interface Build{
+    interface Build {
         MqttMessage buildMqttMessage(Message message);
     }
 
 
-    public boolean dispatcherMessage(String clientId,Message message, Build build) {
+    public boolean dispatcherMessage(String clientId, Message message, Build build) {
         ClientSession clientSession = ClientManager.getClient(clientId);
         // client off line again
         if (clientSession == null) {
@@ -103,7 +97,7 @@ public class ReSendMessageService {
                             return MessageUtil.getPubReplyMessage(message.getMsgId(), MqttMessageType.PUBREC, (byte) 0x00, null, true);
                         }
                     })) {
-                        log.warn("ReSendMessageService resend inflow error,{}",waitPubRecMsg);
+                        log.warn("ReSendMessageService resend inflow error,{}", waitPubRecMsg);
                     }
                 }
             }
@@ -120,7 +114,7 @@ public class ReSendMessageService {
             if (CollUtil.isNotEmpty(outflowMsgs)) {
                 for (Message message : outflowMsgs) {
                     if (!dispatcherMessage(clientId, message, publishMqttMsg)) {
-                        log.warn("ReSendMessageService resend outflow error,{}",message);
+                        log.warn("ReSendMessageService resend outflow error,{}", message);
                     }
                 }
             }

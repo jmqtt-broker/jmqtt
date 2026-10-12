@@ -7,7 +7,6 @@ import com.jmqtt.core.mqtt.model.MessageHeader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * 设备消息处理：
@@ -101,19 +100,16 @@ public interface MessageStore {
     default void retainHandle(Message message) {
         boolean retain = (boolean) message.getHeader(MessageHeader.RETAIN);
         if (retain) {
-            CompletableFuture.runAsync(() -> {
-                // int qos = (int) message.getHeader(MessageHeader.QOS);
-                // byte[] payload = message.getPayload();
-                // String topic = (String) message.getHeader(MessageHeader.TOPIC);
-                // if (StringUtils.isBlank(topic)) {
-                //     topic = TopicAliasManager.getRealTopic(message);
-                //     message.putHeader(MessageHeader.TOPIC, topic);
-                // }
-                // if (qos == 0 || payload == null || payload.length == 0) {
-                //     ClusterHelper.clearRetainMessage(topic);
-                // } else {
-                //     ClusterHelper.storeRetainMessage(message);
-                // }
+            Thread.startVirtualThread(() -> {
+                int qos = (int) message.getHeader(MessageHeader.QOS);
+                byte[] payload = message.getPayload();
+                String topic = (String) message.getHeader(MessageHeader.TOPIC);
+                if (qos == 0 || payload == null || payload.length == 0) {
+                    // ClusterHelper.clearRetainMessage(topic);
+                } else {
+                    // ClusterHelper.storeRetainMessage(message);
+                    storeRetainMessage(topic, message);
+                }
             });
         }
     }

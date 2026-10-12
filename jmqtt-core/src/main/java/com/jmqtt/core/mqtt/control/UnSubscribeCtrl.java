@@ -8,7 +8,7 @@ import com.jmqtt.core.mqtt.model.Subscription;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
-import com.jmqtt.core.netty.helper.NettyUtil;
+import com.jmqtt.core.netty.helper.ChannelUtil;
 import com.jmqtt.core.netty.session.ClientSession;
 import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.channel.ChannelHandlerContext;
@@ -36,7 +36,7 @@ public class UnSubscribeCtrl extends BaseCtrl {
         MqttUnsubscribeMessage unsubscribeMessage = (MqttUnsubscribeMessage) mqttMessage;
         MqttUnsubscribePayload unsubscribePayload = unsubscribeMessage.payload();
         List<String> topics = unsubscribePayload.topics();
-        String clientId = NettyUtil.getClientId(ctx.channel());
+        String clientId = ChannelUtil.getClientId(ctx.channel());
         ClientSession clientSession = ClientManager.getClient(clientId);
         if (Objects.isNull(clientSession)) {
             log.warn("[UnSubscribe] -> The client is not online.clientId={}", clientId);
@@ -47,11 +47,13 @@ public class UnSubscribeCtrl extends BaseCtrl {
                 // 取消订阅没有发现匹配的订阅
                 reasonCode = 0x11;
             }
-            Subscription subscription = sessionStore.getOneSubscription(clientId, topic);
-            if (subscription != null) {
-                sessionStore.delSubscription(clientId, topic);
-                // ClusterHelper.unSubscribeToCluster(subscription);
-            }
+            Thread.startVirtualThread(() -> {
+                Subscription subscription = sessionStore.getOneSubscription(clientId, topic);
+                if (subscription != null) {
+                    sessionStore.delSubscription(clientId, topic);
+                    // ClusterHelper.unSubscribeToCluster(subscription);
+                }
+            });
         }
         MqttUnsubAckMessage unsubAckMessage = MessageUtil.getUnSubAckMessage(MessageUtil.getMessageId(mqttMessage), reasonCode);
         ctx.writeAndFlush(unsubAckMessage);

@@ -10,9 +10,7 @@ import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionState;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
-import com.jmqtt.core.netty.helper.NettyUtil;
-import com.jmqtt.core.netty.session.ClientManager;
-import com.jmqtt.core.netty.session.ClientSession;
+import com.jmqtt.core.netty.helper.ChannelUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
 import lombok.extern.slf4j.Slf4j;
@@ -20,10 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.*;
 
 @Slf4j
-public class Mqtt_5 extends Mqtt_3_4 {
+public class Mqtt_5_connect extends Mqtt_3_4_connect {
 
-    public Mqtt_5(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore,
-                  MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
+    public Mqtt_5_connect(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore,
+                          MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
         super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
     }
 
@@ -39,8 +37,8 @@ public class Mqtt_5 extends Mqtt_3_4 {
         MqttConnectVariableHeader variableHeader = connectMessage.variableHeader();
         int version = variableHeader.version();
         // 给当前连接设置clientId和version
-        NettyUtil.setClientId(ctx.channel(), clientId);
-        NettyUtil.setVersion(ctx.channel(), version);
+        ChannelUtil.setClientId(ctx.channel(), clientId);
+        ChannelUtil.setVersion(ctx.channel(), version);
         MqttProperties responseProperties = new MqttProperties();
         if (clientId.isEmpty()) {
             // 客户端未设置clientId，返回服务端生成的clientId给客户端

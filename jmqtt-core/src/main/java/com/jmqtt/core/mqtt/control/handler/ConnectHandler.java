@@ -4,7 +4,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttConnectMessage;
 
-public interface ConnectHandler extends CtrlHandler {
+public interface ConnectHandler {
 
     ConnectHandler versionVerify(int mqttVersion);
 

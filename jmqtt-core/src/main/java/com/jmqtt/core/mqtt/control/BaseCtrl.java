@@ -3,9 +3,10 @@ package com.jmqtt.core.mqtt.control;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
-import com.jmqtt.core.mqtt.control.handler.ConnectHandler;
-import com.jmqtt.core.mqtt.control.handler.Mqtt_3_4;
-import com.jmqtt.core.mqtt.control.handler.Mqtt_5;
+import com.jmqtt.core.mqtt.control.handler.MessageDispatcher;
+import com.jmqtt.core.mqtt.control.handler.MessageHandler;
+import com.jmqtt.core.mqtt.control.handler.Mqtt_3_4_message;
+import com.jmqtt.core.mqtt.control.handler.Mqtt_5_message;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
@@ -23,13 +24,15 @@ public abstract class BaseCtrl {
 
     protected final JmqttAuth jmqttAuth;
 
-    protected final Map<Byte, ConnectHandler> clientHandlerMap;
+    protected final Map<Byte, MessageHandler> messageHandlerMap;
 
     protected final SessionStore sessionStore;
 
     protected final MessageStore messageStore;
 
     protected final SubscriptionMatcher subscriptionMatcher;
+
+    protected final MessageDispatcher messageDispatcher;
 
     public BaseCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore,
                     MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
@@ -39,15 +42,21 @@ public abstract class BaseCtrl {
         this.sessionStore = sessionStore;
         this.messageStore = messageStore;
         this.subscriptionMatcher = subscriptionMatcher;
-        Mqtt_3_4 mqtt_3_4 = new Mqtt_3_4(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
-        Mqtt_5 mqtt_5 = new Mqtt_5(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
-        this.clientHandlerMap = Map.of(
-                MqttVersion.MQTT_3_1.protocolLevel(), mqtt_3_4,
-                MqttVersion.MQTT_3_1_1.protocolLevel(), mqtt_3_4,
-                MqttVersion.MQTT_5.protocolLevel(), mqtt_5
+        this.messageDispatcher = new MessageDispatcher(clusterConfig, brokerConfig,
+                sessionStore, messageStore, subscriptionMatcher);
+
+        Mqtt_3_4_message mqtt_3_4_message = new Mqtt_3_4_message(jmqttAuth, brokerConfig, clusterConfig,
+                sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
+        Mqtt_5_message mqtt_5_message = new Mqtt_5_message(jmqttAuth, brokerConfig, clusterConfig,
+                sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
+        this.messageHandlerMap = Map.of(
+                MqttVersion.MQTT_3_1.protocolLevel(), mqtt_3_4_message,
+                MqttVersion.MQTT_3_1_1.protocolLevel(), mqtt_3_4_message,
+                MqttVersion.MQTT_5.protocolLevel(), mqtt_5_message
         );
+
     }
 
-    protected abstract void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage);
+    public abstract void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage);
 
 }

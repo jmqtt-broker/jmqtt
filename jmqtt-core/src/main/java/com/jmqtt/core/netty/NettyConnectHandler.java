@@ -2,7 +2,7 @@ package com.jmqtt.core.netty;
 
 import com.jmqtt.core.netty.event.ChannelEvent;
 import com.jmqtt.core.netty.event.NettyEventType;
-import com.jmqtt.core.netty.helper.NettyUtil;
+import com.jmqtt.core.netty.helper.ChannelUtil;
 import com.jmqtt.core.netty.helper.ChannelHelper;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -47,7 +47,7 @@ public class NettyConnectHandler extends ChannelDuplexHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         String remoteAddr = ChannelHelper.getRemoteAddr(ctx.channel());
-        log.warn("Jmqtt netty channel exception, clientId = {}, remoteAddr = {}", NettyUtil.getClientId(ctx.channel()), remoteAddr, cause);
+        log.warn("Jmqtt netty channel exception, clientId = {}, remoteAddr = {}", ChannelUtil.getClientId(ctx.channel()), remoteAddr, cause);
         this.eventExecutor.putEvent(ChannelEvent.of(remoteAddr, NettyEventType.EXCEPTION, ctx.channel()));
     }
 }
