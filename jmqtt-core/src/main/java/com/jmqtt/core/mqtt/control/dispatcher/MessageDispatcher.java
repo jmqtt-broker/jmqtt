@@ -1,12 +1,10 @@
-package com.jmqtt.core.mqtt.control.handler;
+package com.jmqtt.core.mqtt.control.dispatcher;
 
 import cn.hutool.json.JSONUtil;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
-import com.jmqtt.core.mqtt.helper.TopicAliasManager;
 import com.jmqtt.core.mqtt.model.Message;
-import com.jmqtt.core.mqtt.model.MessageDispatchDTO;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.model.Subscription;
 import com.jmqtt.core.mqtt.store.MessageStore;
@@ -15,7 +13,6 @@ import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import com.jmqtt.core.netty.session.ClientManager;
 import com.jmqtt.core.netty.session.ClientSession;
-import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
 
@@ -186,7 +183,7 @@ public class MessageDispatcher {
     }
 
     private void storeOffline(String clientId, Message message) {
-        // ClusterHelper.storeOfflineMessage(clientId, message);
+        sessionStore.storeOfflineMsg(clientId, message);
     }
 
 }

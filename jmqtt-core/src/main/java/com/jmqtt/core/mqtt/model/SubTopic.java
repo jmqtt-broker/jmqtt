@@ -7,14 +7,14 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Topic {
+public class SubTopic {
 
     private String topicName;
     private int qos;
 
     private SubscriptionOption option;
 
-    public Topic(String topicName, int qos) {
+    public SubTopic(String topicName, int qos) {
         this.topicName = topicName;
         this.qos = qos;
     }

@@ -1,14 +1,13 @@
 package com.jmqtt.core.mqtt.control;
 
 import com.jmqtt.core.cluster.ClusterConfig;
-import com.jmqtt.core.exception.BrokerException;
 import com.jmqtt.core.exception.ConnectException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.handler.ConnectHandler;
 import com.jmqtt.core.mqtt.control.handler.Mqtt_3_4_connect;
 import com.jmqtt.core.mqtt.control.handler.Mqtt_5_connect;
-import com.jmqtt.core.mqtt.control.recover.ReSendMessageService;
+import com.jmqtt.core.mqtt.control.resend.ReSendMessageService;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;

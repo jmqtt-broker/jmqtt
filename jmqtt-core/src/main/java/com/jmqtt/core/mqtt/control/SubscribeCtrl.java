@@ -1,12 +1,15 @@
 package com.jmqtt.core.mqtt.control;
 
+import cn.hutool.core.collection.CollUtil;
 import com.jmqtt.core.cluster.ClusterConfig;
+import com.jmqtt.core.exception.BrokerException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.handler.Mqtt_3_4_subscription;
 import com.jmqtt.core.mqtt.control.handler.Mqtt_5_subscription;
 import com.jmqtt.core.mqtt.control.handler.SubscriptionHandler;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
+import com.jmqtt.core.mqtt.helper.Reason;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
@@ -32,8 +35,8 @@ public class SubscribeCtrl extends BaseCtrl {
 
     public SubscribeCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore, MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
         super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
-        Mqtt_3_4_subscription mqtt_3_4_subscription = new Mqtt_3_4_subscription(jmqttAuth, brokerConfig, messageStore, sessionStore, subscriptionMatcher, messageDispatcher);
-        Mqtt_5_subscription mqtt_5_subscription = new Mqtt_5_subscription(jmqttAuth, brokerConfig, messageStore, sessionStore, subscriptionMatcher, messageDispatcher);
+        Mqtt_3_4_subscription mqtt_3_4_subscription = new Mqtt_3_4_subscription(jmqttAuth, brokerConfig, clusterConfig, messageStore, sessionStore, subscriptionMatcher, messageDispatcher);
+        Mqtt_5_subscription mqtt_5_subscription = new Mqtt_5_subscription(jmqttAuth, brokerConfig, clusterConfig, messageStore, sessionStore, subscriptionMatcher, messageDispatcher);
         this.subscriptionHandlerMap = Map.of(
                 MqttVersion.MQTT_3_1.protocolLevel(), mqtt_3_4_subscription,
                 MqttVersion.MQTT_3_1_1.protocolLevel(), mqtt_3_4_subscription,
@@ -47,46 +50,28 @@ public class SubscribeCtrl extends BaseCtrl {
         String clientId = ChannelUtil.getClientId(ctx.channel());
         ClientSession clientSession = ClientManager.getClient(clientId);
         List<MqttTopicSubscription> subscriptions = subscribeMessage.payload().topicSubscriptions();
-        List<Topic> validTopicList = validTopics(clientSession, subscriptions);
+        List<SubTopic> subTopicList = getTopics(subscriptions);
+        if (CollUtil.isEmpty(subTopicList)) {
+            throw BrokerException.of(Reason.UNSPECIFIED_ERROR);
+        }
         MqttMessageIdAndPropertiesVariableHeader variableHeader = (MqttMessageIdAndPropertiesVariableHeader) subscribeMessage.variableHeader();
-        MqttProperties properties = variableHeader.properties();
-
-
-
-        List<Integer> ackQos = getTopicQos(validTopicList);
-        MqttMessage subAckMessage = MessageUtil.getSubAckMessage(variableHeader.messageId(), ackQos);
-        ctx.writeAndFlush(subAckMessage);
-        subscribe(clientSession, validTopicList);
-    }
-
-    private List<Integer> getTopicQos(List<Topic> topics) {
-        List<Integer> qoss = new ArrayList<>(topics.size());
-        for (Topic topic : topics) {
-            // qoss.add(Math.min(topic.getQos(), BrokerContext.getBrokerConfig().getMaximumQos()));
-        }
-        return qoss;
-    }
-
-    private void subscribe(ClientSession clientSession, List<Topic> validTopicList) {
-        String clientId = clientSession.getClientId();
-        for (Topic topic : validTopicList) {
-            String subTopic = topic.getTopicName();
-            // Subscription subscription = new Subscription(BrokerContext.getBrokerId(), clientId, subTopic, topic.getQos(), null);
-            // SubscriptionOption option = topic.getOption();
-            // subscription.setOption(option);
-
+        try {
+            SubscriptionHandler handler = subscriptionHandlerMap.get(ChannelUtil.getVersion(ctx.channel()).byteValue());
+            handler.handleSubscription(clientSession, subTopicList, variableHeader);
+        } catch (BrokerException e) {
+            log.error("subscribe topic error, clientId: {}.", clientId, e);
+            MessageUtil.sendDisconnect(clientSession, e.getReason());
+        } catch (Exception e) {
+            log.error("subscribe topic unknown error, clientId: {}.", clientId, e);
+            MessageUtil.sendDisconnect(clientSession, Reason.UNSPECIFIED_ERROR);
         }
     }
 
-    private List<Topic> validTopics(ClientSession clientSession, List<MqttTopicSubscription> subscriptions) {
-        List<Topic> topicList = new ArrayList<>();
+    private List<SubTopic> getTopics(List<MqttTopicSubscription> subscriptions) {
+        List<SubTopic> topicList = new ArrayList<>(subscriptions.size());
         for (MqttTopicSubscription subscription : subscriptions) {
-
-            Topic topic = new Topic(subscription.topicName(), subscription.qualityOfService().value());
-            if (clientSession.isMqtt5()) {
-                MqttSubscriptionOption option = subscription.option();
-                topic.setOption(new SubscriptionOption(option));
-            }
+            SubTopic topic = new SubTopic(subscription.topicName(), subscription.qualityOfService().value());
+            topic.setOption(new SubscriptionOption(subscription.option()));
             topicList.add(topic);
         }
         return topicList;

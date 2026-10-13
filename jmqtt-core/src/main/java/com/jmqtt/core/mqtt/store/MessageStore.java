@@ -94,7 +94,7 @@ public interface MessageStore {
      * @return return
      */
     default Collection<Message> getRetainMsg(String topic) {
-        return getAllRetainMsg();
+        return new ArrayList<>();
     }
 
     default void retainHandle(Message message) {

@@ -27,14 +27,14 @@ public class LocalSessionStore implements SessionStore {
     /**
      * session
      */
-    private final Map<String, SessionState> sessionTable = new ConcurrentHashMap<>();
+    private final Map<String, SessionState> sessionTable = new ConcurrentHashMap<>(512);
 
     /**
      * Qos 1、2产生的过程消息
      */
-    private final Map<String, ConcurrentHashMap<Integer, Message>> recCache = new ConcurrentHashMap<>();
-    private final Map<String, ConcurrentHashMap<Integer, Message>> sendCache = new ConcurrentHashMap<>();
-    private final Map<String, ConcurrentHashMap<Integer, Object>> secTwoCache = new ConcurrentHashMap<>();
+    private final Map<String, ConcurrentHashMap<Integer, Message>> recCache = new ConcurrentHashMap<>(128);
+    private final Map<String, ConcurrentHashMap<Integer, Message>> sendCache = new ConcurrentHashMap<>(128);
+    private final Map<String, ConcurrentHashMap<Integer, Object>> secTwoCache = new ConcurrentHashMap<>(128);
 
     @Override
     public SessionState getSession(String clientId) {
@@ -147,7 +147,7 @@ public class LocalSessionStore implements SessionStore {
         ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
         if (v == null) {
             synchronized (recCache) {
-                v = recCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(64));
+                v = recCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
             }
         }
         v.put(message.getMsgId(), message);
@@ -185,7 +185,7 @@ public class LocalSessionStore implements SessionStore {
         ConcurrentHashMap<Integer, Message> v = sendCache.get(clientId);
         if (v == null) {
             synchronized (sendCache) {
-                v = sendCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(64));
+                v = sendCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
             }
         }
         v.put(message.getMsgId(), message);
@@ -224,7 +224,7 @@ public class LocalSessionStore implements SessionStore {
         ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
         if (v == null) {
             synchronized (secTwoCache) {
-                v = secTwoCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(64));
+                v = secTwoCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
             }
         }
         v.put(msgId, 1);

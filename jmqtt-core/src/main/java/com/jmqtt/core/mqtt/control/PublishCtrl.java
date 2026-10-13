@@ -50,7 +50,7 @@ public class PublishCtrl extends BaseCtrl {
             log.error("publish message error, clientId: {}.", clientId, e);
             MessageUtil.sendDisconnect(clientSession, e.getReason());
         } catch (Exception e) {
-            log.error("publish message error, clientId: {}.", clientId, e);
+            log.error("publish message unknown error, clientId: {}.", clientId, e);
             MessageUtil.sendDisconnect(clientSession, Reason.UNSPECIFIED_ERROR);
         } finally {
             ReferenceCountUtil.release(mqttMessage.payload());

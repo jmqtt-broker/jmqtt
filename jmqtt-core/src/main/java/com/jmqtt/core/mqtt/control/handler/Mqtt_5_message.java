@@ -6,6 +6,7 @@ import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.exception.BrokerException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.helper.Reason;
 import com.jmqtt.core.mqtt.helper.TopicAliasManager;
@@ -51,11 +52,10 @@ public class Mqtt_5_message extends Mqtt_3_4_message {
                         } else {
                             // 没有根据别名找到topic，可能是重连后发送了带别名的消息，正确做法是重连后
                             // 重新建立主题 -> 别名的映射关系
-                            throw BrokerException.of(Reason.ALISA_ERROR);
+                            throw BrokerException.of(Reason.PROTOCOL_ERROR);
                         }
                     } else {
-                        // 超过连接时约定的别名最大值
-                        throw BrokerException.of(Reason.ALISA_ERROR);
+                        throw BrokerException.of(Reason.TOPIC_ALIAS_INVALID);
                     }
                 }
             }

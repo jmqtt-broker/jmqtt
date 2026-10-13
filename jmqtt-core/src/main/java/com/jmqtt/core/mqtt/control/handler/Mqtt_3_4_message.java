@@ -4,6 +4,7 @@ import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.exception.BrokerException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.helper.Reason;
 import com.jmqtt.core.mqtt.model.Message;
@@ -75,7 +76,7 @@ public class Mqtt_3_4_message implements MessageHandler {
     @Override
     public MessageHandler checkMessage(ClientSession clientSession, MqttFixedHeader fixedHeader, Message message) {
         if (!jmqttAuth.publishVerify(clientSession.getClientId(), (String) message.getHeader(MessageHeader.TOPIC))) {
-            throw BrokerException.of(Reason.PERMISSION_NOT_ALLOWED);
+            throw BrokerException.of(Reason.NOT_AUTHORIZED);
         }
         return this;
     }
@@ -101,7 +102,7 @@ public class Mqtt_3_4_message implements MessageHandler {
         MqttMessage pubAckMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
                 MqttMessageType.PUBACK, Reason.SUCCESS.getReasonCode(), null, false);
         clientSession.getCtx().writeAndFlush(pubAckMessage).addListener(future -> {
-            if (future.isDone()) {
+            if (future.isSuccess()) {
                 log.info("pubAckMessage success");
                 dispatcherMessage(message);
             }
@@ -112,7 +113,7 @@ public class Mqtt_3_4_message implements MessageHandler {
         MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
                 MqttMessageType.PUBREC, Reason.SUCCESS.getReasonCode(), null, false);
         clientSession.getCtx().writeAndFlush(pubRecMessage).addListener(future -> {
-            if (future.isDone()) {
+            if (future.isSuccess()) {
                 log.info("pubRecMessage success");
                 sessionStore.cacheInflowMsg(message.getClientId(), message);
             }
