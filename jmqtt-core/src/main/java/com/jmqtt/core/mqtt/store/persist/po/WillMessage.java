@@ -13,8 +13,6 @@ import lombok.*;
 public class WillMessage {
 
     @TableId
-    private Long id;
-
     private String clientId;
 
     private String content;

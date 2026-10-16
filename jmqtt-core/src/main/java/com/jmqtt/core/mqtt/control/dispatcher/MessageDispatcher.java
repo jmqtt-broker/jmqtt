@@ -25,9 +25,9 @@ import java.util.concurrent.*;
 @Slf4j
 public class MessageDispatcher {
 
-    private volatile boolean stoped;
+    private final Thread pollThread;
+    private final ExecutorService messageExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private static final BlockingQueue<Message> messageQueue = new LinkedBlockingQueue<>(100000);
-    private final ExecutorService pollThread;
     private final SubscriptionMatcher subscriptionMatcher;
     private final SessionStore sessionStore;
     private final MessageStore messageStore;
@@ -39,46 +39,38 @@ public class MessageDispatcher {
                              SessionStore sessionStore,
                              MessageStore messageStore,
                              SubscriptionMatcher subscriptionMatcher) {
-        this.stoped = false;
         this.clusterConfig = clusterConfig;
         this.brokerConfig = brokerConfig;
         this.subscriptionMatcher = subscriptionMatcher;
         this.sessionStore = sessionStore;
         this.messageStore = messageStore;
-        this.pollThread = Executors.newVirtualThreadPerTaskExecutor();
-        start();
-    }
-
-    public void start() {
-        new Thread(() -> {
-            while (!stoped) {
+        this.pollThread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    List<Message> messageList = new ArrayList<>(16);
-                    Message message;
-                    for (int i = 0; i < 16; i++) {
-                        if (i == 0) {
-                            message = messageQueue.poll(1000, TimeUnit.MILLISECONDS);
-                        } else {
-                            message = messageQueue.poll();
+                    List<Message> firstBatch = new ArrayList<>(16);
+                    Message message = messageQueue.take();
+                    firstBatch.add(message);
+                    messageQueue.drainTo(firstBatch, 15);
+                    this.messageExecutor.submit(new AsyncDispatcher(firstBatch));
+                    Message next = messageQueue.poll(1000, TimeUnit.MILLISECONDS);
+                    if (next != null) {
+                        List<Message> secondBatch = new ArrayList<>(16);
+                        secondBatch.add(next);
+                        for (int i = 0; i < 15; i++) {
+                            next = messageQueue.poll();
+                            if (next != null) {
+                                secondBatch.add(next);
+                            }
                         }
-                        if (Objects.nonNull(message)) {
-                            messageList.add(message);
-                        } else {
-                            break;
-                        }
-                    }
-                    if (!messageList.isEmpty()) {
-                        AsyncDispatcher dispatcher = new AsyncDispatcher(messageList);
-                        pollThread.submit(dispatcher).get();
-                        Thread.startVirtualThread(dispatcher);
+                        this.messageExecutor.submit(new AsyncDispatcher(secondBatch));
                     }
                 } catch (InterruptedException e) {
-                    log.warn("poll message wrong.");
-                } catch (ExecutionException e) {
-                    log.warn("AsyncDispatcher get() wrong.");
+                    log.warn("poll message thread interrupted!");
+                    Thread.currentThread().interrupt();
                 }
             }
-        }).start();
+        });
+        this.pollThread.start();
     }
 
     public boolean accept(Message message) {
@@ -90,8 +82,8 @@ public class MessageDispatcher {
     }
 
     public void stop() {
-        this.stoped = true;
-        this.pollThread.shutdown();
+        this.pollThread.interrupt();
+        this.messageExecutor.shutdown();
     }
 
     class AsyncDispatcher implements Runnable {
@@ -104,24 +96,22 @@ public class MessageDispatcher {
 
         @Override
         public void run() {
-            if (Objects.nonNull(messages)) {
-                for (Message message : messages) {
-                    try {
-                        String pubClientId = message.getClientId();
-                        String topic = (String) message.getHeader(MessageHeader.TOPIC);
-                        Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
-                        for (Subscription subscription : subscriptions) {
-                            String targetBrokerId = subscription.getBrokerId();
-                            if (clusterConfig.getCurrentNodeName().equals(targetBrokerId)) {
-                                send(subscription, message);
-                            } else {
-                                // 订阅topic的client不在当前broker，需要把消息发送给目标所在的broker，由目标broker进行发送
-                                // ClusterHelper.sendMessageToCluster(new MessageDispatchDTO(subscription, message), targetBrokerId);
-                            }
+            for (Message message : messages) {
+                try {
+                    String pubClientId = message.getClientId();
+                    String topic = (String) message.getHeader(MessageHeader.TOPIC);
+                    Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
+                    for (Subscription subscription : subscriptions) {
+                        String targetBrokerId = subscription.getBrokerId();
+                        if (clusterConfig.getCurrentNodeName().equals(targetBrokerId)) {
+                            send(subscription, message);
+                        } else {
+                            // 订阅topic的client不在当前broker，需要把消息发送给目标所在的broker，由目标broker进行发送
+                            // ClusterHelper.sendMessageToCluster(new MessageDispatchDTO(subscription, message), targetBrokerId);
                         }
-                    } catch (Exception ex) {
-                        log.warn("dispatcher message failure.", ex);
                     }
+                } catch (Exception ex) {
+                    log.warn("dispatcher message failure.", ex);
                 }
             }
         }

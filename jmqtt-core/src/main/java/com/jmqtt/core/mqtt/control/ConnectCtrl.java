@@ -4,6 +4,7 @@ import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.exception.ConnectException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.control.handler.ConnectHandler;
 import com.jmqtt.core.mqtt.control.handler.Mqtt_3_4_connect;
 import com.jmqtt.core.mqtt.control.handler.Mqtt_5_connect;
@@ -28,8 +29,8 @@ public class ConnectCtrl extends BaseCtrl {
     private final ReSendMessageService reSendMessageService;
 
     public ConnectCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore,
-                       MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
-        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
+                       MessageStore messageStore, SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
+        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
         Mqtt_3_4_connect mqtt_3_4_connect = new Mqtt_3_4_connect(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
         Mqtt_5_connect mqtt_5_connect = new Mqtt_5_connect(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
         this.connectHandlerMap = Map.of(
@@ -63,7 +64,7 @@ public class ConnectCtrl extends BaseCtrl {
                     .keepAliveVerify(clientId, ctx, variableHeader.keepAliveTimeSeconds())
                     .verifySuccess(ctx, clientId, cleanStart, remoteAddress, connectMessage);
             // 重新发送未确认的消息报文
-            reConnect2SendMessage(clientId);
+            reconnectAndSendUnConfirmMessage(clientId);
         } catch (ConnectException e) {
             log.warn("connect failure, remoteAddress = {}, clientId = {}, returnCode = {}, reasonString = {}", remoteAddress, clientId, e.getReasonCode(), e.getReasonString());
             MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(e.getReasonCode(), sessionPresent, null);
@@ -74,7 +75,7 @@ public class ConnectCtrl extends BaseCtrl {
             });
             ClientManager.removeClient(clientId);
         } catch (Exception e) {
-            log.warn("connect failure, server error, remoteAddress = {}, clientId = {}", remoteAddress, clientId);
+            log.warn("connect failure, server error, remoteAddress = {}, clientId = {}", remoteAddress, clientId, e);
             MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(MqttConnectReturnCode.CONNECTION_REFUSED_UNSPECIFIED_ERROR, sessionPresent, null);
             ctx.writeAndFlush(ackMessage).addListener(future -> {
                 if (future.isDone()) {
@@ -85,7 +86,7 @@ public class ConnectCtrl extends BaseCtrl {
         }
     }
 
-    private void reConnect2SendMessage(String clientId) {
+    private void reconnectAndSendUnConfirmMessage(String clientId) {
         this.reSendMessageService.put(clientId);
         this.reSendMessageService.wakeUp();
     }

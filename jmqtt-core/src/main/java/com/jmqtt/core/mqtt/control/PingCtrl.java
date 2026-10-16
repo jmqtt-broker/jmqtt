@@ -3,6 +3,7 @@ package com.jmqtt.core.mqtt.control;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
@@ -18,8 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PingCtrl extends BaseCtrl {
 
-    public PingCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore, MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
-        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
+    public PingCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig,
+                    SessionStore sessionStore, MessageStore messageStore,
+                    SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
+        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
     }
 
     @Override

@@ -12,9 +12,7 @@ import lombok.*;
 @Builder
 public class RetainMessage {
 
-    @TableId
-    private Long id;
-
+    @TableId("topic")
     private String topic;
 
     private String content;

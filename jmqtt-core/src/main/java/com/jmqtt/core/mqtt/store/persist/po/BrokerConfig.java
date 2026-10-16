@@ -13,8 +13,6 @@ import lombok.*;
 public class BrokerConfig {
 
     @TableId
-    private Long id;
-
     private String brokerId;
 
     private String config;

@@ -30,7 +30,7 @@ public class LocalDB {
     private final String localStoreUsername = "root";
     private final String localStorePassword = "123456";
 
-    private static final LocalDB localStore = new LocalDB();
+    private static final LocalDB localStore;
 
     private DataSource dataSource;
 
@@ -42,11 +42,15 @@ public class LocalDB {
     private final AtomicBoolean start = new AtomicBoolean(false);
 
     static {
-        localStore.start();
+        localStore = new LocalDB();
     }
 
     public static LocalDB getInstance() {
         return localStore;
+    }
+
+    public static void startDB() {
+        localStore.start();
     }
 
     public static void main(String[] args) {

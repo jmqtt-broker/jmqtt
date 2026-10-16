@@ -205,20 +205,9 @@ public interface SessionStore {
      * @return return
      */
     default Object getClientProperty(String clientId, Integer propertyId) {
-        /*String key = JmqttConst.CLIENT_PROPERTIES + clientId;
-        Map<Integer, Object> propertyMap = (Map<Integer, Object>) CaffeineUtil.get(key);
-        if (propertyMap != null) {
-            return propertyMap.get(propertyId);
-        }
         SessionState session = getSession(clientId);
-        propertyMap = session.getPropertyMap();
-        if (propertyMap != null) {
-            CaffeineUtil.put(clientId, propertyMap, 30 * 60);
-            return propertyMap.get(propertyId);
-        }
-        return null;*/
-        SessionState session = getSession(clientId);
-        return session.getPropertyMap().get(propertyId);
+        Map<Integer, Object> propertyMap = session.getPropertyMap();
+        return propertyMap != null ? propertyMap.get(propertyId) : null;
     }
 
     default void clearClientProperty(String clientId) {

@@ -28,7 +28,7 @@ public class DefaultChannelEventListener implements ChannelEventListener {
     @Override
     public void onChannelIdle(String remoteAddr, Channel channel) {
         String clientId = ChannelUtil.getClientId(channel);
-        log.info("onChannelIdle:[{}],ClientId:{{}}", remoteAddr, clientId);
+        log.debug("onChannelIdle:[{}],ClientId:{{}}", remoteAddr, clientId);
 
     }
 

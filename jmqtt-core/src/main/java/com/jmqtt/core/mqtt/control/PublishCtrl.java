@@ -1,16 +1,14 @@
 package com.jmqtt.core.mqtt.control;
 
-import cn.hutool.core.util.StrUtil;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.exception.BrokerException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.control.handler.MessageHandler;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.helper.Reason;
-import com.jmqtt.core.mqtt.helper.TopicAliasManager;
 import com.jmqtt.core.mqtt.model.Message;
-import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
@@ -18,12 +16,11 @@ import com.jmqtt.core.netty.helper.ChannelUtil;
 import com.jmqtt.core.netty.session.ClientManager;
 import com.jmqtt.core.netty.session.ClientSession;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.mqtt.*;
+import io.netty.handler.codec.mqtt.MqttFixedHeader;
+import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 客户端publish消息到jmqtt broker
@@ -31,8 +28,10 @@ import java.util.Map;
 @Slf4j
 public class PublishCtrl extends BaseCtrl {
 
-    public PublishCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore, MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
-        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
+    public PublishCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig,
+                       SessionStore sessionStore, MessageStore messageStore,
+                       SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
+        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
     }
 
     @Override

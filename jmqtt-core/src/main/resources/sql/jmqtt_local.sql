@@ -19,13 +19,12 @@ CREATE TABLE IF NOT EXISTS `jmqtt_offline_message`
 -- ----------------------------
 -- Table structure for jmqtt_retain_message
 -- ----------------------------
+-- DROP TABLE `jmqtt_retain_message`;
 CREATE TABLE IF NOT EXISTS `jmqtt_retain_message`
 (
-    `id`      bigint(20)   NOT NULL COMMENT '主键',
-    `topic`   varchar(128) NOT NULL COMMENT '所属topic',
+    `topic`   varchar(128) NOT NULL COMMENT '所属topic，主键',
     `content` text         NOT NULL COMMENT '消息体',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uqe_topic` (`topic`)
+    PRIMARY KEY (`topic`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='保留消息表';
 
@@ -69,22 +68,21 @@ CREATE TABLE IF NOT EXISTS `jmqtt_subscription`
 -- ----------------------------
 -- Table structure for jmqtt_will_message
 -- ----------------------------
+-- DROP TABLE `jmqtt_will_message`;
 CREATE TABLE IF NOT EXISTS `jmqtt_will_message`
 (
-    `id`         bigint(20)  NOT NULL,
     `client_id`  varchar(64) NOT NULL COMMENT '客户端id',
     `content`    text        NOT NULL COMMENT '消息体',
     `gmt_create` bigint(20)  NOT NULL COMMENT '创建时间',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `wm_client_id` (`client_id`) USING BTREE
+    PRIMARY KEY (`client_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='遗嘱消息表';
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- DROP TABLE `jmqtt_broker`;
 CREATE TABLE IF NOT EXISTS `jmqtt_broker`
 (
-    `id`           bigint(20)   NOT NULL COMMENT '主键',
     `broker_id`    varchar(100) NOT NULL COMMENT 'broker唯一标识',
     `ip`           varchar(20)  NOT NULL COMMENT 'ip地址',
     `tcp_port`     int          NOT NULL COMMENT 'tcp端口',
@@ -94,16 +92,15 @@ CREATE TABLE IF NOT EXISTS `jmqtt_broker`
     `status`       tinyint      NULL COMMENT '是否在线',
     `online_at`    bigint(20)   NULL COMMENT '上线时间',
     `offline_at`   bigint(20)   NULL COMMENT '离线时间',
-    PRIMARY KEY (`id`),
-    UNIQUE INDEX `IDX_BROKER_ID` (`broker_id`) USING BTREE
+    PRIMARY KEY (`broker_id`)
 );
 
+-- DROP TABLE `broker_config`;
 CREATE TABLE IF NOT EXISTS `broker_config`
 (
-    `id`        bigint(20)   NOT NULL COMMENT '主键',
     `broker_id` varchar(100) NOT NULL COMMENT 'broker唯一标识',
     `config`    json         NOT NULL COMMENT '配置详情',
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`broker_id`)
 );
 
 -- DROP TABLE `schedule_task`;

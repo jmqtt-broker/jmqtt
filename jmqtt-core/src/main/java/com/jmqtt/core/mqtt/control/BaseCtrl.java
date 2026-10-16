@@ -35,15 +35,14 @@ public abstract class BaseCtrl {
     protected final MessageDispatcher messageDispatcher;
 
     public BaseCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore,
-                    MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
+                    MessageStore messageStore, SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
         this.jmqttAuth = jmqttAuth;
         this.brokerConfig = brokerConfig;
         this.clusterConfig = clusterConfig;
         this.sessionStore = sessionStore;
         this.messageStore = messageStore;
         this.subscriptionMatcher = subscriptionMatcher;
-        this.messageDispatcher = new MessageDispatcher(clusterConfig, brokerConfig,
-                sessionStore, messageStore, subscriptionMatcher);
+        this.messageDispatcher = messageDispatcher;
 
         Mqtt_3_4_message mqtt_3_4_message = new Mqtt_3_4_message(jmqttAuth, brokerConfig, clusterConfig,
                 sessionStore, messageStore, subscriptionMatcher, messageDispatcher);

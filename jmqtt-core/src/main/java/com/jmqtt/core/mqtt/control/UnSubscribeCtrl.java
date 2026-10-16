@@ -3,6 +3,7 @@ package com.jmqtt.core.mqtt.control;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.model.Subscription;
 import com.jmqtt.core.mqtt.store.MessageStore;
@@ -27,8 +28,10 @@ import java.util.Objects;
 @Slf4j
 public class UnSubscribeCtrl extends BaseCtrl {
 
-    public UnSubscribeCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore, MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
-        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
+    public UnSubscribeCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig,
+                           SessionStore sessionStore, MessageStore messageStore,
+                           SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
+        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
     }
 
     @Override
@@ -54,6 +57,7 @@ public class UnSubscribeCtrl extends BaseCtrl {
                     // ClusterHelper.unSubscribeToCluster(subscription);
                 }
             });
+            log.debug("unSubscribe topic success, clientId: {}, topic: {}.", clientId, topic);
         }
         MqttUnsubAckMessage unsubAckMessage = MessageUtil.getUnSubAckMessage(MessageUtil.getMessageId(mqttMessage), reasonCode);
         ctx.writeAndFlush(unsubAckMessage);

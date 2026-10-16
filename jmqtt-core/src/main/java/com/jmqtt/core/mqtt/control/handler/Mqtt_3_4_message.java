@@ -103,7 +103,7 @@ public class Mqtt_3_4_message implements MessageHandler {
                 MqttMessageType.PUBACK, Reason.SUCCESS.getReasonCode(), null, false);
         clientSession.getCtx().writeAndFlush(pubAckMessage).addListener(future -> {
             if (future.isSuccess()) {
-                log.info("pubAckMessage success");
+                log.debug("pubAckMessage success");
                 dispatcherMessage(message);
             }
         });
@@ -114,7 +114,7 @@ public class Mqtt_3_4_message implements MessageHandler {
                 MqttMessageType.PUBREC, Reason.SUCCESS.getReasonCode(), null, false);
         clientSession.getCtx().writeAndFlush(pubRecMessage).addListener(future -> {
             if (future.isSuccess()) {
-                log.info("pubRecMessage success");
+                log.debug("pubRecMessage success");
                 sessionStore.cacheInflowMsg(message.getClientId(), message);
             }
         });

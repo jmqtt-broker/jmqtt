@@ -27,7 +27,7 @@ public class LocalSessionStore implements SessionStore {
     /**
      * session
      */
-    private final Map<String, SessionState> sessionTable = new ConcurrentHashMap<>(512);
+    private final Map<String, SessionState> sessionCache = new ConcurrentHashMap<>(512);
 
     /**
      * Qos 1、2产生的过程消息
@@ -41,14 +41,14 @@ public class LocalSessionStore implements SessionStore {
         if (StrUtil.isBlank(clientId)) {
             return null;
         }
-        SessionState s = sessionTable.get(clientId);
+        SessionState s = sessionCache.get(clientId);
         if (s == null) {
             Session session = LocalDB.getInstance().operate(sqlSession -> sqlSession.getMapper(SessionMapper.class).selectById(clientId));
             if (session == null) {
                 return new SessionState(clientId, SessionState.StateEnum.NEVER_CONNECTED);
             }
             s = new SessionState(session);
-            sessionTable.put(clientId, s);
+            sessionCache.put(clientId, s);
         }
         return s;
     }
@@ -61,7 +61,7 @@ public class LocalSessionStore implements SessionStore {
     @Override
     public boolean storeSession(SessionState sessionState) {
         String clientId = sessionState.getClientId();
-        sessionTable.remove(clientId);
+        sessionCache.remove(clientId);
         return LocalDB.getInstance().operate(sqlSession -> {
             Session session = Session.builder().clientId(clientId)
                     .brokerId(sessionState.getBrokerId())
@@ -74,14 +74,15 @@ public class LocalSessionStore implements SessionStore {
                     .keepalive(sessionState.getKeepalive())
                     .build();
             Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> session.setProperty(JSONUtil.toJsonStr(p)));
-            return sqlSession.getMapper(SessionMapper.class).insert(session);
-        }) > 0;
+            return sqlSession.getMapper(SessionMapper.class).insertOrUpdate(session);
+        });
     }
 
     @Override
     public boolean storeSubscription(Subscription subscription) {
         return LocalDB.getInstance().operate(sqlSession -> {
-            SubscriptionDO subscriptionDO = SubscriptionDO.builder().id(IdWorker.getId())
+            SubscriptionDO subscriptionDO = SubscriptionDO.builder()
+                    .id(IdWorker.getId())
                     .brokerId(subscription.getBrokerId())
                     .clientId(subscription.getClientId())
                     .topic(subscription.getTopic())
@@ -91,8 +92,8 @@ public class LocalSessionStore implements SessionStore {
             Optional.ofNullable(subscription.getOption()).ifPresent(opt -> {
                 subscriptionDO.setOpt(JSONUtil.toJsonStr(opt));
             });
-            return sqlSession.getMapper(SubscriptionMapper.class).insert(subscriptionDO);
-        }) > 0;
+            return sqlSession.getMapper(SubscriptionMapper.class).upsert(subscriptionDO);
+        });
     }
 
     @Override
@@ -270,8 +271,8 @@ public class LocalSessionStore implements SessionStore {
                     .content(JSONUtil.toJsonStr(message))
                     .gmtCreate(message.getStoreTime())
                     .build();
-            return sqlSession.getMapper(OfflineMessageMapper.class).insert(offlineMessage);
-        }) > 0;
+            return sqlSession.getMapper(OfflineMessageMapper.class).insertOrUpdate(offlineMessage);
+        });
     }
 
     @Override

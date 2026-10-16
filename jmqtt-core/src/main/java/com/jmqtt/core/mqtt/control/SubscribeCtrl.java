@@ -5,6 +5,7 @@ import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.exception.BrokerException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.control.handler.Mqtt_3_4_subscription;
 import com.jmqtt.core.mqtt.control.handler.Mqtt_5_subscription;
 import com.jmqtt.core.mqtt.control.handler.SubscriptionHandler;
@@ -33,8 +34,10 @@ public class SubscribeCtrl extends BaseCtrl {
 
     protected final Map<Byte, SubscriptionHandler> subscriptionHandlerMap;
 
-    public SubscribeCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore, MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
-        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
+    public SubscribeCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig,
+                       SessionStore sessionStore, MessageStore messageStore,
+                       SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
+        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
         Mqtt_3_4_subscription mqtt_3_4_subscription = new Mqtt_3_4_subscription(jmqttAuth, brokerConfig, clusterConfig, messageStore, sessionStore, subscriptionMatcher, messageDispatcher);
         Mqtt_5_subscription mqtt_5_subscription = new Mqtt_5_subscription(jmqttAuth, brokerConfig, clusterConfig, messageStore, sessionStore, subscriptionMatcher, messageDispatcher);
         this.subscriptionHandlerMap = Map.of(

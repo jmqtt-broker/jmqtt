@@ -1,23 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <conversionRule conversionWord="clr" class="org.springframework.boot.logging.logback.ColorConverter"/>
-    <conversionRule conversionWord="wex"
-                    class="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
-    <conversionRule conversionWord="wEx"
-                    class="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
-    <!-- 彩色日志 -->
-    <property name="CONSOLE_LOG_PATTERN"
-              value="${CONSOLE_LOG_PATTERN:-%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
 
-    <!-- 控制台日志 -->
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %-40.40logger{39} : %msg%n"/>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <pattern>${LOG_PATTERN}</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
 
-    <!-- 滚动文件日志 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <File>logs/jmqtt-info.log</File>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -30,14 +22,11 @@
             <totalSizeCap>2048MB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>
-                %d %p (%file:%line\)- %m%n
-            </pattern>
+            <pattern>${LOG_PATTERN}</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
 
-    <!-- 错误日志 -->
     <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <File>logs/jmqtt-error.log</File>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -50,9 +39,7 @@
             <totalSizeCap>2048MB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>
-                %d %p (%file:%line\)- %m%n
-            </pattern>
+            <pattern>${LOG_PATTERN}</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
@@ -62,7 +49,7 @@
         <appender-ref ref="FILE"/>
     </root>
 
-    <logger name="com.github.jmqtt" level="ERROR" additivity="false">
+    <logger name="com.github.jmqtt" level="INFO" additivity="false">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
         <appender-ref ref="ERROR"/>

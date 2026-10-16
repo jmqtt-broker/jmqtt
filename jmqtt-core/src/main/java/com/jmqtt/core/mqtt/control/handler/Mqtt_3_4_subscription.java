@@ -80,7 +80,7 @@ public class Mqtt_3_4_subscription implements SubscriptionHandler {
             if (!retainList.isEmpty()) {
 
             }
-
+            log.debug("subscribe topic success, clientId: {}, topic: {}.", clientId, subTopic);
         }
     }
 

@@ -3,6 +3,7 @@ package com.jmqtt.core.mqtt.control;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.control.handler.MessageHandler;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.model.Message;
@@ -18,16 +19,13 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Objects;
 
-/**
- * 客户端的pubRel报文：入栈消息qos2的第二阶段：
- * 1. 消息所有者转换为broker,开始分发消息
- * 2. 返回pubCom报文
- */
 @Slf4j
 public class PubRelCtrl extends BaseCtrl {
 
-    public PubRelCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig, SessionStore sessionStore, MessageStore messageStore, SubscriptionMatcher subscriptionMatcher) {
-        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher);
+    public PubRelCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig,
+                       SessionStore sessionStore, MessageStore messageStore,
+                       SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
+        super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
     }
 
     @Override
@@ -45,10 +43,10 @@ public class PubRelCtrl extends BaseCtrl {
                     }
                 });
             } else {
-                log.warn("[PubRelMessage] -> the message is not exist,clientId={},messageId={}.", clientId, msgId);
+                log.warn("pubRelMessage error, the message is not exist,clientId={},messageId={}.", clientId, msgId);
             }
         } else {
-            log.warn("[PubRelMessage] -> the client：{} disconnect to this server.", clientId);
+            log.warn("pubRelMessage error, the client：{} disconnect to this server.", clientId);
             ctx.close();
         }
     }
