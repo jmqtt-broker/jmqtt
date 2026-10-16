@@ -15,6 +15,8 @@ import com.jmqtt.core.mqtt.store.persist.mapper.SubscriptionMapper;
 import com.jmqtt.core.mqtt.store.persist.po.OfflineMessage;
 import com.jmqtt.core.mqtt.store.persist.po.Session;
 import com.jmqtt.core.mqtt.store.persist.po.SubscriptionDO;
+import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -22,7 +24,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Getter
 public class LocalSessionStore implements SessionStore {
+
+    private final SubscriptionMatcher subscriptionMatcher;
+
+    public LocalSessionStore(SubscriptionMatcher subscriptionMatcher) {
+        this.subscriptionMatcher = subscriptionMatcher;
+    }
 
     /**
      * session

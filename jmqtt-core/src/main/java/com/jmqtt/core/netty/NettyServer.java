@@ -1,6 +1,7 @@
 package com.jmqtt.core.netty;
 
 import com.jmqtt.core.common.Control;
+import com.jmqtt.core.common.JmqttConst;
 import com.jmqtt.core.common.ThreadFactoryImpl;
 import com.jmqtt.core.mqtt.control.BaseCtrl;
 import com.jmqtt.core.netty.coder.WebSocketDecoder;
@@ -34,19 +35,19 @@ import java.util.Map;
 
 @Slf4j
 public class NettyServer implements Control {
-    int coreThreadNum = Runtime.getRuntime().availableProcessors();
-    private NettyConfig nettyConfig;
-    private EventLoopGroup selectorGroup;
-    private EventLoopGroup ioGroup;
-    private Class<? extends ServerChannel> clazz;
-    private Map<MqttMessageType, BaseCtrl> ctrlTable;
-    private ChannelEventExecutor nettyEventExecutor;
+
+    private final NettyConfig nettyConfig;
+    private final EventLoopGroup selectorGroup;
+    private final EventLoopGroup ioGroup;
+    private final Class<? extends ServerChannel> clazz;
+    private final Map<MqttMessageType, BaseCtrl> ctrlTable;
+    private final ChannelEventExecutor nettyEventExecutor;
 
     public NettyServer(NettyConfig nettyConfig, ChannelEventListener listener) {
         this.nettyConfig = nettyConfig;
-        this.ctrlTable = new HashMap();
+        this.ctrlTable = new HashMap<>();
         this.nettyEventExecutor = new ChannelEventExecutor(listener);
-
+        int coreThreadNum = Runtime.getRuntime().availableProcessors();
         String osName = System.getProperty("os.name").toLowerCase();
         if (osName.contains("linux") && nettyConfig.getUseEpoll()) {
             selectorGroup = new EpollEventLoopGroup(coreThreadNum,
@@ -103,7 +104,7 @@ public class NettyServer implements Control {
                 .childOption(ChannelOption.SO_KEEPALIVE, nettyConfig.getSoKeepAlive())
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    protected void initChannel(SocketChannel socketChannel) throws Exception {
+                    protected void initChannel(SocketChannel socketChannel) {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         if (useSsl) {
                             pipeline.addLast("ssl", NettySslHandler.getSslHandler(
@@ -119,13 +120,12 @@ public class NettyServer implements Control {
                                 .addLast("httpCodec", new HttpServerCodec())
                                 .addLast("aggregator", new HttpObjectAggregator(65535))
                                 .addLast("compressor", new HttpContentCompressor())
-                                .addLast("webSocketHandler", new WebSocketServerProtocolHandler("/mqtt", "mqtt,mqttv3.1,mqttv3.1.1,mqtt5.0", false, 65536))
+                                .addLast("webSocketHandler", new WebSocketServerProtocolHandler("/mqtt", JmqttConst.MQTT_VERSION_SUPPORT, false, 65536))
                                 .addLast("webSocketDecoder", new WebSocketDecoder())
                                 .addLast("webSocketEncoder", new WebSocketEncoder())
                                 .addLast("mqttDecoder", new MqttDecoder(nettyConfig.getMaxMsgSize()))
                                 .addLast("mqttEncoder", MqttEncoder.INSTANCE)
-                                .addLast("nettyConnectionManager", new NettyConnectHandler(
-                                        nettyEventExecutor))
+                                .addLast("nettyConnectionManager", new NettyConnectHandler(nettyEventExecutor))
                                 .addLast("nettyMqttHandler", new NettyMqttHandler());
                     }
                 });
@@ -152,7 +152,7 @@ public class NettyServer implements Control {
                 .childOption(ChannelOption.SO_KEEPALIVE, nettyConfig.getSoKeepAlive())
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    protected void initChannel(SocketChannel socketChannel) throws Exception {
+                    protected void initChannel(SocketChannel socketChannel) {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         if (useSsl) {
                             pipeline.addLast("ssl", NettySslHandler.getSslHandler(
@@ -176,7 +176,7 @@ public class NettyServer implements Control {
             bootstrap.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
         try {
-            ChannelFuture future = bootstrap.bind(port).sync();
+            bootstrap.bind(port).sync();
             log.info("Jmqtt tcp server started, ssl = {}, listening port = {}", useSsl, port);
         } catch (InterruptedException ex) {
             log.info("Jmqtt tcp server start failure, ssl = {}", useSsl, ex);

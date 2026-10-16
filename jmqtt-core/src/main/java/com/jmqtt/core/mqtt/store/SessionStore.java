@@ -4,7 +4,9 @@ package com.jmqtt.core.mqtt.store;
 import cn.hutool.core.bean.BeanUtil;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.Subscription;
+import com.jmqtt.core.mqtt.store.persist.mapper.SubscriptionMapper;
 import com.jmqtt.core.mqtt.store.persist.po.Session;
+import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.handler.codec.mqtt.MqttVersion;
 
@@ -76,10 +78,12 @@ public interface SessionStore {
     default void clearSubscriptionAndSubTree(String clientId) {
         Set<Subscription> subscriptions = getSubscriptions(clientId);
         if (!subscriptions.isEmpty()) {
-            // subscriptions.forEach(s -> BrokerContext.getSubscriptionMatcher().unSubscribe(s.getTopic(), clientId));
+            subscriptions.forEach(s -> getSubscriptionMatcher().unSubscribe(s.getTopic(), clientId));
         }
         clearSubscription(clientId);
     }
+
+    SubscriptionMatcher getSubscriptionMatcher();
 
     /**
      * 获取该clientId的所有的订阅关系

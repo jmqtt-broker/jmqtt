@@ -14,11 +14,12 @@ public class DefaultChannelEventListener implements ChannelEventListener {
 
     @Override
     public void onChannelConnect(String remoteAddr, Channel channel) {
-        log.info("remoteAddr:[{}],Channel:{{}}", remoteAddr, channel.toString());
+        log.info("onChannelConnect, remoteAddr:[{}],Channel:{{}}", remoteAddr, channel.toString());
     }
 
     @Override
     public void onChannelClose(String remoteAddr, Channel channel) {
+        log.info("onChannelClose, remoteAddr:[{}],Channel:{{}}", remoteAddr, channel.toString());
         String clientId = ChannelUtil.getClientId(channel);
         if (StrUtil.isNotEmpty(clientId)) {
 
@@ -28,14 +29,14 @@ public class DefaultChannelEventListener implements ChannelEventListener {
     @Override
     public void onChannelIdle(String remoteAddr, Channel channel) {
         String clientId = ChannelUtil.getClientId(channel);
-        log.debug("onChannelIdle:[{}],ClientId:{{}}", remoteAddr, clientId);
+        log.debug("onChannelIdle, remoteAddr:[{}],ClientId:{{}}", remoteAddr, clientId);
 
     }
 
     @Override
     public void onChannelException(String remoteAddr, Channel channel) {
         String clientId = ChannelUtil.getClientId(channel);
-        log.warn("onChannelException:[{}],ClientId:{{}}", remoteAddr, clientId);
+        log.warn("onChannelException, remoteAddr:[{}],ClientId:{{}}", remoteAddr, clientId);
 
     }
 

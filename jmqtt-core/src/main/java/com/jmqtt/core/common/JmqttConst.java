@@ -2,6 +2,8 @@ package com.jmqtt.core.common;
 
 public interface JmqttConst {
 
+    String MQTT_VERSION_SUPPORT = "mqtt,mqttv3.1,mqttv3.1.1,mqtt5.0";
+
     String PROJECT = "JMQTT";
 
     String CLIENT_PROPERTIES = "CLIENT_PROPERTIES_";

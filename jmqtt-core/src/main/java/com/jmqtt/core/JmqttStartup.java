@@ -44,9 +44,9 @@ public class JmqttStartup {
         this.channelEventListener = new DefaultChannelEventListener();
         this.nettyServer = new NettyServer(jmqttConfig.getNetty(), this.channelEventListener);
 
-        this.sessionStore = new LocalSessionStore();
-        this.messageStore = new LocalMessageStore();
         this.subscriptionMatcher = new DefaultSubscriptionTreeMatcher();
+        this.sessionStore = new LocalSessionStore(this.subscriptionMatcher);
+        this.messageStore = new LocalMessageStore();
         this.jmqttAuth = new JmqttAuth() {
         };
         this.messageDispatcher = new MessageDispatcher(jmqttConfig.getCluster(), jmqttConfig.getBroker(),
