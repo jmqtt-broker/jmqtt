@@ -1,7 +1,10 @@
 package com.jmqtt.core.mqtt.control.handler;
 
 import cn.hutool.core.util.StrUtil;
+import com.jmqtt.core.JmqttContext;
 import com.jmqtt.core.cluster.ClusterConfig;
+import com.jmqtt.core.cluster.ClusterMessage;
+import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.exception.ConnectException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
@@ -17,6 +20,7 @@ import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import com.jmqtt.core.netty.helper.ChannelUtil;
 import com.jmqtt.core.netty.session.ClientManager;
 import com.jmqtt.core.netty.session.ClientSession;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -120,12 +124,17 @@ public class Mqtt_3_4_connect implements ConnectHandler {
                 .keepalive(heartbeatSec)
                 .build();
         sessionStore.storeSession(ss);
-        connectAck(ctx, sessionPresent, null);
-        log.info("[CONNECT success: {}] -> {} connect to this mqtt server", remoteAddress, clientId);
+        connectAck(ctx, sessionPresent, null).addListener(future -> {
+            if (future.isSuccess()) {
+                log.info("[CONNECT success: {}] -> {} connect to this mqtt server", remoteAddress, clientId);
+                // 同步会话到其他节点
+                JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.SESSION_CONNECT, ss));
+            }
+        });
     }
 
     protected boolean handlePreviousClient(ChannelHandlerContext ctx, String clientId, boolean cleanStart, int version) {
-        boolean sessionPresent;
+        boolean present;
         // 检查当前节点查询是否存在该clientId，存在则踢下线
         Optional.ofNullable(ClientManager.getClient(clientId)).ifPresent(previous -> {
             MessageUtil.sendDisconnect(previous, Reason.SESSION_TAKEN_OVER);
@@ -136,30 +145,29 @@ public class Mqtt_3_4_connect implements ConnectHandler {
         ClientSession clientSession;
         if (SessionState.StateEnum.NEVER_CONNECTED.equals(state.getState())) {
             clientSession = new ClientSession(clientId, cleanStart, version, ctx);
-            sessionPresent = false;
+            present = false;
             // notifyClearOtherSession = false;
         } else {
             if (cleanStart) {
-                clientSession = createNewClientSession(clientId, version, ctx);
-                sessionPresent = false;
+                clientSession = newSession(clientId, version, ctx);
+                present = false;
                 // notifyClearOtherSession = false;
             } else {
-                clientSession = reloadClientSession(ctx, clientId, version);
-                sessionPresent = true;
+                clientSession = reloadSession(ctx, clientId, version);
+                present = true;
             }
         }
         ClientManager.putClient(clientId, clientSession);
-        return sessionPresent;
+        return present;
     }
 
-    private ClientSession createNewClientSession(String clientId, int version, ChannelHandlerContext ctx) {
+    private ClientSession newSession(String clientId, int version, ChannelHandlerContext ctx) {
         ClientSession clientSession = new ClientSession(clientId, true, version, ctx);
-        //clear previous sessions
         this.sessionStore.clearSession(clientId, true);
         return clientSession;
     }
 
-    private ClientSession reloadClientSession(ChannelHandlerContext ctx, String clientId, int version) {
+    private ClientSession reloadSession(ChannelHandlerContext ctx, String clientId, int version) {
         ClientSession clientSession = new ClientSession(clientId, false, version, ctx);
         Set<Subscription> subscriptions = sessionStore.getSubscriptions(clientId);
         for (Subscription subscription : subscriptions) {
@@ -201,10 +209,9 @@ public class Mqtt_3_4_connect implements ConnectHandler {
         log.info("[WillMessageStore] : {} store will message:{}", clientId, message);
     }
 
-    protected void connectAck(ChannelHandlerContext ctx, boolean sessionPresent, MqttProperties responseProperties) {
+    protected ChannelFuture connectAck(ChannelHandlerContext ctx, boolean sessionPresent, MqttProperties responseProperties) {
         MqttConnAckMessage ackMessage = MessageUtil.getConnectAckMessage(MqttConnectReturnCode.CONNECTION_ACCEPTED, sessionPresent, responseProperties);
-        ctx.writeAndFlush(ackMessage);
-
+        return ctx.writeAndFlush(ackMessage);
     }
 
 }

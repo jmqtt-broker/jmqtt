@@ -15,6 +15,8 @@ import java.util.List;
 @NoArgsConstructor
 public class ClusterConfig {
 
+    private Boolean enable = false;
+
     private String clusterName = "JMQTT-CLUSTER";
 
     private String currentNodeName;

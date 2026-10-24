@@ -4,7 +4,6 @@ package com.jmqtt.core.mqtt.store;
 import cn.hutool.core.bean.BeanUtil;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.Subscription;
-import com.jmqtt.core.mqtt.store.persist.mapper.SubscriptionMapper;
 import com.jmqtt.core.mqtt.store.persist.po.Session;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import com.jmqtt.core.netty.session.ClientManager;
@@ -30,7 +29,6 @@ public interface SessionStore {
         Optional.ofNullable(session.getVersion()).ifPresent(v -> {
             if (v == MqttVersion.MQTT_5.protocolLevel()) {
                 // TopicAliasManager.clear(clientId);
-                clearClientProperty(clientId);
                 // 会话到期了，如果存在延迟未发送的遗嘱消息，此时需要立即发送
                 // TimerUtils.sendWillImmediately(clientId);
             }
@@ -212,10 +210,6 @@ public interface SessionStore {
         SessionState session = getSession(clientId);
         Map<Integer, Object> propertyMap = session.getPropertyMap();
         return propertyMap != null ? propertyMap.get(propertyId) : null;
-    }
-
-    default void clearClientProperty(String clientId) {
-        // CaffeineUtil.del(JmqttConst.CLIENT_PROPERTIES + clientId);
     }
 
 }

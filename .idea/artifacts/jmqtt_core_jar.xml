@@ -1,0 +1,25 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="jmqtt-core:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/jmqtt_core_jar</output-path>
+    <root id="archive" name="jmqtt-core.jar">
+      <element id="module-output" name="jmqtt-core" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/h2database/h2/2.5.252/h2-2.5.252.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/baomidou/mybatis-plus/3.5.17/mybatis-plus-3.5.17.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/cn/hutool/hutool-all/5.8.46/hutool-all-5.8.46.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/baomidou/mybatis-plus-jsqlparser/3.5.17/mybatis-plus-jsqlparser-3.5.17.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/ch/qos/logback/logback-core/1.2.13/logback-core-1.2.13.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/baomidou/mybatis-plus-core/3.5.17/mybatis-plus-core-3.5.17.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/org/mybatis/mybatis/3.5.19/mybatis-3.5.19.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/baomidou/mybatis-plus-extension/3.5.17/mybatis-plus-extension-3.5.17.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/ch/qos/logback/logback-classic/1.2.13/logback-classic-1.2.13.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/hazelcast/hazelcast/5.7.0/hazelcast-5.7.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/org/projectlombok/lombok/1.18.40/lombok-1.18.40.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/baomidou/mybatis-plus-jsqlparser-common/3.5.17/mybatis-plus-jsqlparser-common-3.5.17.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/org/yaml/snakeyaml/2.7/snakeyaml-2.7.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/baomidou/mybatis-plus-annotation/3.5.17/mybatis-plus-annotation-3.5.17.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/io/netty/netty-all/4.1.54.Final/netty-all-4.1.54.Final.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../maven/repository/com/github/jsqlparser/jsqlparser/5.2/jsqlparser-5.2.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

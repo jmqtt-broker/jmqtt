@@ -1,7 +1,9 @@
 package com.jmqtt.core;
 
 import cn.hutool.setting.yaml.YamlUtil;
+import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.config.JmqttConfig;
+import com.jmqtt.core.mqtt.auth.DefaultJmqttAuth;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.control.*;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
@@ -13,7 +15,6 @@ import com.jmqtt.core.mqtt.store.persist.LocalDB;
 import com.jmqtt.core.mqtt.subscribe.DefaultSubscriptionTreeMatcher;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import com.jmqtt.core.netty.NettyServer;
-import com.jmqtt.core.netty.event.ChannelEventListener;
 import com.jmqtt.core.netty.event.DefaultChannelEventListener;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.Getter;
@@ -21,13 +22,13 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Getter
-public class JmqttStartup {
+public class JmqttBroker {
 
     private final JmqttConfig jmqttConfig;
 
     private final NettyServer nettyServer;
 
-    private final ChannelEventListener channelEventListener;
+    private final DefaultChannelEventListener channelEventListener;
 
     private final MessageDispatcher messageDispatcher;
 
@@ -39,19 +40,28 @@ public class JmqttStartup {
 
     private final MessageStore messageStore;
 
-    public JmqttStartup() {
+    public JmqttBroker() {
         this.jmqttConfig = YamlUtil.load(JmqttConfig.class.getClassLoader().getResourceAsStream("jmqtt.yml"), JmqttConfig.class);
-        this.channelEventListener = new DefaultChannelEventListener();
-        this.nettyServer = new NettyServer(jmqttConfig.getNetty(), this.channelEventListener);
 
+        // 初始化订阅匹配器
         this.subscriptionMatcher = new DefaultSubscriptionTreeMatcher();
+        // 初始化会话存储和消息存储
         this.sessionStore = new LocalSessionStore(this.subscriptionMatcher);
         this.messageStore = new LocalMessageStore();
-        this.jmqttAuth = new JmqttAuth() {
-        };
+        // 初始化认证器
+        this.jmqttAuth = new DefaultJmqttAuth();
+        // 初始化消息分发器
         this.messageDispatcher = new MessageDispatcher(jmqttConfig.getCluster(), jmqttConfig.getBroker(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher);
+        // 启动netty服务
+        this.channelEventListener = new DefaultChannelEventListener(this.sessionStore);
+        this.nettyServer = new NettyServer(jmqttConfig.getNetty(), this.channelEventListener);
+        // 注册mqtt控制指令报文处理器
         initCtrl();
+        // 上下文工具
+        JmqttContext.setBroker(this);
+        // 启动集群，若配置未开启，则不启动
+        JmqttCluster.start(this.jmqttConfig.getCluster());
     }
 
     private void initCtrl() {
@@ -79,14 +89,18 @@ public class JmqttStartup {
     }
 
     public static void start(String[] args) throws Exception {
-        log.info("Jmqtt start begin.");
-        JmqttStartup starter = new JmqttStartup();
+        log.info("Jmqtt broker start begin.");
+        JmqttBroker starter = new JmqttBroker();
         starter.startJmqtt();
     }
 
     private void startJmqtt() {
         LocalDB.startDB();
         this.nettyServer.start();
+    }
+
+    public void shutdown() {
+        this.nettyServer.stop();
     }
 
     public static void main(String[] args) {

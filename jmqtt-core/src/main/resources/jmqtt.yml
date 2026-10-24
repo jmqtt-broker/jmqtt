@@ -10,4 +10,13 @@ netty:
   sslWebsocketPort: 8884
 
 cluster:
+  # 是否开启集群功能，默认false
+  enable: true
+  # 集群名称，所有节点必须相同，非必填，默认值为JMQTT-CLUSTER
+  clusterName: "JMQTT-CLUSTER"
+  # 当前节点名称，集群中唯一，否则会脑裂。非必填，默认值为节点IP和集群通讯端口
+#  currentNodeName: "JMQTT-CLUSTER-NODE-LOCAL"
+  # 集群通信端口，非必填，默认值为5701
+  port: 5701
+  # 集群种子节点，指定集群中其他节点的IP和集群通讯端口
   seedNodes: ["127.0.0.1:5701"]

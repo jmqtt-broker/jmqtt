@@ -1,6 +1,8 @@
 package com.jmqtt.core.mqtt.control;
 
 import com.jmqtt.core.cluster.ClusterConfig;
+import com.jmqtt.core.cluster.ClusterMessage;
+import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
@@ -32,7 +34,6 @@ public class DisconnectCtrl extends BaseCtrl {
     public void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         ctx.channel().attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).set(true);
         String clientId = ChannelUtil.getClientId(ctx.channel());
-        log.info("[DISCONNECT remote:{}] -> {} disconnect mqtt server", ctx.channel().remoteAddress(), clientId);
         ClientSession session = ClientManager.getClient(clientId);
         if (session != null) {
             MqttReasonCodeAndPropertiesVariableHeader header = (MqttReasonCodeAndPropertiesVariableHeader) mqttMessage.variableHeader();
@@ -41,7 +42,13 @@ public class DisconnectCtrl extends BaseCtrl {
                 // 客户端主动正常断开连接，但希望服务端发布遗嘱消息，默认情况下只有异常断开连接时才发布遗嘱
                 ctx.channel().attr(AttributeKey.valueOf("PUBLISH_WILL")).set(true);
             }
-            ctx.close();
+            ctx.close().addListener(future -> {
+                if (future.isSuccess()) {
+                    log.info("[DISCONNECT] -> {} disconnect mqtt server", clientId);
+                    // 同步会话到其他节点
+                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.SESSION_DISCONNECT, clientId));
+                }
+            });
         } else {
             log.warn("[DISCONNECT] -> {} hasn't connect before", clientId);
         }

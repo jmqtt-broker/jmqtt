@@ -1,15 +1,20 @@
 package com.jmqtt.core.netty.event;
 
 import cn.hutool.core.util.StrUtil;
+import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.netty.helper.ChannelUtil;
+import com.jmqtt.core.netty.session.ClientManager;
+import com.jmqtt.core.netty.session.ClientSession;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DefaultChannelEventListener implements ChannelEventListener {
 
-    public DefaultChannelEventListener() {
+    private final SessionStore sessionStore;
 
+    public DefaultChannelEventListener(SessionStore sessionStore) {
+        this.sessionStore = sessionStore;
     }
 
     @Override
@@ -22,7 +27,13 @@ public class DefaultChannelEventListener implements ChannelEventListener {
         log.info("onChannelClose, remoteAddr:[{}],Channel:{{}}", remoteAddr, channel.toString());
         String clientId = ChannelUtil.getClientId(channel);
         if (StrUtil.isNotEmpty(clientId)) {
-
+            ClientSession session = ClientManager.getClient(clientId);
+            boolean cleanStart = session != null && session.isCleanStart();
+            if (sessionStore != null) {
+                sessionStore.clearSession(clientId, cleanStart);
+            } else {
+                log.warn("sessionStore is null, cannot clear session for client: {}", clientId);
+            }
         }
     }
 
