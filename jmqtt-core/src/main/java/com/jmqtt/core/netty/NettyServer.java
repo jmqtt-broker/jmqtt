@@ -32,6 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 public class NettyServer implements Control {
@@ -42,6 +44,7 @@ public class NettyServer implements Control {
     private final Class<? extends ServerChannel> clazz;
     private final Map<MqttMessageType, BaseCtrl> ctrlTable;
     private final ChannelEventExecutor nettyEventExecutor;
+    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
     public NettyServer(NettyConfig nettyConfig, ChannelEventListener listener) {
         this.nettyConfig = nettyConfig;
@@ -205,7 +208,7 @@ public class NettyServer implements Control {
             if (mqttMessage != null && mqttMessage.decoderResult().isSuccess()) {
                 MqttMessageType messageType = mqttMessage.fixedHeader().messageType();
                 log.debug("clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", ChannelUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
-                Thread.startVirtualThread(() -> ctrlTable.get(messageType).processCtrl(ctx, mqttMessage));
+                executorService.submit(() -> ctrlTable.get(messageType).processCtrl(ctx, mqttMessage));
             } else {
                 log.warn("Mqtt解码失败。");
                 ctx.close();

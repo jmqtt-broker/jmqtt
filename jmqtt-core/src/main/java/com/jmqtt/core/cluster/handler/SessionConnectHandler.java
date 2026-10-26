@@ -32,4 +32,8 @@ public class SessionConnectHandler implements ClusterMessageHandler<SessionState
         JmqttContext.getSessionStore().storeSession(session);
     }
 
+    public static SessionConnectHandler of() {
+        return new SessionConnectHandler();
+    }
+
 }

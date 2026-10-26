@@ -18,4 +18,8 @@ public class SessionDisconnectHandler implements ClusterMessageHandler<String> {
         log.debug("[Cluster] session disconnected: clientId={}", msg.getPayload());
     }
 
+    public static SessionDisconnectHandler of() {
+        return new SessionDisconnectHandler();
+    }
+
 }

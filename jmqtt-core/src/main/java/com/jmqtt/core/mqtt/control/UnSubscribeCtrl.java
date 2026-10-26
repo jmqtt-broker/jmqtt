@@ -1,6 +1,8 @@
 package com.jmqtt.core.mqtt.control;
 
 import com.jmqtt.core.cluster.ClusterConfig;
+import com.jmqtt.core.cluster.ClusterMessage;
+import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
@@ -54,7 +56,7 @@ public class UnSubscribeCtrl extends BaseCtrl {
                 Subscription subscription = sessionStore.getOneSubscription(clientId, topic);
                 if (subscription != null) {
                     sessionStore.delSubscription(clientId, topic);
-                    // ClusterHelper.unSubscribeToCluster(subscription);
+                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.UNSUBSCRIBE_SYNC, subscription));
                 }
             });
             log.debug("unSubscribe topic success, clientId: {}, topic: {}.", clientId, topic);

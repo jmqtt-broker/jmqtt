@@ -1,6 +1,8 @@
 package com.jmqtt.core.mqtt.control.handler;
 
 import com.jmqtt.core.cluster.ClusterConfig;
+import com.jmqtt.core.cluster.ClusterMessage;
+import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
@@ -74,7 +76,7 @@ public class Mqtt_3_4_subscription implements SubscriptionHandler {
             this.subscriptionMatcher.subscribe(subscription);
             this.sessionStore.storeSubscription(subscription);
             // 将订阅广播给其他节点
-
+            JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.SUBSCRIBE_SYNC, subscription));
             // 发送保留消息
             Collection<Message> retainList = messageStore.getRetainMsg(subTopic);
             if (!retainList.isEmpty()) {

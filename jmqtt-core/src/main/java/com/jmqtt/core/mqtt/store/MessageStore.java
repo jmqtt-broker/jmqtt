@@ -1,6 +1,9 @@
 
 package com.jmqtt.core.mqtt.store;
 
+import com.jmqtt.core.cluster.ClusterMessage;
+import com.jmqtt.core.cluster.JmqttCluster;
+import com.jmqtt.core.cluster.record.RetainMessageRecord;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 
@@ -105,10 +108,11 @@ public interface MessageStore {
                 byte[] payload = message.getPayload();
                 String topic = (String) message.getHeader(MessageHeader.TOPIC);
                 if (qos == 0 || payload == null || payload.length == 0) {
-                    // ClusterHelper.clearRetainMessage(topic);
+                    clearRetainMessage(topic);
+                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.RETAIN_CLEAR, RetainMessageRecord.of(topic, null)));
                 } else {
-                    // ClusterHelper.storeRetainMessage(message);
                     storeRetainMessage(topic, message);
+                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.RETAIN_STORE, RetainMessageRecord.of(topic, message)));
                 }
             });
         }

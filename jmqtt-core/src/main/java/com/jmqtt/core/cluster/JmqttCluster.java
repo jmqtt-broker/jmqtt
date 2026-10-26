@@ -18,17 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @Getter
 public class JmqttCluster {
 
-    public static final String BROADCAST_TOPIC = "jmqtt-broadcast";
+    private static final String BROADCAST_TOPIC = "jmqtt-broadcast";
 
     private static final String INSTANCE_NAME = "instanceName";
 
     private static volatile HazelcastInstance CLUSTER;
 
     private static final Map<String, Member> memberMap = new ConcurrentHashMap<>();
-
-    private static ClusterConfig clusterConfig;
-
-    private static String localBrokerId;
 
     private static ClusterMessageDispatcher clusterMessageDispatcher;
 
@@ -40,7 +36,7 @@ public class JmqttCluster {
             log.info("jmqtt broker run in local mode (cluster disabled).");
             return;
         }
-        localBrokerId = config.getCurrentNodeName();
+        String localBrokerId = config.getCurrentNodeName();
         CLUSTER = createCluster(config);
         clusterMessageDispatcher = new ClusterMessageDispatcher(localBrokerId, CLUSTER.getTopic(JmqttCluster.BROADCAST_TOPIC), CLUSTER.getQueue(localBrokerId));
         CLUSTER.getCluster().getMembers().forEach(m -> {
@@ -66,7 +62,6 @@ public class JmqttCluster {
 
     private static HazelcastInstance createCluster(ClusterConfig config) {
         if (CLUSTER == null) {
-            clusterConfig = config;
             Config hazelcastConfig = new Config();
             hazelcastConfig.setClusterName(config.getClusterName());
             hazelcastConfig.setInstanceName(config.getCurrentNodeName());
@@ -89,7 +84,7 @@ public class JmqttCluster {
             config.getSeedNodes().forEach(tcpIpConfig::addMember);
 
             // p2p消息
-            QueueConfig queueConfig = new QueueConfig(clusterConfig.getCurrentNodeName());
+            QueueConfig queueConfig = new QueueConfig(config.getCurrentNodeName());
             queueConfig.setAsyncBackupCount(1);
             hazelcastConfig.addQueueConfig(queueConfig);
 

@@ -51,8 +51,7 @@ public class JmqttBroker {
         // 初始化认证器
         this.jmqttAuth = new DefaultJmqttAuth();
         // 初始化消息分发器
-        this.messageDispatcher = new MessageDispatcher(jmqttConfig.getCluster(), jmqttConfig.getBroker(),
-                this.sessionStore, this.messageStore, this.subscriptionMatcher);
+        this.messageDispatcher = new MessageDispatcher(this.sessionStore, this.messageStore, this.subscriptionMatcher);
         // 启动netty服务
         this.channelEventListener = new DefaultChannelEventListener(this.sessionStore);
         this.nettyServer = new NettyServer(jmqttConfig.getNetty(), this.channelEventListener);

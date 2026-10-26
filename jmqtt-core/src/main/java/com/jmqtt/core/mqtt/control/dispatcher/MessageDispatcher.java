@@ -1,8 +1,10 @@
 package com.jmqtt.core.mqtt.control.dispatcher;
 
 import cn.hutool.json.JSONUtil;
-import com.jmqtt.core.cluster.ClusterConfig;
-import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.JmqttContext;
+import com.jmqtt.core.cluster.ClusterMessage;
+import com.jmqtt.core.cluster.JmqttCluster;
+import com.jmqtt.core.cluster.record.ClusterMessageRecord;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
@@ -16,7 +18,10 @@ import com.jmqtt.core.netty.session.ClientSession;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.*;
 
 /**
@@ -31,16 +36,10 @@ public class MessageDispatcher {
     private final SubscriptionMatcher subscriptionMatcher;
     private final SessionStore sessionStore;
     private final MessageStore messageStore;
-    private final ClusterConfig clusterConfig;
-    private final BrokerConfig brokerConfig;
 
-    public MessageDispatcher(ClusterConfig clusterConfig,
-                             BrokerConfig brokerConfig,
-                             SessionStore sessionStore,
+    public MessageDispatcher(SessionStore sessionStore,
                              MessageStore messageStore,
                              SubscriptionMatcher subscriptionMatcher) {
-        this.clusterConfig = clusterConfig;
-        this.brokerConfig = brokerConfig;
         this.subscriptionMatcher = subscriptionMatcher;
         this.sessionStore = sessionStore;
         this.messageStore = messageStore;
@@ -51,18 +50,18 @@ public class MessageDispatcher {
                     Message message = messageQueue.take();
                     firstBatch.add(message);
                     messageQueue.drainTo(firstBatch, 15);
-                    this.messageExecutor.submit(new AsyncDispatcher(firstBatch));
+                    this.messageExecutor.submit(new DispatcherTask(firstBatch));
                     Message next = messageQueue.poll(1000, TimeUnit.MILLISECONDS);
                     if (next != null) {
-                        List<Message> secondBatch = new ArrayList<>(16);
-                        secondBatch.add(next);
+                        List<Message> batch = new ArrayList<>(16);
+                        batch.add(next);
                         for (int i = 0; i < 15; i++) {
                             next = messageQueue.poll();
                             if (next != null) {
-                                secondBatch.add(next);
+                                batch.add(next);
                             }
                         }
-                        this.messageExecutor.submit(new AsyncDispatcher(secondBatch));
+                        this.messageExecutor.submit(new DispatcherTask(batch));
                     }
                 } catch (InterruptedException e) {
                     log.warn("poll message thread interrupted!");
@@ -86,11 +85,11 @@ public class MessageDispatcher {
         this.messageExecutor.shutdown();
     }
 
-    class AsyncDispatcher implements Runnable {
+    class DispatcherTask implements Runnable {
 
         private final List<Message> messages;
 
-        public AsyncDispatcher(List<Message> messages) {
+        public DispatcherTask(List<Message> messages) {
             this.messages = messages;
         }
 
@@ -103,11 +102,11 @@ public class MessageDispatcher {
                     Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
                     for (Subscription subscription : subscriptions) {
                         String targetBrokerId = subscription.getBrokerId();
-                        if (clusterConfig.getCurrentNodeName().equals(targetBrokerId)) {
+                        if (JmqttContext.currentNodeName().equals(targetBrokerId)) {
                             send(subscription, message);
                         } else {
                             // 订阅topic的client不在当前broker，需要把消息发送给目标所在的broker，由目标broker进行发送
-                            // ClusterHelper.sendMessageToCluster(new MessageDispatchDTO(subscription, message), targetBrokerId);
+                            JmqttCluster.unicast(targetBrokerId, ClusterMessage.of(ClusterMessage.EventType.MESSAGE_DISPATCH, ClusterMessageRecord.of(message, subscription)));
                         }
                     }
                 } catch (Exception ex) {

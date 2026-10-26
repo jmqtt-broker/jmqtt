@@ -3,9 +3,7 @@ package com.jmqtt.core.cluster;
 import com.hazelcast.collection.IQueue;
 import com.hazelcast.topic.ITopic;
 import com.hazelcast.topic.MessageListener;
-import com.jmqtt.core.cluster.handler.ClusterMessageHandler;
-import com.jmqtt.core.cluster.handler.SessionConnectHandler;
-import com.jmqtt.core.cluster.handler.SessionDisconnectHandler;
+import com.jmqtt.core.cluster.handler.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
@@ -22,7 +20,7 @@ public class ClusterMessageDispatcher {
     private final ITopic<ClusterMessage<?>> broadcastTopic;
 
     /**
-     * 本地节点的队列，接收其他节点发送给当前节点的消息
+     * 本地节点的队列，接收其他节点发送给自身节点的消息
      */
     private final IQueue<ClusterMessage<?>> unicastQueue;
 
@@ -38,10 +36,16 @@ public class ClusterMessageDispatcher {
     }
 
     public void registerHandler() {
-        SessionConnectHandler sessionConnectHandler = new SessionConnectHandler();
-        handlers.put(sessionConnectHandler.getType(), sessionConnectHandler);
-        SessionDisconnectHandler sessionDisconnectHandler = new SessionDisconnectHandler();
-        handlers.put(sessionDisconnectHandler.getType(), sessionDisconnectHandler);
+        registerHandler(SessionConnectHandler.of());
+        registerHandler(SessionDisconnectHandler.of());
+        registerHandler(PublishMessageHandler.of());
+        registerHandler(SubscriptionHandler.of());
+        registerHandler(UnSubscriptionHandler.of());
+        registerHandler(RetainMessageHandler.of());
+    }
+
+    private void registerHandler(ClusterMessageHandler<?> handler) {
+        handlers.put(handler.getType(), handler);
     }
 
     private void registerBroadcastListener() {
