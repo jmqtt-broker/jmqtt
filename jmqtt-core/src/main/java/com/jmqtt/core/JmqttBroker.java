@@ -1,5 +1,6 @@
 package com.jmqtt.core;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.setting.yaml.YamlUtil;
 import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.config.JmqttConfig;
@@ -19,6 +20,9 @@ import com.jmqtt.core.netty.event.DefaultChannelEventListener;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.FileReader;
+import java.util.Arrays;
 
 @Slf4j
 @Getter
@@ -40,9 +44,15 @@ public class JmqttBroker {
 
     private final MessageStore messageStore;
 
-    public JmqttBroker() {
-        this.jmqttConfig = YamlUtil.load(JmqttConfig.class.getClassLoader().getResourceAsStream("jmqtt.yml"), JmqttConfig.class);
-
+    public JmqttBroker(String configPath) throws Exception {
+        JmqttConfig config = null;
+        if (StrUtil.isNotBlank(configPath)) {
+            config = YamlUtil.load(new FileReader(configPath), JmqttConfig.class);
+        }
+        if (config == null) {
+            config = YamlUtil.load(JmqttConfig.class.getClassLoader().getResourceAsStream("jmqtt.yml"), JmqttConfig.class);
+        }
+        this.jmqttConfig = config;
         // 初始化订阅匹配器
         this.subscriptionMatcher = new DefaultSubscriptionTreeMatcher();
         // 初始化会话存储和消息存储
@@ -89,8 +99,11 @@ public class JmqttBroker {
 
     public static void start(String[] args) throws Exception {
         log.info("Jmqtt broker start begin.");
-        JmqttBroker starter = new JmqttBroker();
-        starter.startJmqtt();
+        String configPath = Arrays.stream(args).filter(a -> a.startsWith("--config"))
+                .findAny().map(s -> s.replace("--config=", "").trim()).orElse(null);
+        JmqttBroker broker = new JmqttBroker(configPath);
+        broker.startJmqtt();
+        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(broker::shutdown));
     }
 
     private void startJmqtt() {
@@ -100,6 +113,8 @@ public class JmqttBroker {
 
     public void shutdown() {
         this.nettyServer.stop();
+        JmqttCluster.shutdown();
+        this.messageDispatcher.stop();
     }
 
     public static void main(String[] args) {

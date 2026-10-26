@@ -195,6 +195,7 @@ public class NettyServer implements Control {
         if (ioGroup != null) {
             ioGroup.shutdownGracefully();
         }
+        nettyEventExecutor.stop();
     }
 
     public void registerCtrl(MqttMessageType mqttType, BaseCtrl ctrl) {

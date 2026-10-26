@@ -4,13 +4,14 @@ import com.hazelcast.collection.IQueue;
 import com.hazelcast.topic.ITopic;
 import com.hazelcast.topic.MessageListener;
 import com.jmqtt.core.cluster.handler.*;
+import com.jmqtt.core.common.Control;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-public class ClusterMessageDispatcher {
+public class ClusterMessageDispatcher implements Control {
 
     private final String localBrokerId;
 
@@ -30,9 +31,7 @@ public class ClusterMessageDispatcher {
         this.localBrokerId = localBrokerId;
         this.broadcastTopic = broadcastTopic;
         this.unicastQueue = selfQueue;
-        registerHandler();
-        registerBroadcastListener();
-        registerUnicastListener();
+        start();
     }
 
     public void registerHandler() {
@@ -85,4 +84,16 @@ public class ClusterMessageDispatcher {
         target.offer(message);
     }
 
+    @Override
+    public void start() {
+        registerHandler();
+        registerBroadcastListener();
+        registerUnicastListener();
+    }
+
+    @Override
+    public void stop() {
+        unicastQueue.destroy();
+        handlers.clear();
+    }
 }

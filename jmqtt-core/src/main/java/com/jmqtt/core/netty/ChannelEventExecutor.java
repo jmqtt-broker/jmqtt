@@ -13,7 +13,7 @@ public class ChannelEventExecutor implements Runnable, Control {
 
     private final LinkedBlockingQueue<ChannelEvent> eventQueue;
     private final ChannelEventListener listener;
-    boolean stopped = false;
+    private volatile boolean stopped = false;
 
     public ChannelEventExecutor(ChannelEventListener channelEventListener) {
         this.eventQueue = new LinkedBlockingQueue<>();

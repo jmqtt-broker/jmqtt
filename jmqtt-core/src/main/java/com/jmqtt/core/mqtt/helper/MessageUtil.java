@@ -3,6 +3,7 @@ package com.jmqtt.core.mqtt.helper;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
+import com.jmqtt.core.JmqttContext;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.model.SubscriptionOption;
@@ -102,10 +103,10 @@ public class MessageUtil {
                     if (StrUtil.isNotBlank(subClientId) && k == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value()) {
                         // 发布的消息带有主题别名，订阅方建立连接的时候如果没有设置别名最大值，
                         // 那么转发消息的时候需要将消息中的主题别名去掉
-                        /*Optional.ofNullable(BrokerContext.getSessionStore().getClientProperty(subClientId,
+                        Optional.ofNullable(JmqttContext.getSessionStore().getClientProperty(subClientId,
                                 MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value())).ifPresent(aliasMax -> {
                             properties.add(new MqttProperties.IntegerProperty(k, (int) v));
-                        });*/
+                        });
                     } else {
                         properties.add(new MqttProperties.IntegerProperty(k, (int) v));
                     }

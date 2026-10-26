@@ -28,7 +28,7 @@ public class JmqttCluster {
 
     private static ClusterMessageDispatcher clusterMessageDispatcher;
 
-    public static synchronized void start(ClusterConfig config) {
+    public static synchronized void start(ClusterConfig config) throws Exception {
         if (CLUSTER != null) {
             return;
         }
@@ -60,7 +60,7 @@ public class JmqttCluster {
         log.info("jmqtt cluster initialized, localBrokerId = {}", localBrokerId);
     }
 
-    private static HazelcastInstance createCluster(ClusterConfig config) {
+    private static HazelcastInstance createCluster(ClusterConfig config) throws Exception {
         if (CLUSTER == null) {
             Config hazelcastConfig = new Config();
             hazelcastConfig.setClusterName(config.getClusterName());
@@ -109,9 +109,14 @@ public class JmqttCluster {
             CLUSTER.shutdown();
             CLUSTER = null;
             log.info("Hazelcast cluster shutdown.");
+            clusterMessageDispatcher.stop();
         }
     }
 
+    /**
+     * 广播集群消息
+     * @param message 要广播的消息对象
+     */
     public static void broadcast(ClusterMessage<?> message) {
         if (CLUSTER != null) {
             clusterMessageDispatcher.broadcast(message);
@@ -120,6 +125,11 @@ public class JmqttCluster {
         }
     }
 
+    /**
+     * 单播集群消息
+     * @param brokerId 目标broker ID
+     * @param message 要单播的消息对象
+     */
     public static void unicast(String brokerId, ClusterMessage<?> message) {
         if (CLUSTER != null) {
             if (!memberMap.containsKey(brokerId)) {
