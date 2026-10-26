@@ -30,9 +30,7 @@ public class ClusterMessage<T> implements Serializable {
 
         MESSAGE_DISPATCH,
 
-        RETAIN_STORE,
-
-        RETAIN_CLEAR,
+        RETAIN,
 
     }
 

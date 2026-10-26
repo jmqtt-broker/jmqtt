@@ -13,7 +13,7 @@ public class RetainMessageHandler implements ClusterMessageHandler<RetainMessage
 
     @Override
     public ClusterMessage.EventType getType() {
-        return ClusterMessage.EventType.SUBSCRIBE_SYNC;
+        return ClusterMessage.EventType.RETAIN;
     }
 
     @Override

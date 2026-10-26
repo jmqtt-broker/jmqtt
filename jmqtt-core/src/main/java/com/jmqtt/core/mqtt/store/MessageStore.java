@@ -109,10 +109,10 @@ public interface MessageStore {
                 String topic = (String) message.getHeader(MessageHeader.TOPIC);
                 if (qos == 0 || payload == null || payload.length == 0) {
                     clearRetainMessage(topic);
-                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.RETAIN_CLEAR, RetainMessageRecord.of(topic, null)));
+                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.RETAIN, RetainMessageRecord.of(topic, null)));
                 } else {
                     storeRetainMessage(topic, message);
-                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.RETAIN_STORE, RetainMessageRecord.of(topic, message)));
+                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.RETAIN, RetainMessageRecord.of(topic, message)));
                 }
             });
         }
