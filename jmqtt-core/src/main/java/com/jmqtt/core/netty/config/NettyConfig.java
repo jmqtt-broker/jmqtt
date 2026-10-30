@@ -28,18 +28,6 @@ public class NettyConfig {
     private Boolean enableSslWebsocket = true;
     private int sslWebsocketPort = 8884;
 
-    /**
-     * SSL
-     */
-    private Boolean useClientCa = false;
-    private String sslKeyStoreType = "PKCS12";
-    private String sslKeyFilePath = "ssl/server.pfx";
-    private String sslManagerPwd = "654321";
-    private String sslStorePwd = "654321";
-
-    /**
-     * max mqtt message size
-     */
-    private int maxMsgSize = 256 * 1024;
+    private TLS tls;
 
 }

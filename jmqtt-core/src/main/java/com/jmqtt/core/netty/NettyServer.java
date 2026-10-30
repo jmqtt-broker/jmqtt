@@ -7,6 +7,7 @@ import com.jmqtt.core.mqtt.control.BaseCtrl;
 import com.jmqtt.core.netty.coder.WebSocketDecoder;
 import com.jmqtt.core.netty.coder.WebSocketEncoder;
 import com.jmqtt.core.netty.config.NettyConfig;
+import com.jmqtt.core.netty.config.TLS;
 import com.jmqtt.core.netty.event.ChannelEventListener;
 import com.jmqtt.core.netty.helper.ChannelUtil;
 import io.netty.bootstrap.ServerBootstrap;
@@ -39,6 +40,7 @@ import java.util.concurrent.Executors;
 public class NettyServer implements Control {
 
     private final NettyConfig nettyConfig;
+    private int maxMsgSize = 256 * 1024;
     private final EventLoopGroup selectorGroup;
     private final EventLoopGroup ioGroup;
     private final Class<? extends ServerChannel> clazz;
@@ -47,6 +49,12 @@ public class NettyServer implements Control {
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
     public NettyServer(NettyConfig nettyConfig, ChannelEventListener listener) {
+        TLS tls = nettyConfig.getTls();
+        if (tls != null) {
+            tls.checkTlsConfig();
+        } else {
+            nettyConfig.setTls(TLS.defaultConfig());
+        }
         this.nettyConfig = nettyConfig;
         this.ctrlTable = new HashMap<>();
         this.nettyEventExecutor = new ChannelEventExecutor(listener);
@@ -110,14 +118,7 @@ public class NettyServer implements Control {
                     protected void initChannel(SocketChannel socketChannel) {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         if (useSsl) {
-                            pipeline.addLast("ssl", NettySslHandler.getSslHandler(
-                                    socketChannel,
-                                    nettyConfig.getUseClientCa(),
-                                    nettyConfig.getSslKeyStoreType(),
-                                    nettyConfig.getSslKeyFilePath(),
-                                    nettyConfig.getSslManagerPwd(),
-                                    nettyConfig.getSslStorePwd()
-                            ));
+                            pipeline.addLast("ssl", nettyConfig.getTls().getSslHandler(socketChannel));
                         }
                         pipeline.addLast("idleStateHandler", new IdleStateHandler(0, 0, 0))
                                 .addLast("httpCodec", new HttpServerCodec())
@@ -126,7 +127,7 @@ public class NettyServer implements Control {
                                 .addLast("webSocketHandler", new WebSocketServerProtocolHandler("/mqtt", JmqttConst.MQTT_VERSION_SUPPORT, false, 65536))
                                 .addLast("webSocketDecoder", new WebSocketDecoder())
                                 .addLast("webSocketEncoder", new WebSocketEncoder())
-                                .addLast("mqttDecoder", new MqttDecoder(nettyConfig.getMaxMsgSize()))
+                                .addLast("mqttDecoder", new MqttDecoder(maxMsgSize))
                                 .addLast("mqttEncoder", MqttEncoder.INSTANCE)
                                 .addLast("nettyConnectionManager", new NettyConnectHandler(nettyEventExecutor))
                                 .addLast("mqttHandler", new MqttHandler());
@@ -158,18 +159,11 @@ public class NettyServer implements Control {
                     protected void initChannel(SocketChannel socketChannel) {
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         if (useSsl) {
-                            pipeline.addLast("ssl", NettySslHandler.getSslHandler(
-                                    socketChannel,
-                                    nettyConfig.getUseClientCa(),
-                                    nettyConfig.getSslKeyStoreType(),
-                                    nettyConfig.getSslKeyFilePath(),
-                                    nettyConfig.getSslManagerPwd(),
-                                    nettyConfig.getSslStorePwd()
-                            ));
+                            pipeline.addLast("ssl", nettyConfig.getTls().getSslHandler(socketChannel));
                         }
                         pipeline.addLast("idleStateHandler", new IdleStateHandler(60, 0, 60))
                                 .addLast("mqttEncoder", MqttEncoder.INSTANCE)
-                                .addLast("mqttDecoder", new MqttDecoder(nettyConfig.getMaxMsgSize()))
+                                .addLast("mqttDecoder", new MqttDecoder(maxMsgSize))
                                 .addLast("nettyConnectionManager", new NettyConnectHandler(
                                         nettyEventExecutor))
                                 .addLast("mqttHandler", new MqttHandler());
