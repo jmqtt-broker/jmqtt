@@ -3,7 +3,7 @@ package com.jmqtt.core.mqtt.helper;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
-import com.jmqtt.core.JmqttContext;
+import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.model.SubscriptionOption;

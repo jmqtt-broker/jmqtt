@@ -1,7 +1,6 @@
 package com.jmqtt.core.mqtt.control.handler;
 
 import cn.hutool.core.util.StrUtil;
-import com.jmqtt.core.JmqttContext;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.cluster.ClusterMessage;
 import com.jmqtt.core.cluster.JmqttCluster;

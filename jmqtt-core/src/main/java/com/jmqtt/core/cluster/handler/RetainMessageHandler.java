@@ -1,6 +1,6 @@
 package com.jmqtt.core.cluster.handler;
 
-import com.jmqtt.core.JmqttContext;
+import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.cluster.ClusterMessage;
 import com.jmqtt.core.cluster.record.RetainMessageRecord;
 import com.jmqtt.core.mqtt.model.Message;

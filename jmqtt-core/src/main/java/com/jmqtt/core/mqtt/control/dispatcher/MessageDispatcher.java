@@ -1,7 +1,7 @@
 package com.jmqtt.core.mqtt.control.dispatcher;
 
 import cn.hutool.json.JSONUtil;
-import com.jmqtt.core.JmqttContext;
+import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.cluster.ClusterMessage;
 import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.cluster.record.ClusterMessageRecord;

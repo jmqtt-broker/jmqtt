@@ -1,6 +1,6 @@
 package com.jmqtt.core.cluster;
 
-import com.jmqtt.core.JmqttContext;
+import com.jmqtt.core.mqtt.JmqttContext;
 import lombok.*;
 
 import java.io.Serializable;

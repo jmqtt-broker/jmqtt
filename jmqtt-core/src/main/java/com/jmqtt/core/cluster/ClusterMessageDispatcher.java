@@ -29,7 +29,6 @@ public class ClusterMessageDispatcher implements Control {
 
     private final ExecutorService clusterMessageExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
-
     private final Map<ClusterMessage.EventType, ClusterMessageHandler<?>> handlers = new HashMap<>();
 
     public ClusterMessageDispatcher(String localBrokerId, ITopic<ClusterMessage<?>> broadcastTopic, IQueue<ClusterMessage<?>> selfQueue) {

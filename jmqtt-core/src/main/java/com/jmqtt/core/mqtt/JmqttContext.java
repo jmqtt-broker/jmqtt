@@ -1,5 +1,6 @@
-package com.jmqtt.core;
+package com.jmqtt.core.mqtt;
 
+import com.jmqtt.core.JmqttBroker;
 import com.jmqtt.core.config.JmqttConfig;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
