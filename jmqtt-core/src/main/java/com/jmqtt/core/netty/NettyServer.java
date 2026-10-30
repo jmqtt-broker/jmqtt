@@ -129,7 +129,7 @@ public class NettyServer implements Control {
                                 .addLast("mqttDecoder", new MqttDecoder(nettyConfig.getMaxMsgSize()))
                                 .addLast("mqttEncoder", MqttEncoder.INSTANCE)
                                 .addLast("nettyConnectionManager", new NettyConnectHandler(nettyEventExecutor))
-                                .addLast("nettyMqttHandler", new NettyMqttHandler());
+                                .addLast("mqttHandler", new MqttHandler());
                     }
                 });
         if (nettyConfig.getPooledByteBufAllocatorEnable()) {
@@ -172,7 +172,7 @@ public class NettyServer implements Control {
                                 .addLast("mqttDecoder", new MqttDecoder(nettyConfig.getMaxMsgSize()))
                                 .addLast("nettyConnectionManager", new NettyConnectHandler(
                                         nettyEventExecutor))
-                                .addLast("nettyMqttHandler", new NettyMqttHandler());
+                                .addLast("mqttHandler", new MqttHandler());
                     }
                 });
         if (nettyConfig.getPooledByteBufAllocatorEnable()) {
@@ -202,7 +202,7 @@ public class NettyServer implements Control {
         this.ctrlTable.put(mqttType, ctrl);
     }
 
-    class NettyMqttHandler extends ChannelInboundHandlerAdapter {
+    class MqttHandler extends ChannelInboundHandlerAdapter {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object obj) {
             MqttMessage mqttMessage = (MqttMessage) obj;

@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 public class ClusterMessageDispatcher implements Control {
@@ -24,6 +26,9 @@ public class ClusterMessageDispatcher implements Control {
      * 本地节点的队列，接收其他节点发送给自身节点的消息
      */
     private final IQueue<ClusterMessage<?>> unicastQueue;
+
+    private final ExecutorService clusterMessageExecutor = Executors.newVirtualThreadPerTaskExecutor();
+
 
     private final Map<ClusterMessage.EventType, ClusterMessageHandler<?>> handlers = new HashMap<>();
 
@@ -53,7 +58,7 @@ public class ClusterMessageDispatcher implements Control {
             if (msg != null && !localBrokerId.equals(msg.getBrokerId())) {
                 ClusterMessageHandler<?> handler = handlers.get(msg.getEventType());
                 if (handler != null) {
-                    handler.handle((ClusterMessage) msg);
+                    clusterMessageExecutor.submit(() -> handler.handle((ClusterMessage) msg));
                 }
             }
         };
@@ -67,7 +72,7 @@ public class ClusterMessageDispatcher implements Control {
                     ClusterMessage<?> msg = unicastQueue.take();
                     ClusterMessageHandler<?> handler = handlers.get(msg.getEventType());
                     if (handler != null) {
-                        handler.handle((ClusterMessage) msg);
+                        clusterMessageExecutor.submit(() -> handler.handle((ClusterMessage) msg));
                     }
                 } catch (InterruptedException e) {
                     log.warn("Unicast message queue error.", e);
