@@ -80,7 +80,7 @@ public class Mqtt_3_4_subscription implements SubscriptionHandler {
             // 发送保留消息
             Collection<Message> retainList = messageStore.getRetainMsg(subTopic);
             if (!retainList.isEmpty()) {
-
+                retainList.forEach(m -> messageDispatcher.send(subscription, m));
             }
             log.debug("subscribe topic success, clientId: {}, topic: {}.", clientId, subTopic);
         }

@@ -27,8 +27,8 @@ public class SessionConnectHandler implements ClusterMessageHandler<SessionState
         if (local != null) {
             log.info("[Cluster] client {} connected to remote broker {}, kicking local connection.", clientId, session.getBrokerId());
             MessageUtil.sendDisconnect(local, Reason.SESSION_TAKEN_OVER);
+            JmqttContext.getSessionStore().clearSession(clientId, true);
         }
-        JmqttContext.getSessionStore().clearSession(clientId, true);
         JmqttContext.getSessionStore().storeSession(session);
     }
 

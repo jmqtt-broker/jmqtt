@@ -34,13 +34,14 @@ public interface SessionStore {
             }
         });
         SessionState update = new SessionState(clientId, SessionState.StateEnum.NEVER_CONNECTED);
+        BeanUtil.copyProperties(session, update);
         if (cleanStart) {
             clearOfflineMsg(clientId);
             clearSubscriptionAndSubTree(clientId);
+            update.setState(SessionState.StateEnum.NEVER_CONNECTED);
         } else {
             update.setState(SessionState.StateEnum.OFFLINE);
         }
-        BeanUtil.copyProperties(session, update);
         storeSession(update);
         ClientManager.removeClient(clientId);
         releaseInflowMsg(clientId, null);

@@ -64,7 +64,7 @@ public class JmqttBroker {
         // 初始化消息分发器
         this.messageDispatcher = new MessageDispatcher(this.sessionStore, this.messageStore, this.subscriptionMatcher);
         // 启动netty服务
-        this.channelEventListener = new DefaultChannelEventListener(this.sessionStore);
+        this.channelEventListener = new DefaultChannelEventListener(this.sessionStore, this.messageStore, this.messageDispatcher);
         this.nettyServer = new NettyServer(jmqttConfig.getNetty(), this.channelEventListener);
         // 注册mqtt控制指令报文处理器
         initCtrl();

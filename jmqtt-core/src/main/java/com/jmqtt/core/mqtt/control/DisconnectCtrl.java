@@ -3,6 +3,7 @@ package com.jmqtt.core.mqtt.control;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.cluster.ClusterMessage;
 import com.jmqtt.core.cluster.JmqttCluster;
+import com.jmqtt.core.cluster.record.ClusterSessionRecord;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
@@ -46,7 +47,7 @@ public class DisconnectCtrl extends BaseCtrl {
                 if (future.isSuccess()) {
                     log.info("[DISCONNECT] -> {} disconnect mqtt server", clientId);
                     // 同步会话到其他节点
-                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.SESSION_DISCONNECT, clientId));
+                    JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.SESSION_DISCONNECT, ClusterSessionRecord.of(clientId, session.isCleanStart())));
                 }
             });
         } else {
