@@ -9,6 +9,7 @@ import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.helper.Reason;
+import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.helper.TopicAliasManager;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
@@ -91,4 +92,21 @@ public class Mqtt_5_message extends Mqtt_3_4_message {
         return receiveMaximum != null && (remainingLength + 5) > receiveMaximum;
     }
 
+    @Override
+    protected void handleQos1(ClientSession clientSession, Message message) {
+        if (ReceiveMaximumManager.acquire(clientSession.getClientId())) {
+            super.handleQos1(clientSession, message);
+        } else {
+            MessageUtil.sendDisconnect(clientSession, Reason.RECEIVE_MAXIMUM_EXCEEDED);
+        }
+    }
+
+    @Override
+    protected void handleQos2(ClientSession clientSession, Message message) {
+        if (ReceiveMaximumManager.acquire(clientSession.getClientId())) {
+            super.handleQos2(clientSession, message);
+        } else {
+            MessageUtil.sendDisconnect(clientSession, Reason.RECEIVE_MAXIMUM_EXCEEDED);
+        }
+    }
 }

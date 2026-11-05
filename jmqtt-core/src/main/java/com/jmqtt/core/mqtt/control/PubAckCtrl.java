@@ -5,6 +5,7 @@ import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
+import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
@@ -31,5 +32,6 @@ public class PubAckCtrl extends BaseCtrl {
         int messageId = MessageUtil.getMessageId(mqttMessage);
         log.info("[PubAck] -> Recieve PubAck message,clientId={},msgId={}", clientId, messageId);
         sessionStore.releaseOutflowMsg(clientId, messageId);
+        ReceiveMaximumManager.release(clientId);
     }
 }

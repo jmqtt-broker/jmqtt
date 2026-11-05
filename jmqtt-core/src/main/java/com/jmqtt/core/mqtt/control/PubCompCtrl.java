@@ -5,6 +5,7 @@ import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
+import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
@@ -34,5 +35,6 @@ public class PubCompCtrl extends BaseCtrl {
         if (!flag) {
             log.warn("[PubComp] -> The message is not in Flow cache,clientId={},msgId={}", clientId, messageId);
         }
+        ReceiveMaximumManager.release(clientId);
     }
 }

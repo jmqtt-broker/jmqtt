@@ -21,8 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 public class PubRecCtrl extends BaseCtrl {
 
     public PubRecCtrl(JmqttAuth jmqttAuth, BrokerConfig brokerConfig, ClusterConfig clusterConfig,
-                       SessionStore sessionStore, MessageStore messageStore,
-                       SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
+                      SessionStore sessionStore, MessageStore messageStore,
+                      SubscriptionMatcher subscriptionMatcher, MessageDispatcher messageDispatcher) {
         super(jmqttAuth, brokerConfig, clusterConfig, sessionStore, messageStore, subscriptionMatcher, messageDispatcher);
     }
 
@@ -30,12 +30,12 @@ public class PubRecCtrl extends BaseCtrl {
     public void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         String clientId = ChannelUtil.getClientId(ctx.channel());
         int messageId = MessageUtil.getMessageId(mqttMessage);
-        log.debug("pubRec message,clientId={},msgId={}",clientId,messageId);
+        log.debug("pubRec message,clientId={},msgId={}", clientId, messageId);
         MqttMessage pubRelMessage = MessageUtil.getPubReplyMessage(messageId, MqttMessageType.PUBREL, (byte) 0x00, null, false);
         ctx.writeAndFlush(pubRelMessage).addListener(future -> {
             if (future.isSuccess()) {
-                sessionStore.releaseOutflowMsg(clientId,messageId);
-                sessionStore.cacheOutflowSecMsgId(clientId,messageId);
+                sessionStore.releaseOutflowMsg(clientId, messageId);
+                sessionStore.cacheOutflowSecMsgId(clientId, messageId);
             }
         });
     }
