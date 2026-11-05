@@ -6,6 +6,7 @@ import com.jmqtt.core.cluster.ClusterMessage;
 import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.cluster.record.ClusterMessageRecord;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
+import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.model.Subscription;
@@ -64,8 +65,7 @@ public class MessageDispatcher {
                         this.messageExecutor.submit(new DispatcherTask(batch));
                     }
                 } catch (InterruptedException e) {
-                    log.warn("poll message thread interrupted!");
-                    Thread.currentThread().interrupt();
+                    log.warn("poll message thread error!");
                 }
             }
         });
@@ -121,6 +121,11 @@ public class MessageDispatcher {
         if (ClientManager.containsClient(subClientId)) {
             ClientSession clientSession = ClientManager.getClient(subClientId);
             boolean mqtt5 = clientSession.isMqtt5();
+            if (mqtt5) {
+                if (!ReceiveMaximumManager.acquire(subscription.getClientId(), subscription, message)) {
+                    return;
+                }
+            }
             int qos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
             int messageId = clientSession.generateMessageId();
             message.putHeader(MessageHeader.QOS, qos);

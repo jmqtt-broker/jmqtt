@@ -6,6 +6,7 @@ import com.jmqtt.core.exception.ConnectException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
+import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionState;
 import com.jmqtt.core.mqtt.store.SessionStore;
@@ -52,7 +53,9 @@ public class Mqtt_5_connect extends Mqtt_3_4_connect {
             responseProperties.add(new MqttProperties.IntegerProperty(MqttProperties.MqttPropertyType.SERVER_KEEP_ALIVE.value(), heartbeatSec));
         }
         // mqtt5连接选项
-        optionalService(responseProperties);
+        serverOptional(responseProperties);
+        // mqtt5限流
+        clientReceiveMaximumOptional(clientId, variableHeader.properties());
         // 检测是否存在会话
         boolean sessionPresent = handlePreviousClient(ctx, clientId, cleanStart, version);
         // 如果存在会话和遗嘱消息的超时任务，则停止
@@ -76,7 +79,7 @@ public class Mqtt_5_connect extends Mqtt_3_4_connect {
         log.info("[CONNECT success: {}] -> {} connect to this mqtt server", remoteAddress, clientId);
     }
 
-    public void optionalService(MqttProperties properties) {
+    private void serverOptional(MqttProperties properties) {
         // 服务端能同时处理的非qos0最大消息数，暂定int最大值，后面放到配置里
         properties.add(new MqttProperties.IntegerProperty(
                 MqttProperties.MqttPropertyType.RECEIVE_MAXIMUM.value(),
@@ -95,6 +98,14 @@ public class Mqtt_5_connect extends Mqtt_3_4_connect {
         properties.add(new MqttProperties.IntegerProperty(SHARED_SUBSCRIPTION_AVAILABLE.value(), brokerConfig.getSharedSubscriptionAvailable() ? 1 : 0));
         properties.add(new MqttProperties.IntegerProperty(RETAIN_AVAILABLE.value(), brokerConfig.getRetainAvailable() ? 1 : 0));
         properties.add(new MqttProperties.IntegerProperty(MAXIMUM_QOS.value(), brokerConfig.getMaximumQos()));
+    }
+
+    private void clientReceiveMaximumOptional(String clientId, MqttProperties properties) {
+        // 客户端能同时处理的非qos0最大消息数，broker要根据该属性来控制Qos>0的消息发送速度
+        MqttProperties.IntegerProperty receiveMaximum = (MqttProperties.IntegerProperty) properties.getProperty(RECEIVE_MAXIMUM.value());
+        if (receiveMaximum != null && receiveMaximum.value() > 0) {
+            ReceiveMaximumManager.create(clientId, receiveMaximum.value());
+        }
     }
 
     private void stopSessionAndWillMessageTimeout(String clientId) {

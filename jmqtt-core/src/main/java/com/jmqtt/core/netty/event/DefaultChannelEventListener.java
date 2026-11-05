@@ -2,6 +2,7 @@ package com.jmqtt.core.netty.event;
 
 import cn.hutool.core.util.StrUtil;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
+import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.helper.TopicAliasManager;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
@@ -58,6 +59,7 @@ public class DefaultChannelEventListener implements ChannelEventListener {
                 ClientManager.removeClient(clientId);
                 if (session.isMqtt5()) {
                     TopicAliasManager.clear(clientId);
+                    ReceiveMaximumManager.destroy(clientId);
                 }
             }
         }
