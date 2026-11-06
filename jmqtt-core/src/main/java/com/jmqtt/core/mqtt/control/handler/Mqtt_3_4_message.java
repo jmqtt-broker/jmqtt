@@ -7,6 +7,7 @@ import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.helper.Reason;
+import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.store.MessageStore;
@@ -106,6 +107,7 @@ public class Mqtt_3_4_message implements MessageHandler {
                 log.debug("pubAckMessage success");
                 dispatcherMessage(message);
             }
+            ReceiveMaximumManager.releaseInFlow(clientSession.getClientId());
         });
     }
 

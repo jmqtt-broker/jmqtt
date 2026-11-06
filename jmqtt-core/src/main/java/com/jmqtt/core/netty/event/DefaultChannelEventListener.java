@@ -59,7 +59,8 @@ public class DefaultChannelEventListener implements ChannelEventListener {
                 ClientManager.removeClient(clientId);
                 if (session.isMqtt5()) {
                     TopicAliasManager.clear(clientId);
-                    ReceiveMaximumManager.destroy(clientId);
+                    ReceiveMaximumManager.destroyInFlow(clientId);
+                    ReceiveMaximumManager.destroyOutFlow(clientId);
                 }
             }
         }

@@ -121,16 +121,16 @@ public class MessageDispatcher {
         if (ClientManager.containsClient(subClientId)) {
             ClientSession clientSession = ClientManager.getClient(subClientId);
             boolean mqtt5 = clientSession.isMqtt5();
-            if (mqtt5) {
-                if (!ReceiveMaximumManager.acquire(subscription.getClientId(), subscription, message)) {
-                    return;
-                }
-            }
             int qos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
             int messageId = clientSession.generateMessageId();
             message.putHeader(MessageHeader.QOS, qos);
             message.setMsgId(messageId);
             if (qos > 0) {
+                if (mqtt5) {
+                    if (!ReceiveMaximumManager.acquireOutFlow(subscription.getClientId(), subscription, message)) {
+                        return;
+                    }
+                }
                 sessionStore.cacheOutflowMsg(subClientId, message);
             }
             if (mqtt5) {
@@ -166,7 +166,7 @@ public class MessageDispatcher {
     }
 
     private void write(ClientSession session, Subscription subscription, Message message) {
-        if (session.getCtx().channel().isWritable()) {
+        if (session.getCtx().channel().isActive()) {
             MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption(), subscription.getClientId());
             session.getCtx().writeAndFlush(publishMessage);
         } else {

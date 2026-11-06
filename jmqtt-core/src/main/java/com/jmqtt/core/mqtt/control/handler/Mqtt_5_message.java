@@ -94,7 +94,7 @@ public class Mqtt_5_message extends Mqtt_3_4_message {
 
     @Override
     protected void handleQos1(ClientSession clientSession, Message message) {
-        if (ReceiveMaximumManager.acquire(clientSession.getClientId())) {
+        if (ReceiveMaximumManager.acquireInFlow(clientSession.getClientId())) {
             super.handleQos1(clientSession, message);
         } else {
             MessageUtil.sendDisconnect(clientSession, Reason.RECEIVE_MAXIMUM_EXCEEDED);
@@ -103,7 +103,7 @@ public class Mqtt_5_message extends Mqtt_3_4_message {
 
     @Override
     protected void handleQos2(ClientSession clientSession, Message message) {
-        if (ReceiveMaximumManager.acquire(clientSession.getClientId())) {
+        if (ReceiveMaximumManager.acquireInFlow(clientSession.getClientId())) {
             super.handleQos2(clientSession, message);
         } else {
             MessageUtil.sendDisconnect(clientSession, Reason.RECEIVE_MAXIMUM_EXCEEDED);

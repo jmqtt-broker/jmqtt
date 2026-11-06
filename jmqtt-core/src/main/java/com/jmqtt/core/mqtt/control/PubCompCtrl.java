@@ -35,6 +35,6 @@ public class PubCompCtrl extends BaseCtrl {
         if (!flag) {
             log.warn("[PubComp] -> The message is not in Flow cache,clientId={},msgId={}", clientId, messageId);
         }
-        ReceiveMaximumManager.release(clientId);
+        ReceiveMaximumManager.releaseOutFlow(clientId);
     }
 }

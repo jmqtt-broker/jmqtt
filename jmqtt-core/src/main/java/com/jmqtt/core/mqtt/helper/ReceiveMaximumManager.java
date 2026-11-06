@@ -19,37 +19,59 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class ReceiveMaximumManager {
 
-    private final static Map<String, Quota> RECEIVE_MAXIMUM_MAP = new ConcurrentHashMap<>();
+    private final static Map<String, OutboundQuota> RECEIVE_MAXIMUM_MAP_OUT_FLOW = new ConcurrentHashMap<>(64);
 
-    public static void create(String clientId, Integer receiveMaximum) {
-        RECEIVE_MAXIMUM_MAP.put(clientId, new Quota(clientId, receiveMaximum));
+    private final static Map<String, Quota> RECEIVE_MAXIMUM_MAP_IN_FLOW = new ConcurrentHashMap<>(64);
+
+    public static void createInFlow(String clientId, Integer receiveMaximum) {
+        destroyInFlow(clientId);
+        RECEIVE_MAXIMUM_MAP_IN_FLOW.put(clientId, new Quota(clientId, receiveMaximum));
     }
 
-    public static void release(String clientId) {
-        Quota quota = RECEIVE_MAXIMUM_MAP.get(clientId);
-        if (quota != null) {
-            quota.release();
-        }
+    public static void createOutFlow(String clientId, Integer receiveMaximum) {
+        destroyOutFlow(clientId);
+        RECEIVE_MAXIMUM_MAP_OUT_FLOW.put(clientId, new OutboundQuota(clientId, receiveMaximum));
     }
 
-    public static boolean acquire(String clientId, Subscription subscription, Message message) {
-        Quota quota = RECEIVE_MAXIMUM_MAP.get(clientId);
-        if (quota != null) {
-            return quota.acquire(QuotaMsg.of(subscription, message));
-        }
-        return true;
-    }
-
-    public static boolean acquire(String clientId) {
-        Quota quota = RECEIVE_MAXIMUM_MAP.get(clientId);
+    public static boolean acquireInFlow(String clientId) {
+        Quota quota = RECEIVE_MAXIMUM_MAP_IN_FLOW.get(clientId);
         if (quota != null) {
             return quota.acquire();
         }
         return true;
     }
 
-    public static void destroy(String clientId) {
-        Quota quota = RECEIVE_MAXIMUM_MAP.remove(clientId);
+    public static boolean acquireOutFlow(String clientId, Subscription subscription, Message message) {
+        OutboundQuota quota = RECEIVE_MAXIMUM_MAP_OUT_FLOW.get(clientId);
+        if (quota != null) {
+            return quota.acquire(QuotaMsg.of(subscription, message));
+        }
+        return true;
+    }
+
+    public static void releaseInFlow(String clientId) {
+        Quota quota = RECEIVE_MAXIMUM_MAP_IN_FLOW.get(clientId);
+        if (quota != null) {
+            quota.release();
+        }
+    }
+
+    public static void releaseOutFlow(String clientId) {
+        OutboundQuota quota = RECEIVE_MAXIMUM_MAP_OUT_FLOW.get(clientId);
+        if (quota != null) {
+            quota.release();
+        }
+    }
+
+    public static void destroyInFlow(String clientId) {
+        Quota quota = RECEIVE_MAXIMUM_MAP_IN_FLOW.remove(clientId);
+        if (quota != null) {
+            quota.destroy();
+        }
+    }
+
+    public static void destroyOutFlow(String clientId) {
+        OutboundQuota quota = RECEIVE_MAXIMUM_MAP_OUT_FLOW.remove(clientId);
         if (quota != null) {
             quota.destroy();
         }
@@ -58,17 +80,11 @@ public class ReceiveMaximumManager {
     @Getter
     static class Quota {
 
-        private static final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+        protected final String clientId;
 
-        private final String clientId;
+        protected final int receiveMaximum;
 
-        private final int receiveMaximum;
-
-        private final AtomicInteger quota;
-
-        private final BlockingQueue<QuotaMsg> waitQueue;
-
-        private final AtomicBoolean waiting;
+        protected final AtomicInteger quota;
 
         public Quota(String clientId, Integer receiveMaximum) {
             this.clientId = clientId;
@@ -77,30 +93,61 @@ public class ReceiveMaximumManager {
             }
             this.receiveMaximum = receiveMaximum;
             this.quota = new AtomicInteger(receiveMaximum);
+        }
+
+        public boolean acquire() {
+            while (true) {
+                int current = quota.get();
+                if (current <= 0) {
+                    return false;
+                }
+                if (quota.compareAndSet(current, current - 1)) {
+                    return true;
+                }
+            }
+        }
+
+        public void release() {
+            while (true) {
+                int current = quota.get();
+                if (current >= receiveMaximum) {
+                    return;
+                }
+                if (quota.compareAndSet(current, current + 1)) {
+                    return;
+                }
+            }
+        }
+
+        public void destroy() {
+        }
+
+    }
+
+    static class OutboundQuota extends Quota {
+
+        private static final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
+        private final BlockingQueue<QuotaMsg> waitQueue;
+
+        private final AtomicBoolean waiting;
+
+        public OutboundQuota(String clientId, Integer receiveMaximum) {
+            super(clientId, receiveMaximum);
             waiting = new AtomicBoolean(false);
             waitQueue = new LinkedBlockingQueue<>(1024);
         }
 
-        public boolean acquire(QuotaMsg message) {
+        public boolean acquire(QuotaMsg quotaMsg) {
             boolean acquired = acquire();
             if (!acquired) {
-                if (waitQueue.offer(message)) {
+                if (waitQueue.offer(quotaMsg)) {
                     if (waiting.compareAndSet(false, true)) {
                         consumer();
                     }
                 } else {
-                    log.warn("[ReceiveMaximumManager] -> the client {} is over the receive maximum queue, the message {} is rejected.", clientId, message);
+                    log.warn("[ReceiveMaximumManager] -> the client {} is over the receive maximum queue, the message {} is rejected.", clientId, quotaMsg);
                 }
-            }
-            return acquired;
-        }
-
-        public boolean acquire() {
-            boolean acquired;
-            if (quota.intValue() == 0) {
-                acquired = false;
-            } else {
-                acquired = quota.decrementAndGet() >= 0;
             }
             return acquired;
         }
@@ -108,27 +155,36 @@ public class ReceiveMaximumManager {
         private void consumer() {
             executor.submit(() -> {
                 while (quota.intValue() > 0 && !waitQueue.isEmpty()) {
-                    QuotaMsg message = waitQueue.poll();
-                    if (message != null) {
-                        ClientSession session = ClientManager.getClient(clientId);
-                        if (session != null && session.getCtx().channel().isWritable()) {
-                            JmqttContext.getMessageDispatcher().send(message.getSubscription(), message.getMessage());
+                    try {
+                        QuotaMsg message = waitQueue.poll(3000, TimeUnit.MILLISECONDS);
+                        if (message != null) {
+                            ClientSession session = ClientManager.getClient(clientId);
+                            if (session != null && session.getCtx().channel().isActive()) {
+                                JmqttContext.getMessageDispatcher().send(message.getSubscription(), message.getMessage());
+                            } else {
+                                destroy();
+                            }
                         } else {
-                            destroy();
+                            waiting.set(false);
                         }
-                    } else {
+                    } catch (InterruptedException e) {
                         waiting.set(false);
+                        Thread.currentThread().interrupt();
                     }
                 }
+                waiting.set(false);
             });
         }
 
+        @Override
         public void release() {
-            if (quota.intValue() < receiveMaximum) {
-                quota.incrementAndGet();
+            super.release();
+            if (waiting.compareAndSet(false, true) && !waitQueue.isEmpty()) {
+                consumer();
             }
         }
 
+        @Override
         public void destroy() {
             waiting.set(false);
             waitQueue.clear();

@@ -55,7 +55,7 @@ public class Mqtt_5_connect extends Mqtt_3_4_connect {
         // mqtt5连接选项
         serverOptional(responseProperties);
         // mqtt5限流
-        clientReceiveMaximumOptional(clientId, variableHeader.properties());
+        receiveMaximumOptional(clientId, variableHeader.properties());
         // 检测是否存在会话
         boolean sessionPresent = handlePreviousClient(ctx, clientId, cleanStart, version);
         // 如果存在会话和遗嘱消息的超时任务，则停止
@@ -80,7 +80,7 @@ public class Mqtt_5_connect extends Mqtt_3_4_connect {
     }
 
     private void serverOptional(MqttProperties properties) {
-        // 服务端能同时处理的非qos0最大消息数，暂定int最大值，后面放到配置里
+        // 服务端能同时处理的非qos0最大消息数
         properties.add(new MqttProperties.IntegerProperty(
                 MqttProperties.MqttPropertyType.RECEIVE_MAXIMUM.value(),
                 brokerConfig.getReceiveMaximum()));
@@ -100,11 +100,16 @@ public class Mqtt_5_connect extends Mqtt_3_4_connect {
         properties.add(new MqttProperties.IntegerProperty(MAXIMUM_QOS.value(), brokerConfig.getMaximumQos()));
     }
 
-    private void clientReceiveMaximumOptional(String clientId, MqttProperties properties) {
-        // 客户端能同时处理的非qos0最大消息数，broker要根据该属性来控制Qos>0的消息发送速度
+    private void receiveMaximumOptional(String clientId, MqttProperties properties) {
+        // 出站receiveMaximum，客户端能同时处理的非qos0最大消息数，broker要根据该属性来控制Qos>0的消息发送速度
         MqttProperties.IntegerProperty receiveMaximum = (MqttProperties.IntegerProperty) properties.getProperty(RECEIVE_MAXIMUM.value());
         if (receiveMaximum != null && receiveMaximum.value() > 0) {
-            ReceiveMaximumManager.create(clientId, receiveMaximum.value());
+            ReceiveMaximumManager.createOutFlow(clientId, receiveMaximum.value());
+        }
+        // 入站receiveMaximum，broker分配给客户端的非qos0最大消息数配额，客户端要根据该属性来控制Qos>0的消息接收速度，超过配额时会拒绝接收，同时断开连接
+        int receiveMaximumInFlow = brokerConfig.getReceiveMaximum();
+        if (receiveMaximumInFlow > 0) {
+            ReceiveMaximumManager.createInFlow(clientId, receiveMaximumInFlow);
         }
     }
 
