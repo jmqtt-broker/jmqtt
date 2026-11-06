@@ -155,21 +155,16 @@ public class ReceiveMaximumManager {
         private void consumer() {
             executor.submit(() -> {
                 while (quota.intValue() > 0 && !waitQueue.isEmpty()) {
-                    try {
-                        QuotaMsg message = waitQueue.poll(3000, TimeUnit.MILLISECONDS);
-                        if (message != null) {
-                            ClientSession session = ClientManager.getClient(clientId);
-                            if (session != null && session.getCtx().channel().isActive()) {
-                                JmqttContext.getMessageDispatcher().send(message.getSubscription(), message.getMessage());
-                            } else {
-                                destroy();
-                            }
+                    QuotaMsg message = waitQueue.poll();
+                    if (message != null) {
+                        ClientSession session = ClientManager.getClient(clientId);
+                        if (session != null && session.getCtx().channel().isActive()) {
+                            JmqttContext.getMessageDispatcher().send(message.getSubscription(), message.getMessage());
                         } else {
-                            waiting.set(false);
+                            destroy();
                         }
-                    } catch (InterruptedException e) {
+                    } else {
                         waiting.set(false);
-                        Thread.currentThread().interrupt();
                     }
                 }
                 waiting.set(false);
