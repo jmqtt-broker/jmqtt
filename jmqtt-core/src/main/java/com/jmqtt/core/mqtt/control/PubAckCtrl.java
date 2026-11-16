@@ -6,6 +6,7 @@ import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
+import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
@@ -30,8 +31,12 @@ public class PubAckCtrl extends BaseCtrl {
     public void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         String clientId = ChannelUtil.getClientId(ctx.channel());
         int messageId = MessageUtil.getMessageId(mqttMessage);
-        log.info("[PubAck] -> Recieve PubAck message,clientId={},msgId={}", clientId, messageId);
-        sessionStore.releaseOutboundMsg(clientId, messageId);
-        ReceiveMaximumManager.releaseOutbound(clientId);
+        Message message = sessionStore.releaseOutboundMsg(clientId, messageId);
+        if (message != null) {
+            log.info("[PubAck] -> Recieve PubAck message,clientId={},msgId={}", clientId, messageId);
+            ReceiveMaximumManager.releaseOutbound(clientId);
+        } else {
+            log.warn("[PubAck] -> The message is not in flow cache,clientId={},msgId={}", clientId, messageId);
+        }
     }
 }

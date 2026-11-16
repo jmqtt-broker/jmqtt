@@ -102,24 +102,25 @@ public class Mqtt_3_4_message implements MessageHandler {
     protected void handleQos1(ClientSession clientSession, Message message) {
         MqttMessage pubAckMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
                 MqttMessageType.PUBACK, Reason.SUCCESS.getReasonCode(), null, false);
-        clientSession.getCtx().writeAndFlush(pubAckMessage).addListener(future -> {
-            if (future.isSuccess()) {
-                log.debug("pubAckMessage success");
-                dispatcherMessage(message);
-            }
-            ReceiveMaximumManager.releaseInbound(clientSession.getClientId());
-        });
+        clientSession.getCtx().writeAndFlush(pubAckMessage);
+        dispatcherMessage(message);
+        ReceiveMaximumManager.releaseInbound(clientSession.getClientId());
     }
 
     protected void handleQos2(ClientSession clientSession, Message message) {
-        MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
-                MqttMessageType.PUBREC, Reason.SUCCESS.getReasonCode(), null, false);
-        clientSession.getCtx().writeAndFlush(pubRecMessage).addListener(future -> {
-            if (future.isSuccess()) {
-                log.debug("pubRecMessage success");
-                sessionStore.cacheInboundMsg(message.getClientId(), message);
-            }
-        });
+        String clientId = clientSession.getClientId();
+        if (!sessionStore.existInboundMsg(clientId, message.getMsgId())) {
+            sessionStore.cacheInboundMsg(message.getClientId(), message);
+            MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
+                    MqttMessageType.PUBREC, Reason.SUCCESS.getReasonCode(), null, false);
+            clientSession.getCtx().writeAndFlush(pubRecMessage);
+        } else {
+            // 客户端重发的消息，直接返回pubRec, 不释放配额
+            log.warn("publish message {} exist, clientId: {}.", message.getMsgId(), clientId);
+            MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
+                    MqttMessageType.PUBREC, Reason.SUCCESS.getReasonCode(), null, true);
+            clientSession.getCtx().writeAndFlush(pubRecMessage);
+        }
     }
 
     @Override

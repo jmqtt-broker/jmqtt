@@ -31,10 +31,11 @@ public class PubCompCtrl extends BaseCtrl {
         String clientId = ChannelUtil.getClientId(ctx.channel());
         int messageId = MessageUtil.getMessageId(mqttMessage);
         boolean flag = sessionStore.releaseOutboundSecMsgId(clientId, messageId);
-        log.debug("[PubComp] -> Receive PubCom and remove the flow message,clientId={},msgId={}", clientId, messageId);
-        if (!flag) {
-            log.warn("[PubComp] -> The message is not in Flow cache,clientId={},msgId={}", clientId, messageId);
+        if (flag) {
+            log.debug("[PubComp] -> Receive PubCom and remove the flow message,clientId={},msgId={}", clientId, messageId);
+            ReceiveMaximumManager.releaseOutbound(clientId);
+        } else {
+            log.warn("[PubComp] -> The message is not in flow cache,clientId={},msgId={}", clientId, messageId);
         }
-        ReceiveMaximumManager.releaseOutbound(clientId);
     }
 }

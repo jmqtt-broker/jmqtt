@@ -5,6 +5,7 @@ import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
+import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
@@ -30,13 +31,17 @@ public class PubRecCtrl extends BaseCtrl {
     public void processCtrl(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         String clientId = ChannelUtil.getClientId(ctx.channel());
         int messageId = MessageUtil.getMessageId(mqttMessage);
-        log.debug("pubRec message,clientId={},msgId={}", clientId, messageId);
-        MqttMessage pubRelMessage = MessageUtil.getPubReplyMessage(messageId, MqttMessageType.PUBREL, (byte) 0x00, null, false);
-        ctx.writeAndFlush(pubRelMessage).addListener(future -> {
-            if (future.isSuccess()) {
-                sessionStore.releaseOutboundMsg(clientId, messageId);
-                sessionStore.cacheOutboundSecMsgId(clientId, messageId);
-            }
-        });
+        Message message = sessionStore.releaseOutboundMsg(clientId, messageId);
+        if (message != null) {
+            sessionStore.cacheOutboundSecMsgId(clientId, messageId);
+            log.debug("pubRec message,clientId={},msgId={}", clientId, messageId);
+            MqttMessage pubRelMessage = MessageUtil.getPubReplyMessage(messageId, MqttMessageType.PUBREL, (byte) 0x00, null, false);
+            ctx.writeAndFlush(pubRelMessage);
+        } else {
+            // 重发pubRel, 不转发消息、不释放配额
+            MqttMessage pubRelMessage = MessageUtil.getPubReplyMessage(messageId, MqttMessageType.PUBREL, (byte) 0x00, null, true);
+            ctx.writeAndFlush(pubRelMessage);
+            log.warn("pubRec message,clientId={},msgId={},message is null", clientId, messageId);
+        }
     }
 }

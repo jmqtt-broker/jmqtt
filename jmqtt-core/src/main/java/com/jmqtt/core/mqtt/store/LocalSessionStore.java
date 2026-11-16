@@ -168,6 +168,15 @@ public class LocalSessionStore implements SessionStore {
     }
 
     @Override
+    public boolean existInboundMsg(String clientId, Integer msgId) {
+        ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
+        if (v != null) {
+            return v.containsKey(msgId);
+        }
+        return false;
+    }
+
+    @Override
     public Message releaseInboundMsg(String clientId, Integer msgId) {
         ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
         if (msgId == null) {
@@ -242,6 +251,15 @@ public class LocalSessionStore implements SessionStore {
         }
         v.put(msgId, 1);
         return true;
+    }
+
+    @Override
+    public boolean existOutboundSecMsgId(String clientId, int msgId) {
+        ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
+        if (v != null) {
+            return v.containsKey(msgId);
+        }
+        return false;
     }
 
     @Override

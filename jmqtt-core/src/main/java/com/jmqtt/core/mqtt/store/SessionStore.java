@@ -105,6 +105,8 @@ public interface SessionStore {
      */
     boolean cacheInboundMsg(String clientId, Message message);
 
+    boolean existInboundMsg(String clientId, Integer msgId);
+
     /**
      * 获取并删除接收到的qos2消息-入栈消息
      *
@@ -156,6 +158,8 @@ public interface SessionStore {
      * @return return
      */
     boolean cacheOutboundSecMsgId(String clientId, int msgId);
+
+    boolean existOutboundSecMsgId(String clientId, int msgId);
 
     /**
      * 出栈qos2第二阶段，释放msgId

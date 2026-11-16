@@ -35,16 +35,16 @@ public class PubRelCtrl extends BaseCtrl {
         int msgId = MessageUtil.getMessageId(mqttMessage);
         if (ClientManager.containsClient(clientId)) {
             Message message = sessionStore.releaseInboundMsg(clientId, msgId);
-            if (Objects.nonNull(message)) {
+            if (message != null) {
                 MessageHandler handler = messageHandlerMap.get(ChannelUtil.getVersion(ctx.channel()).byteValue());
                 MqttMessage pubComMessage = MessageUtil.getPubReplyMessage(msgId, MqttMessageType.PUBCOMP, (byte) 0x00, null, false);
-                ctx.writeAndFlush(pubComMessage).addListener(future -> {
-                    if (future.isSuccess()) {
-                        handler.dispatcherMessage(message);
-                    }
-                    ReceiveMaximumManager.releaseInbound(clientId);
-                });
+                ctx.writeAndFlush(pubComMessage);
+                handler.dispatcherMessage(message);
+                ReceiveMaximumManager.releaseInbound(clientId);
             } else {
+                // 重发pubCom, 不转发消息、不释放配额
+                MqttMessage pubComMessage = MessageUtil.getPubReplyMessage(msgId, MqttMessageType.PUBCOMP, (byte) 0x00, null, true);
+                ctx.writeAndFlush(pubComMessage);
                 log.warn("pubRelMessage error, the message is not exist,clientId={},messageId={}.", clientId, msgId);
             }
         } else {
