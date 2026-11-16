@@ -23,17 +23,17 @@ public class ReceiveMaximumManager {
 
     private final static Map<String, Quota> RECEIVE_MAXIMUM_MAP_IN_FLOW = new ConcurrentHashMap<>(64);
 
-    public static void createInFlow(String clientId, Integer receiveMaximum) {
-        destroyInFlow(clientId);
+    public static void createInbound(String clientId, Integer receiveMaximum) {
+        destroyInbound(clientId);
         RECEIVE_MAXIMUM_MAP_IN_FLOW.put(clientId, new Quota(clientId, receiveMaximum));
     }
 
-    public static void createOutFlow(String clientId, Integer receiveMaximum) {
-        destroyOutFlow(clientId);
+    public static void createOutbound(String clientId, Integer receiveMaximum) {
+        destroyOutbound(clientId);
         RECEIVE_MAXIMUM_MAP_OUT_FLOW.put(clientId, new OutboundQuota(clientId, receiveMaximum));
     }
 
-    public static boolean acquireInFlow(String clientId) {
+    public static boolean acquireInbound(String clientId) {
         Quota quota = RECEIVE_MAXIMUM_MAP_IN_FLOW.get(clientId);
         if (quota != null) {
             return quota.acquire();
@@ -41,7 +41,7 @@ public class ReceiveMaximumManager {
         return true;
     }
 
-    public static boolean acquireOutFlow(String clientId, Subscription subscription, Message message) {
+    public static boolean acquireOutbound(String clientId, Subscription subscription, Message message) {
         OutboundQuota quota = RECEIVE_MAXIMUM_MAP_OUT_FLOW.get(clientId);
         if (quota != null) {
             return quota.acquire(QuotaMsg.of(subscription, message));
@@ -49,28 +49,28 @@ public class ReceiveMaximumManager {
         return true;
     }
 
-    public static void releaseInFlow(String clientId) {
+    public static void releaseInbound(String clientId) {
         Quota quota = RECEIVE_MAXIMUM_MAP_IN_FLOW.get(clientId);
         if (quota != null) {
             quota.release();
         }
     }
 
-    public static void releaseOutFlow(String clientId) {
+    public static void releaseOutbound(String clientId) {
         OutboundQuota quota = RECEIVE_MAXIMUM_MAP_OUT_FLOW.get(clientId);
         if (quota != null) {
             quota.release();
         }
     }
 
-    public static void destroyInFlow(String clientId) {
+    public static void destroyInbound(String clientId) {
         Quota quota = RECEIVE_MAXIMUM_MAP_IN_FLOW.remove(clientId);
         if (quota != null) {
             quota.destroy();
         }
     }
 
-    public static void destroyOutFlow(String clientId) {
+    public static void destroyOutbound(String clientId) {
         OutboundQuota quota = RECEIVE_MAXIMUM_MAP_OUT_FLOW.remove(clientId);
         if (quota != null) {
             quota.destroy();

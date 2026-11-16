@@ -34,7 +34,7 @@ public class PubRelCtrl extends BaseCtrl {
         String clientId = ChannelUtil.getClientId(ctx.channel());
         int msgId = MessageUtil.getMessageId(mqttMessage);
         if (ClientManager.containsClient(clientId)) {
-            Message message = sessionStore.releaseInflowMsg(clientId, msgId);
+            Message message = sessionStore.releaseInboundMsg(clientId, msgId);
             if (Objects.nonNull(message)) {
                 MessageHandler handler = messageHandlerMap.get(ChannelUtil.getVersion(ctx.channel()).byteValue());
                 MqttMessage pubComMessage = MessageUtil.getPubReplyMessage(msgId, MqttMessageType.PUBCOMP, (byte) 0x00, null, false);
@@ -42,7 +42,7 @@ public class PubRelCtrl extends BaseCtrl {
                     if (future.isSuccess()) {
                         handler.dispatcherMessage(message);
                     }
-                    ReceiveMaximumManager.releaseInFlow(clientId);
+                    ReceiveMaximumManager.releaseInbound(clientId);
                 });
             } else {
                 log.warn("pubRelMessage error, the message is not exist,clientId={},messageId={}.", clientId, msgId);

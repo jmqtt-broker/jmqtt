@@ -107,7 +107,7 @@ public class Mqtt_3_4_message implements MessageHandler {
                 log.debug("pubAckMessage success");
                 dispatcherMessage(message);
             }
-            ReceiveMaximumManager.releaseInFlow(clientSession.getClientId());
+            ReceiveMaximumManager.releaseInbound(clientSession.getClientId());
         });
     }
 
@@ -117,7 +117,7 @@ public class Mqtt_3_4_message implements MessageHandler {
         clientSession.getCtx().writeAndFlush(pubRecMessage).addListener(future -> {
             if (future.isSuccess()) {
                 log.debug("pubRecMessage success");
-                sessionStore.cacheInflowMsg(message.getClientId(), message);
+                sessionStore.cacheInboundMsg(message.getClientId(), message);
             }
         });
     }

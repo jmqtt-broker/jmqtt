@@ -44,9 +44,9 @@ public interface SessionStore {
         }
         storeSession(update);
         ClientManager.removeClient(clientId);
-        releaseInflowMsg(clientId, null);
-        releaseOutflowMsg(clientId, null);
-        releaseOutflowSecMsgId(clientId, null);
+        releaseInboundMsg(clientId, null);
+        releaseOutboundMsg(clientId, null);
+        releaseOutboundSecMsgId(clientId, null);
     }
 
     /**
@@ -97,13 +97,13 @@ public interface SessionStore {
     Subscription getOneSubscription(String clientId, String topic);
 
     /**
-     * 缓存入栈消息qos 1, 2 publish
+     * 缓存入栈消息qos 2 publish
      *
      * @param clientId clientId
      * @param message  message
      * @return return
      */
-    boolean cacheInflowMsg(String clientId, Message message);
+    boolean cacheInboundMsg(String clientId, Message message);
 
     /**
      * 获取并删除接收到的qos2消息-入栈消息
@@ -112,7 +112,7 @@ public interface SessionStore {
      * @param msgId    msgId
      * @return return
      */
-    Message releaseInflowMsg(String clientId, Integer msgId);
+    Message releaseInboundMsg(String clientId, Integer msgId);
 
     /**
      * 获取所有的入栈消息
@@ -120,7 +120,7 @@ public interface SessionStore {
      * @param clientId clientId
      * @return return
      */
-    Collection<Message> getAllInflowMsg(String clientId);
+    Collection<Message> getAllInboundMsg(String clientId);
 
     /**
      * 缓存出栈消息-分发给客户端的qos1, 2消息
@@ -129,7 +129,7 @@ public interface SessionStore {
      * @param message  message
      * @return return
      */
-    boolean cacheOutflowMsg(String clientId, Message message);
+    boolean cacheOutboundMsg(String clientId, Message message);
 
     /**
      * 获取所有的出栈消息
@@ -137,7 +137,7 @@ public interface SessionStore {
      * @param clientId clientId
      * @return return
      */
-    Collection<Message> getAllOutflowMsg(String clientId);
+    Collection<Message> getAllOutboundMsg(String clientId);
 
     /**
      * 获取并删除发送的出栈消息
@@ -146,7 +146,7 @@ public interface SessionStore {
      * @param msgId    msgId
      * @return return
      */
-    Message releaseOutflowMsg(String clientId, Integer msgId);
+    Message releaseOutboundMsg(String clientId, Integer msgId);
 
     /**
      * 出栈qos2第二阶段，缓存msgId
@@ -155,7 +155,7 @@ public interface SessionStore {
      * @param msgId    msgId
      * @return return
      */
-    boolean cacheOutflowSecMsgId(String clientId, int msgId);
+    boolean cacheOutboundSecMsgId(String clientId, int msgId);
 
     /**
      * 出栈qos2第二阶段，释放msgId
@@ -165,7 +165,7 @@ public interface SessionStore {
      * @param msgId    msgId
      * @return return
      */
-    boolean releaseOutflowSecMsgId(String clientId, Integer msgId);
+    boolean releaseOutboundSecMsgId(String clientId, Integer msgId);
 
     /**
      * 获取所有的信息，进行发送
@@ -173,7 +173,7 @@ public interface SessionStore {
      * @param clientId clientId
      * @return return
      */
-    List<Integer> getAllOutflowSecMsgId(String clientId);
+    List<Integer> getAllOutboundSecMsgId(String clientId);
 
     /**
      * 缓存离线消息

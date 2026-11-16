@@ -77,7 +77,7 @@ public class ReSendMessageService {
         public Boolean call() {
 
             // 入栈报文：未处理的pubRec报文
-            Collection<Message> waitPubRecMsgs = sessionStore.getAllInflowMsg(clientId);
+            Collection<Message> waitPubRecMsgs = sessionStore.getAllInboundMsg(clientId);
             if (CollUtil.isNotEmpty(waitPubRecMsgs)) {
                 for (Message waitPubRecMsg : waitPubRecMsgs) {
                     if (!dispatcherMessage(clientId, waitPubRecMsg, message -> MessageUtil.getPubReplyMessage(message.getMsgId(), MqttMessageType.PUBREC, (byte) 0x00, null, true))) {
@@ -87,7 +87,7 @@ public class ReSendMessageService {
             }
 
             // 出栈报文-qos1,qos2第一阶段：
-            Collection<Message> outflowMsgs = sessionStore.getAllOutflowMsg(clientId);
+            Collection<Message> outflowMsgs = sessionStore.getAllOutboundMsg(clientId);
             if (CollUtil.isNotEmpty(outflowMsgs)) {
                 for (Message message : outflowMsgs) {
                     if (!dispatcherMessage(clientId, message, msg -> MessageUtil.getPubMessage(msg, false))) {
@@ -97,7 +97,7 @@ public class ReSendMessageService {
             }
 
             // 出栈报文-qos2第二阶段：
-            Collection<Integer> qos2MsgIds = sessionStore.getAllOutflowSecMsgId(clientId);
+            Collection<Integer> qos2MsgIds = sessionStore.getAllOutboundSecMsgId(clientId);
             if (CollUtil.isNotEmpty(qos2MsgIds)) {
                 for (Integer msgId : qos2MsgIds) {
                     Message temp = new Message();

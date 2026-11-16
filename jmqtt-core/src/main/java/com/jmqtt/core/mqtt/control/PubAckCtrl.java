@@ -31,7 +31,7 @@ public class PubAckCtrl extends BaseCtrl {
         String clientId = ChannelUtil.getClientId(ctx.channel());
         int messageId = MessageUtil.getMessageId(mqttMessage);
         log.info("[PubAck] -> Recieve PubAck message,clientId={},msgId={}", clientId, messageId);
-        sessionStore.releaseOutflowMsg(clientId, messageId);
-        ReceiveMaximumManager.releaseOutFlow(clientId);
+        sessionStore.releaseOutboundMsg(clientId, messageId);
+        ReceiveMaximumManager.releaseOutbound(clientId);
     }
 }

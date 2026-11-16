@@ -127,11 +127,11 @@ public class MessageDispatcher {
             message.setMsgId(messageId);
             if (qos > 0) {
                 if (mqtt5) {
-                    if (!ReceiveMaximumManager.acquireOutFlow(subscription.getClientId(), subscription, message)) {
+                    if (!ReceiveMaximumManager.acquireOutbound(subscription.getClientId(), subscription, message)) {
                         return;
                     }
                 }
-                sessionStore.cacheOutflowMsg(subClientId, message);
+                sessionStore.cacheOutboundMsg(subClientId, message);
             }
             if (mqtt5) {
                 if (message.validity()) {

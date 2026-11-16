@@ -34,8 +34,8 @@ public class PubRecCtrl extends BaseCtrl {
         MqttMessage pubRelMessage = MessageUtil.getPubReplyMessage(messageId, MqttMessageType.PUBREL, (byte) 0x00, null, false);
         ctx.writeAndFlush(pubRelMessage).addListener(future -> {
             if (future.isSuccess()) {
-                sessionStore.releaseOutflowMsg(clientId, messageId);
-                sessionStore.cacheOutflowSecMsgId(clientId, messageId);
+                sessionStore.releaseOutboundMsg(clientId, messageId);
+                sessionStore.cacheOutboundSecMsgId(clientId, messageId);
             }
         });
     }
