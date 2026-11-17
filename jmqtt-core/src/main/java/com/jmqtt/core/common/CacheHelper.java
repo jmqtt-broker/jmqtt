@@ -11,19 +11,18 @@ public class CacheHelper {
     /**
      * 缓存，默认五分钟，以put时间为准
      */
-    private final static TimedCache<String, Object> ssoTokenCache = CacheUtil.newTimedCache(DateUnit.MINUTE.getMillis() * 5);
+    private final static TimedCache<String, Object> CACHE = CacheUtil.newTimedCache(DateUnit.MINUTE.getMillis() * 5);
 
     static {
         // 每30秒清理一次过期缓存
-        ssoTokenCache.schedulePrune(DateUnit.SECOND.getMillis() * 30);
-        ssoTokenCache.setListener((key, value) -> {
-            log.info("CacheHelper缓存过期: {}", key);
-
+        CACHE.schedulePrune(DateUnit.SECOND.getMillis() * 30);
+        CACHE.setListener((key, value) -> {
+            log.debug("CacheHelper缓存过期: {}", key);
         });
     }
 
     public static void put(String key, Object value, long second) {
-        ssoTokenCache.put(key, value, DateUnit.SECOND.getMillis() * second);
+        CACHE.put(key, value, DateUnit.SECOND.getMillis() * second);
     }
 
     /**
@@ -32,15 +31,19 @@ public class CacheHelper {
      * @return
      */
     public static Object getAndRefresh(String key) {
-        return ssoTokenCache.get(key, true);
+        return CACHE.get(key, true);
     }
 
     public static Object get(String key, boolean updateAccess) {
-        return ssoTokenCache.get(key, updateAccess);
+        return CACHE.get(key, updateAccess);
+    }
+
+    public static boolean exist(String key) {
+        return CACHE.containsKey(key);
     }
 
     public static void remove(String key) {
-        ssoTokenCache.remove(key);
+        CACHE.remove(key);
     }
 
 }

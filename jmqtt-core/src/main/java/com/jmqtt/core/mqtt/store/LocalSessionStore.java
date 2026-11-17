@@ -254,15 +254,6 @@ public class LocalSessionStore implements SessionStore {
     }
 
     @Override
-    public boolean existOutboundSecMsgId(String clientId, int msgId) {
-        ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
-        if (v != null) {
-            return v.containsKey(msgId);
-        }
-        return false;
-    }
-
-    @Override
     public boolean releaseOutboundSecMsgId(String clientId, Integer msgId) {
         ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
         if (msgId == null) {

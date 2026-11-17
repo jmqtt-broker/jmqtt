@@ -17,10 +17,7 @@ import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import com.jmqtt.core.netty.session.ClientSession;
-import io.netty.handler.codec.mqtt.MqttFixedHeader;
-import io.netty.handler.codec.mqtt.MqttProperties;
-import io.netty.handler.codec.mqtt.MqttPublishMessage;
-import io.netty.handler.codec.mqtt.MqttPublishVariableHeader;
+import io.netty.handler.codec.mqtt.*;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -103,10 +100,20 @@ public class Mqtt_5_message extends Mqtt_3_4_message {
 
     @Override
     protected void handleQos2(ClientSession clientSession, Message message) {
-        if (ReceiveMaximumManager.acquireInbound(clientSession.getClientId())) {
-            super.handleQos2(clientSession, message);
+        String clientId = clientSession.getClientId();
+        if (!sessionStore.existInboundMsg(clientId, message.getMsgId())) {
+            if (ReceiveMaximumManager.acquireInbound(clientId)) {
+                sessionStore.cacheInboundMsg(message.getClientId(), message);
+                MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
+                        MqttMessageType.PUBREC, Reason.SUCCESS.getReasonCode(), null, false);
+                clientSession.getCtx().writeAndFlush(pubRecMessage);
+            } else {
+                MessageUtil.sendDisconnect(clientSession, Reason.RECEIVE_MAXIMUM_EXCEEDED);
+            }
         } else {
-            MessageUtil.sendDisconnect(clientSession, Reason.RECEIVE_MAXIMUM_EXCEEDED);
+            MqttMessage pubRecMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
+                    MqttMessageType.PUBREC, Reason.SUCCESS.getReasonCode(), null, true);
+            clientSession.getCtx().writeAndFlush(pubRecMessage);
         }
     }
 }

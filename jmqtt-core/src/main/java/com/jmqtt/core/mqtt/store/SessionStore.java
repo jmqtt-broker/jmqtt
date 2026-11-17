@@ -159,8 +159,6 @@ public interface SessionStore {
      */
     boolean cacheOutboundSecMsgId(String clientId, int msgId);
 
-    boolean existOutboundSecMsgId(String clientId, int msgId);
-
     /**
      * 出栈qos2第二阶段，释放msgId
      * 返回false时说明msgId不存在，异常情况

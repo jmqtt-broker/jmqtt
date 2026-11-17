@@ -36,11 +36,11 @@ public class PubRelCtrl extends BaseCtrl {
         if (ClientManager.containsClient(clientId)) {
             Message message = sessionStore.releaseInboundMsg(clientId, msgId);
             if (message != null) {
+                ReceiveMaximumManager.releaseInbound(clientId);
                 MessageHandler handler = messageHandlerMap.get(ChannelUtil.getVersion(ctx.channel()).byteValue());
                 MqttMessage pubComMessage = MessageUtil.getPubReplyMessage(msgId, MqttMessageType.PUBCOMP, (byte) 0x00, null, false);
                 ctx.writeAndFlush(pubComMessage);
                 handler.dispatcherMessage(message);
-                ReceiveMaximumManager.releaseInbound(clientId);
             } else {
                 // 重发pubCom, 不转发消息、不释放配额
                 MqttMessage pubComMessage = MessageUtil.getPubReplyMessage(msgId, MqttMessageType.PUBCOMP, (byte) 0x00, null, true);

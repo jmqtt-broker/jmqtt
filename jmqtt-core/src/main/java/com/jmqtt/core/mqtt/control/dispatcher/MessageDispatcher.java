@@ -1,10 +1,10 @@
 package com.jmqtt.core.mqtt.control.dispatcher;
 
 import cn.hutool.json.JSONUtil;
-import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.cluster.ClusterMessage;
 import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.cluster.record.ClusterMessageRecord;
+import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.model.Message;
@@ -21,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -100,10 +99,15 @@ public class MessageDispatcher {
                     String pubClientId = message.getClientId();
                     String topic = (String) message.getHeader(MessageHeader.TOPIC);
                     Set<Subscription> subscriptions = subscriptionMatcher.match(topic, pubClientId);
+                    int size = subscriptions.size();
                     for (Subscription subscription : subscriptions) {
                         String targetBrokerId = subscription.getBrokerId();
                         if (JmqttContext.currentNodeName().equals(targetBrokerId)) {
-                            send(subscription, message);
+                            if (size > 1) {
+                                send(subscription, message.copy());
+                            } else {
+                                send(subscription, message);
+                            }
                         } else {
                             // 订阅topic的client不在当前broker，需要把消息发送给目标所在的broker，由目标broker进行发送
                             JmqttCluster.unicast(targetBrokerId, ClusterMessage.of(ClusterMessage.EventType.MESSAGE_DISPATCH, ClusterMessageRecord.of(message, subscription)));
@@ -123,11 +127,13 @@ public class MessageDispatcher {
             boolean mqtt5 = clientSession.isMqtt5();
             int qos = MessageUtil.getMinQos((int) message.getHeader(MessageHeader.QOS), subscription.getQos());
             int messageId = clientSession.generateMessageId();
-            message.putHeader(MessageHeader.QOS, qos);
-            message.setMsgId(messageId);
+
             if (qos > 0) {
                 if (mqtt5) {
-                    if (!ReceiveMaximumManager.acquireOutbound(subscription.getClientId(), subscription, message)) {
+                    if (ReceiveMaximumManager.acquireOutbound(subscription.getClientId(), subscription, message)) {
+                        message.putHeader(MessageHeader.QOS, qos);
+                        message.setMsgId(messageId);
+                    } else {
                         return;
                     }
                 }
@@ -140,14 +146,11 @@ public class MessageDispatcher {
                         write(clientSession, subscription, message);
                     } else {
                         log.warn("message expired. {}", JSONUtil.toJsonStr(message));
-                        // 如果是保留消息则删除
-                        Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).ifPresent(r -> {
-                            if ((boolean) r) {
-                                String topic = (String) message.getHeader(MessageHeader.TOPIC);
-                                // CompletableFuture.runAsync(() -> ClusterHelper.clearRetainMessage(topic));
-                                messageStore.clearRetainMessage(topic);
-                            }
-                        });
+                        if (qos > 0) {
+                            // 释放配额
+                            ReceiveMaximumManager.releaseOutbound(subClientId);
+                            sessionStore.releaseOutboundMsg(subClientId, message.getMsgId());
+                        }
                     }
                 } else {
                     // 消息未设置过期间隔，发送
@@ -168,10 +171,17 @@ public class MessageDispatcher {
     private void write(ClientSession session, Subscription subscription, Message message) {
         if (session.getCtx().channel().isActive()) {
             MqttPublishMessage publishMessage = MessageUtil.getPubMessage(message, false, subscription.getOption(), subscription.getClientId());
-            session.getCtx().writeAndFlush(publishMessage);
+            session.getCtx().writeAndFlush(publishMessage).addListener(future -> {
+                if (!future.isSuccess() && subscription.getQos() > 0 && session.isMqtt5()) {
+                    ReceiveMaximumManager.releaseOutbound(session.getClientId());
+                }
+            });
         } else {
             if (!session.isCleanStart()) {
                 storeOffline(subscription.getClientId(), message);
+            }
+            if (subscription.getQos() > 0 && session.isMqtt5()) {
+                ReceiveMaximumManager.releaseOutbound(subscription.getClientId());
             }
         }
     }

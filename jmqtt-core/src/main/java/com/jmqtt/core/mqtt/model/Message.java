@@ -76,4 +76,14 @@ public class Message {
         return 0;
     }
 
+    public Message copy() {
+        Message clone = new Message();
+        clone.setMsgId(msgId);
+        clone.setHeaders(headers);
+        clone.setProperties(properties);
+        clone.setClientId(clientId);
+        clone.setPayload(payload);
+        clone.setStoreTime(storeTime);
+        return clone;
+    }
 }

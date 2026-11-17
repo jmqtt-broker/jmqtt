@@ -1,6 +1,7 @@
 package com.jmqtt.core.mqtt.control.handler;
 
 import com.jmqtt.core.cluster.ClusterConfig;
+import com.jmqtt.core.common.CacheHelper;
 import com.jmqtt.core.exception.BrokerException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
@@ -100,11 +101,19 @@ public class Mqtt_3_4_message implements MessageHandler {
     }
 
     protected void handleQos1(ClientSession clientSession, Message message) {
+        int messageId = message.getMsgId();
+        String clientId = clientSession.getClientId();
+        String key = clientId + "_" + messageId;
+        boolean dup = CacheHelper.exist(key);
         MqttMessage pubAckMessage = MessageUtil.getPubReplyMessage(message.getMsgId(),
-                MqttMessageType.PUBACK, Reason.SUCCESS.getReasonCode(), null, false);
+                MqttMessageType.PUBACK, Reason.SUCCESS.getReasonCode(), null, dup);
         clientSession.getCtx().writeAndFlush(pubAckMessage);
         dispatcherMessage(message);
         ReceiveMaximumManager.releaseInbound(clientSession.getClientId());
+        CacheHelper.put(key, messageId, 5);
+        if (dup) {
+            CacheHelper.remove(key);
+        }
     }
 
     protected void handleQos2(ClientSession clientSession, Message message) {
