@@ -110,7 +110,7 @@ public class Mqtt_3_4_message implements MessageHandler {
         clientSession.getCtx().writeAndFlush(pubAckMessage);
         dispatcherMessage(message);
         ReceiveMaximumManager.releaseInbound(clientSession.getClientId());
-        CacheHelper.put(key, messageId, 5);
+        CacheHelper.put(key, messageId);
         if (dup) {
             CacheHelper.remove(key);
         }

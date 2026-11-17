@@ -7,6 +7,7 @@ import com.jmqtt.core.mqtt.helper.TopicAliasManager;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.store.MessageStore;
+import com.jmqtt.core.mqtt.store.SessionState;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.netty.helper.ChannelUtil;
 import com.jmqtt.core.netty.session.ClientManager;
@@ -43,7 +44,7 @@ public class DefaultChannelEventListener implements ChannelEventListener {
         if (StrUtil.isNotEmpty(clientId)) {
             ClientSession session = ClientManager.getClient(clientId);
             if (session != null) {
-                // offlineSession(session);
+                offlineSession(session);
                 if (session.normalDisconnection()) {
                     // 收到DISCONNECT报文而断开的连接属于正常断开，不发送遗嘱消息，仅异常断开的连接发送遗嘱消息
                     if (session.publishWill()) {
@@ -82,6 +83,27 @@ public class DefaultChannelEventListener implements ChannelEventListener {
                 messageStore.clearWillMessage(clientId);
             }
         }
+    }
+
+    private void offlineSession(ClientSession clientSession) {
+        String clientId = clientSession.getClientId();
+        if (clientSession.isCleanStart()) {
+            sessionStore.clearSession(clientId, true);
+        } else {
+            // TimerUtils.startSessionTimeout(clientId);
+        }
+        // SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis(), clientSession.getVersion());
+        // SessionState exist = BrokerContext.getSessionStore().getSession(clientId);
+        // if (exist != null) {
+            // sessionState.setClientId(clientId);
+            // sessionState.setPropertyMap(exist.getPropertyMap());
+            // sessionState.setAddress(exist.getAddress());
+            // sessionState.setOnlineTime(exist.getOnlineTime());
+            // sessionState.setCleanStart(exist.getCleanStart());
+            // sessionState.setKeepalive(exist.getKeepalive());
+            // sessionStore.storeSession(sessionState);
+            // ClusterHelper.sendSessionToCluster(sessionState);
+        // }
     }
 
     @Override

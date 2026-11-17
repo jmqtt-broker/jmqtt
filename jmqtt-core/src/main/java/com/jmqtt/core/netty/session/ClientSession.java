@@ -1,6 +1,9 @@
 package com.jmqtt.core.netty.session;
 
+import com.jmqtt.core.JmqttBroker;
+import com.jmqtt.core.mqtt.JmqttContext;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttVersion;
 import io.netty.util.AttributeKey;
 import lombok.EqualsAndHashCode;
@@ -52,6 +55,24 @@ public class ClientSession {
     public boolean publishWill() {
         return (boolean) Optional.ofNullable(ctx.channel().attr(
                 AttributeKey.valueOf("PUBLISH_WILL")).get()).orElse(false);
+    }
+
+    /**
+     * 客户端会话超时时间（秒）
+     * @return
+     */
+    public int timeoutSecond() {
+        if (isMqtt5()) {
+            Integer expire = (Integer) JmqttContext.getSessionStore()
+                    .getClientProperty(clientId, MqttProperties.MqttPropertyType.SESSION_EXPIRY_INTERVAL.value());
+            return Optional.ofNullable(expire).orElse(JmqttContext.getJmqttConfig().getBroker().getDefaultSessionTimeout());
+        } else {
+            // cleanStart=false时：
+            // MQTT各版本规范中，没有对mqtt3、3.1.1的客户端明确要求过期时间，很多broker没有实现对这类客户端的处理，
+            // 造成离线的客户端会话永久存在于broker存储资源中。
+            // 所以对这类离线的客户端，设置一个默认时间，可配置。
+            return JmqttContext.getJmqttConfig().getBroker().getDefaultSessionTimeout();
+        }
     }
 
 }

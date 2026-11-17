@@ -42,9 +42,9 @@ public class LocalSessionStore implements SessionStore {
     /**
      * Qos 1、2产生的过程消息
      */
-    private final Map<String, ConcurrentHashMap<Integer, Message>> recCache = new ConcurrentHashMap<>(128);
-    private final Map<String, ConcurrentHashMap<Integer, Message>> sendCache = new ConcurrentHashMap<>(128);
-    private final Map<String, ConcurrentHashMap<Integer, Object>> secTwoCache = new ConcurrentHashMap<>(128);
+    private final Map<String, ConcurrentHashMap<Integer, Message>> inboundCache = new ConcurrentHashMap<>(128);
+    private final Map<String, ConcurrentHashMap<Integer, Message>> outboundCache = new ConcurrentHashMap<>(128);
+    private final Map<String, ConcurrentHashMap<Integer, Object>> outboundSecCache = new ConcurrentHashMap<>(128);
 
     @Override
     public SessionState getSession(String clientId) {
@@ -157,10 +157,10 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public boolean cacheInboundMsg(String clientId, Message message) {
-        ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
+        ConcurrentHashMap<Integer, Message> v = inboundCache.get(clientId);
         if (v == null) {
-            synchronized (recCache) {
-                v = recCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
+            synchronized (inboundCache) {
+                v = inboundCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
             }
         }
         v.put(message.getMsgId(), message);
@@ -169,7 +169,7 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public boolean existInboundMsg(String clientId, Integer msgId) {
-        ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
+        ConcurrentHashMap<Integer, Message> v = inboundCache.get(clientId);
         if (v != null) {
             return v.containsKey(msgId);
         }
@@ -178,10 +178,11 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public Message releaseInboundMsg(String clientId, Integer msgId) {
-        ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
+        ConcurrentHashMap<Integer, Message> v = inboundCache.get(clientId);
         if (msgId == null) {
             if (v != null) {
                 v.clear();
+                inboundCache.remove(clientId);
             }
             return null;
         } else {
@@ -195,7 +196,7 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public Collection<Message> getAllInboundMsg(String clientId) {
-        ConcurrentHashMap<Integer, Message> v = recCache.get(clientId);
+        ConcurrentHashMap<Integer, Message> v = inboundCache.get(clientId);
         if (v == null || v.isEmpty()) {
             return List.of();
         }
@@ -204,10 +205,10 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public boolean cacheOutboundMsg(String clientId, Message message) {
-        ConcurrentHashMap<Integer, Message> v = sendCache.get(clientId);
+        ConcurrentHashMap<Integer, Message> v = outboundCache.get(clientId);
         if (v == null) {
-            synchronized (sendCache) {
-                v = sendCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
+            synchronized (outboundCache) {
+                v = outboundCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
             }
         }
         v.put(message.getMsgId(), message);
@@ -216,7 +217,7 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public Collection<Message> getAllOutboundMsg(String clientId) {
-        ConcurrentHashMap<Integer, Message> v = sendCache.get(clientId);
+        ConcurrentHashMap<Integer, Message> v = outboundCache.get(clientId);
         if (v == null || v.isEmpty()) {
             return List.of();
         }
@@ -225,10 +226,11 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public Message releaseOutboundMsg(String clientId, Integer msgId) {
-        ConcurrentHashMap<Integer, Message> v = sendCache.get(clientId);
+        ConcurrentHashMap<Integer, Message> v = outboundCache.get(clientId);
         if (msgId == null) {
             if (v != null) {
                 v.clear();
+                outboundCache.remove(clientId);
             }
             return null;
         } else {
@@ -243,10 +245,10 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public boolean cacheOutboundSecMsgId(String clientId, int msgId) {
-        ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
+        ConcurrentHashMap<Integer, Object> v = outboundSecCache.get(clientId);
         if (v == null) {
-            synchronized (secTwoCache) {
-                v = secTwoCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
+            synchronized (outboundSecCache) {
+                v = outboundSecCache.computeIfAbsent(clientId, k -> MapUtil.newConcurrentHashMap(128));
             }
         }
         v.put(msgId, 1);
@@ -255,10 +257,11 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public boolean releaseOutboundSecMsgId(String clientId, Integer msgId) {
-        ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
+        ConcurrentHashMap<Integer, Object> v = outboundSecCache.get(clientId);
         if (msgId == null) {
             if (v != null) {
                 v.clear();
+                outboundSecCache.remove(clientId);
             }
             return true;
         } else {
@@ -276,7 +279,7 @@ public class LocalSessionStore implements SessionStore {
 
     @Override
     public List<Integer> getAllOutboundSecMsgId(String clientId) {
-        ConcurrentHashMap<Integer, Object> v = secTwoCache.get(clientId);
+        ConcurrentHashMap<Integer, Object> v = outboundSecCache.get(clientId);
         if (v == null) {
             return List.of();
         }
