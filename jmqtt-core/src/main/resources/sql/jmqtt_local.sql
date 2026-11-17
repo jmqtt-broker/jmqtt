@@ -111,8 +111,8 @@ CREATE TABLE IF NOT EXISTS `schedule_task`
     `expire_at` bigint      NOT NULL COMMENT '过期时间点（时间戳）',
     `expire`    bigint      NOT NULL COMMENT '有效时间（秒）',
     `data`      text DEFAULT NULL COMMENT '关联数据',
-    `cycle`     tinyint     NOT NULL COMMENT '是否为周期任务',
-    `exec`      tinyint     NOT NULL COMMENT '是否需要执行',
+    `cycle`     tinyint     NOT NULL COMMENT '是否为周期任务，1循环任务，0一次性延时任务',
+    `exec`      tinyint     NOT NULL COMMENT 'reload后，如果过期了，是否需要执行',
     PRIMARY KEY (`timer_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4

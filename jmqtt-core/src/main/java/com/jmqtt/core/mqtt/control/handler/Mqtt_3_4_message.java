@@ -1,7 +1,7 @@
 package com.jmqtt.core.mqtt.control.handler;
 
 import com.jmqtt.core.cluster.ClusterConfig;
-import com.jmqtt.core.common.CacheHelper;
+import com.jmqtt.core.mqtt.helper.CacheHelper;
 import com.jmqtt.core.exception.BrokerException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
