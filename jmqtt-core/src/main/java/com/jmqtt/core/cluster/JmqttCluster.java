@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Getter
@@ -23,6 +24,8 @@ public class JmqttCluster {
     private static final String INSTANCE_NAME = "instanceName";
 
     private static volatile HazelcastInstance CLUSTER;
+
+    private static final AtomicBoolean SHUTTING_DOWN = new AtomicBoolean(false);
 
     private static final Map<String, Member> memberMap = new ConcurrentHashMap<>();
 
@@ -93,6 +96,8 @@ public class JmqttCluster {
             broadcastTopic.setMultiThreadingEnabled(true);
             hazelcastConfig.addTopicConfig(broadcastTopic);
 
+            hazelcastConfig.setProperty("hazelcast.shutdownhook.enabled", "false");
+
             CLUSTER = Hazelcast.newHazelcastInstance(hazelcastConfig);
             log.info("Hazelcast cluster started, nodeName = {}, members = {}",
                     config.getCurrentNodeName(), CLUSTER.getCluster().getMembers());
@@ -101,11 +106,20 @@ public class JmqttCluster {
     }
 
     public static void shutdown() {
+        if (!SHUTTING_DOWN.compareAndSet(false, true)) {
+            return;
+        }
         if (CLUSTER != null) {
             log.info("Hazelcast cluster shutdown.");
-            clusterMessageDispatcher.stop();
-            CLUSTER.shutdown();
+            if (clusterMessageDispatcher != null) {
+                clusterMessageDispatcher.stop();
+            }
+            try {
+                CLUSTER.shutdown();
+            } catch (Exception ignored) {
+            }
             CLUSTER = null;
+            memberMap.clear();
         }
     }
 

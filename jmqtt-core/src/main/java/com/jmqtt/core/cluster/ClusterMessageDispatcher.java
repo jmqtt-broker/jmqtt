@@ -31,8 +31,6 @@ public class ClusterMessageDispatcher implements Control {
 
     private final Map<ClusterMessage.EventType, ClusterMessageHandler<?>> handlers = new HashMap<>();
 
-    private Thread consumer;
-
     public ClusterMessageDispatcher(String localBrokerId, ITopic<ClusterMessage<?>> broadcastTopic, IQueue<ClusterMessage<?>> selfQueue) {
         this.localBrokerId = localBrokerId;
         this.broadcastTopic = broadcastTopic;
@@ -67,7 +65,7 @@ public class ClusterMessageDispatcher implements Control {
     }
 
     private void registerUnicastListener() {
-        consumer = Thread.startVirtualThread(() -> {
+        Thread.startVirtualThread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     ClusterMessage<?> msg = unicastQueue.take();
@@ -76,7 +74,11 @@ public class ClusterMessageDispatcher implements Control {
                         clusterMessageExecutor.submit(() -> handler.handle((ClusterMessage) msg));
                     }
                 } catch (InterruptedException e) {
-                    log.warn("Unicast message queue error.", e);
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (Throwable t) {
+                    log.debug("Unicast queue consumer exited: {}", t.getMessage());
+                    break;
                 }
             }
         });
@@ -99,10 +101,10 @@ public class ClusterMessageDispatcher implements Control {
 
     @Override
     public void stop() {
-        if (consumer != null) {
-            consumer.interrupt();
-        }
-        unicastQueue.destroy();
         handlers.clear();
+        try {
+            unicastQueue.destroy();
+        } catch (Exception ignored) {
+        }
     }
 }
