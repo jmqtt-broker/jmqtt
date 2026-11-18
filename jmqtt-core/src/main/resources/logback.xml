@@ -57,4 +57,8 @@
 
     <logger name="io.netty" level="WARN"/>
 
+    <logger name="com.hazelcast" level="ERROR"/>
+    <logger name="com.hazelcast.system.logo" level="ERROR"/>
+    <logger name="com.hazelcast.instance.impl.HazelcastInstanceFactory" level="ERROR"/>
+
 </configuration>

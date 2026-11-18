@@ -65,6 +65,7 @@ public class JmqttCluster {
 
     private static HazelcastInstance createCluster(ClusterConfig config) throws Exception {
         if (CLUSTER == null) {
+            System.setProperty("hazelcast.logging.type", "slf4j");
             Config hazelcastConfig = new Config();
             hazelcastConfig.setClusterName(config.getClusterName());
             hazelcastConfig.setInstanceName(config.getCurrentNodeName());
@@ -99,7 +100,7 @@ public class JmqttCluster {
             hazelcastConfig.setProperty("hazelcast.shutdownhook.enabled", "false");
 
             CLUSTER = Hazelcast.newHazelcastInstance(hazelcastConfig);
-            log.info("Hazelcast cluster started, nodeName = {}, members = {}",
+            log.info("jmqtt cluster started, nodeName = {}, members = {}",
                     config.getCurrentNodeName(), CLUSTER.getCluster().getMembers());
         }
         return CLUSTER;
