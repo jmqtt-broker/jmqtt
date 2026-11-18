@@ -6,6 +6,8 @@ import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.Subscription;
 import com.jmqtt.core.mqtt.store.persist.po.Session;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
+import com.jmqtt.core.mqtt.timer.TimerType;
+import com.jmqtt.core.mqtt.timer.TimerUtil;
 import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.handler.codec.mqtt.MqttVersion;
 
@@ -27,10 +29,9 @@ public interface SessionStore {
             return;
         }
         Optional.ofNullable(session.getVersion()).ifPresent(v -> {
-            if (v == MqttVersion.MQTT_5.protocolLevel()) {
-                // TopicAliasManager.clear(clientId);
-                // 会话到期了，如果存在延迟未发送的遗嘱消息，此时需要立即发送
-                // TimerUtils.sendWillImmediately(clientId);
+            if (v == MqttVersion.MQTT_5.protocolLevel() && cleanStart) {
+                TimerUtil.cancel(TimerType.SESSION.name() + "_" + clientId);
+                TimerUtil.cancel(TimerType.WILL.name() + "_" + clientId);
             }
         });
         SessionState update = new SessionState(clientId, SessionState.StateEnum.NEVER_CONNECTED);

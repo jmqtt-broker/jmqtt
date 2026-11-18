@@ -85,17 +85,13 @@ public class JmqttCluster {
 
             // p2p消息
             QueueConfig queueConfig = new QueueConfig(config.getCurrentNodeName());
-            queueConfig.setAsyncBackupCount(1);
+            queueConfig.setAsyncBackupCount(0);
             hazelcastConfig.addQueueConfig(queueConfig);
 
             // 广播消息
             TopicConfig broadcastTopic = new TopicConfig(BROADCAST_TOPIC);
             broadcastTopic.setMultiThreadingEnabled(true);
             hazelcastConfig.addTopicConfig(broadcastTopic);
-
-            // MapConfig retainedMap = new MapConfig(RETAINED_MAP);
-            // retainedMap.setAsyncBackupCount(1).setReadBackupData(true);
-            // hazelcastConfig.addMapConfig(retainedMap);
 
             CLUSTER = Hazelcast.newHazelcastInstance(hazelcastConfig);
             log.info("Hazelcast cluster started, nodeName = {}, members = {}",
@@ -106,10 +102,10 @@ public class JmqttCluster {
 
     public static void shutdown() {
         if (CLUSTER != null) {
-            CLUSTER.shutdown();
-            CLUSTER = null;
             log.info("Hazelcast cluster shutdown.");
             clusterMessageDispatcher.stop();
+            CLUSTER.shutdown();
+            CLUSTER = null;
         }
     }
 

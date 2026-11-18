@@ -47,7 +47,7 @@ public class NettyConnectHandler extends ChannelDuplexHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         String remoteAddr = ChannelHelper.getRemoteAddr(ctx.channel());
-        log.warn("Jmqtt netty channel exception, clientId = {}, remoteAddr = {}", ChannelUtil.getClientId(ctx.channel()), remoteAddr, cause);
+        log.warn("Jmqtt netty channel exception, clientId = {}, remoteAddr = {}", ChannelUtil.getClientId(ctx.channel()), remoteAddr);
         this.eventExecutor.putEvent(ChannelEvent.of(remoteAddr, NettyEventType.EXCEPTION, ctx.channel()));
     }
 }

@@ -4,6 +4,7 @@ import cn.hutool.json.JSONUtil;
 import com.jmqtt.core.cluster.ClusterMessage;
 import com.jmqtt.core.cluster.JmqttCluster;
 import com.jmqtt.core.cluster.record.ClusterMessageRecord;
+import com.jmqtt.core.cluster.record.RetainMessageRecord;
 import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.mqtt.helper.MessageUtil;
 import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
@@ -150,6 +151,11 @@ public class MessageDispatcher {
                             // 释放配额
                             ReceiveMaximumManager.releaseOutbound(subClientId);
                             sessionStore.releaseOutboundMsg(subClientId, message.getMsgId());
+                        }
+                        if ((boolean) message.getHeader(MessageHeader.RETAIN)) {
+                            String topic = (String) message.getHeader(MessageHeader.TOPIC);
+                            messageStore.clearRetainMessage(topic);
+                            JmqttCluster.broadcast(ClusterMessage.of(ClusterMessage.EventType.RETAIN, RetainMessageRecord.of(topic, null)));
                         }
                     }
                 } else {

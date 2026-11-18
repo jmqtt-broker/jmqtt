@@ -3,7 +3,7 @@ package com.jmqtt.core.netty;
 import com.jmqtt.core.common.Control;
 import com.jmqtt.core.common.JmqttConst;
 import com.jmqtt.core.common.ThreadFactoryImpl;
-import com.jmqtt.core.mqtt.control.BaseCtrl;
+import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.netty.coder.WebSocketDecoder;
 import com.jmqtt.core.netty.coder.WebSocketEncoder;
 import com.jmqtt.core.netty.config.NettyConfig;
@@ -31,8 +31,6 @@ import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -44,7 +42,6 @@ public class NettyServer implements Control {
     private final EventLoopGroup selectorGroup;
     private final EventLoopGroup ioGroup;
     private final Class<? extends ServerChannel> clazz;
-    private final Map<MqttMessageType, BaseCtrl> ctrlTable;
     private final ChannelEventExecutor nettyEventExecutor;
     private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -56,7 +53,6 @@ public class NettyServer implements Control {
             nettyConfig.setTls(TLS.defaultConfig());
         }
         this.nettyConfig = nettyConfig;
-        this.ctrlTable = new HashMap<>();
         this.nettyEventExecutor = new ChannelEventExecutor(listener);
         int coreThreadNum = Runtime.getRuntime().availableProcessors();
         String osName = System.getProperty("os.name").toLowerCase();
@@ -192,20 +188,15 @@ public class NettyServer implements Control {
         nettyEventExecutor.stop();
     }
 
-    public void registerCtrl(MqttMessageType mqttType, BaseCtrl ctrl) {
-        this.ctrlTable.put(mqttType, ctrl);
-    }
-
     class MqttHandler extends ChannelInboundHandlerAdapter {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object obj) {
             MqttMessage mqttMessage = (MqttMessage) obj;
             if (mqttMessage != null && mqttMessage.decoderResult().isSuccess()) {
                 MqttMessageType messageType = mqttMessage.fixedHeader().messageType();
-                log.debug("clientId:{} receive mqtt code,type:{},name:{},payload:[{}]", ChannelUtil.getClientId(ctx.channel()), messageType.value(), messageType.name(), mqttMessage.payload());
-                executorService.submit(() -> ctrlTable.get(messageType).processCtrl(ctx, mqttMessage));
+                executorService.submit(() -> JmqttContext.getCtrl(messageType).processCtrl(ctx, mqttMessage));
             } else {
-                log.warn("Mqtt解码失败。");
+                log.warn("Mqtt decode failure.");
                 ctx.close();
             }
         }

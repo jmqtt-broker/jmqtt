@@ -59,7 +59,7 @@ public class LocalDB {
 
     public void start() {
         if (this.start.compareAndSet(false, true)) {
-            log.info("local store start...");
+            log.info("local store starting...");
             this.dataSource = buildDataSource();
 
             TransactionFactory transactionFactory = new JdbcTransactionFactory();
@@ -82,7 +82,7 @@ public class LocalDB {
                 log.error("init sql error.", e);
                 throw new RuntimeException("init sql error.");
             }
-            log.info("local store start success...");
+            log.info("local store started.");
         }
     }
 

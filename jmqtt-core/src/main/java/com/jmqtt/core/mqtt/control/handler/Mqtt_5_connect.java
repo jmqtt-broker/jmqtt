@@ -1,6 +1,7 @@
 package com.jmqtt.core.mqtt.control.handler;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.json.JSONUtil;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.exception.ConnectException;
 import com.jmqtt.core.mqtt.auth.JmqttAuth;
@@ -11,6 +12,8 @@ import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionState;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
+import com.jmqtt.core.mqtt.timer.TimerType;
+import com.jmqtt.core.mqtt.timer.TimerUtil;
 import com.jmqtt.core.netty.helper.ChannelUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
@@ -114,8 +117,8 @@ public class Mqtt_5_connect extends Mqtt_3_4_connect {
     }
 
     private void stopSessionAndWillMessageTimeout(String clientId) {
-        // TimerUtils.stopSessionTimeout(clientId);
-        // TimerUtils.stopWillTimeout(clientId);
+        TimerUtil.cancel(TimerType.SESSION.name() + "_" + clientId);
+        TimerUtil.cancel(TimerType.WILL.name() + "_" + clientId);
     }
 
     protected void handleWillMessage(String clientId, MqttConnectVariableHeader variableHeader, MqttConnectMessage connectMessage) {

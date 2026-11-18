@@ -1,6 +1,5 @@
 package com.jmqtt.core.netty.session;
 
-import com.jmqtt.core.JmqttBroker;
 import com.jmqtt.core.mqtt.JmqttContext;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttProperties;
@@ -59,6 +58,7 @@ public class ClientSession {
 
     /**
      * 客户端会话超时时间（秒）
+     *
      * @return
      */
     public int timeoutSecond() {

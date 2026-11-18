@@ -16,6 +16,7 @@ import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.store.persist.LocalDB;
 import com.jmqtt.core.mqtt.subscribe.DefaultSubscriptionTreeMatcher;
 import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
+import com.jmqtt.core.mqtt.timer.TimerUtil;
 import com.jmqtt.core.netty.NettyServer;
 import com.jmqtt.core.netty.event.DefaultChannelEventListener;
 import io.netty.handler.codec.mqtt.MqttMessageType;
@@ -63,59 +64,65 @@ public class JmqttBroker {
         this.jmqttAuth = new DefaultJmqttAuth();
         // 初始化消息分发器
         this.messageDispatcher = new MessageDispatcher(this.sessionStore, this.messageStore, this.subscriptionMatcher);
-        // 启动netty服务
+        // 初始化netty服务
         this.channelEventListener = new DefaultChannelEventListener(this.sessionStore, this.messageStore, this.messageDispatcher);
         this.nettyServer = new NettyServer(jmqttConfig.getNetty(), this.channelEventListener);
         // 注册mqtt控制指令报文处理器
         initCtrl();
         // 上下文工具
         JmqttContext.setBroker(this);
-        // 启动集群，若配置未开启，则不启动
-        JmqttCluster.start(this.jmqttConfig.getCluster());
     }
 
     private void initCtrl() {
-        this.nettyServer.registerCtrl(MqttMessageType.CONNECT,
+        JmqttContext.registerCtrl(MqttMessageType.CONNECT,
                 new ConnectCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                         this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.DISCONNECT, new DisconnectCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.DISCONNECT, new DisconnectCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.PINGREQ, new PingCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.PINGREQ, new PingCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.PUBLISH, new PublishCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.PUBLISH, new PublishCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.PUBACK, new PubAckCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.PUBACK, new PubAckCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.PUBREC, new PubRecCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.PUBREC, new PubRecCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.PUBREL, new PubRelCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.PUBREL, new PubRelCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.PUBCOMP, new PubCompCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.PUBCOMP, new PubCompCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.SUBSCRIBE, new SubscribeCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.SUBSCRIBE, new SubscribeCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
-        this.nettyServer.registerCtrl(MqttMessageType.UNSUBSCRIBE, new UnSubscribeCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
+        JmqttContext.registerCtrl(MqttMessageType.UNSUBSCRIBE, new UnSubscribeCtrl(this.jmqttAuth, this.jmqttConfig.getBroker(), this.jmqttConfig.getCluster(),
                 this.sessionStore, this.messageStore, this.subscriptionMatcher, this.messageDispatcher));
     }
 
-    public static void start(String[] args) throws Exception {
-        log.info("Jmqtt broker start begin.");
+    public static void start(String... args) throws Exception {
+        log.info("Jmqtt broker starting...");
         String configPath = Arrays.stream(args).filter(a -> a.startsWith("--config"))
                 .findAny().map(s -> s.replace("--config=", "").trim()).orElse(null);
         JmqttBroker broker = new JmqttBroker(configPath);
         broker.startJmqtt();
-        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(broker::shutdown));
+
     }
 
-    private void startJmqtt() {
+    private void startJmqtt() throws Exception {
+        // 启动存储
         LocalDB.startDB();
+        // 启动集群，若配置未开启，则不启动
+        JmqttCluster.start(this.jmqttConfig.getCluster());
+        // 调度任务管理
+        TimerUtil.start();
+        // 启动网络通信
         this.nettyServer.start();
+        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(this::shutdown));
     }
 
     public void shutdown() {
         this.nettyServer.stop();
-        JmqttCluster.shutdown();
         this.messageDispatcher.stop();
+        TimerUtil.stop();
+        JmqttCluster.shutdown();
     }
 
     public static void main(String[] args) {

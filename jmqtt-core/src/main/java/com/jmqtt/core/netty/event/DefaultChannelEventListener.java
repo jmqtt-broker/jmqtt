@@ -1,6 +1,7 @@
 package com.jmqtt.core.netty.event;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.jmqtt.core.mqtt.control.dispatcher.MessageDispatcher;
 import com.jmqtt.core.mqtt.helper.ReceiveMaximumManager;
 import com.jmqtt.core.mqtt.helper.TopicAliasManager;
@@ -9,12 +10,16 @@ import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.store.MessageStore;
 import com.jmqtt.core.mqtt.store.SessionState;
 import com.jmqtt.core.mqtt.store.SessionStore;
+import com.jmqtt.core.mqtt.timer.TimerType;
+import com.jmqtt.core.mqtt.timer.TimerUtil;
 import com.jmqtt.core.netty.helper.ChannelUtil;
 import com.jmqtt.core.netty.session.ClientManager;
 import com.jmqtt.core.netty.session.ClientSession;
 import io.netty.channel.Channel;
+import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -71,8 +76,13 @@ public class DefaultChannelEventListener implements ChannelEventListener {
         String clientId = session.getClientId();
         Message willMessage = messageStore.getWillMessage(clientId);
         if (willMessage != null) {
-            if (session.isMqtt5()) {
-                // TimerUtils.startWillTimeout(clientId, willMessage);
+            Map<Integer, Object> properties = willMessage.getProperties();
+            int willDelay = 0;
+            if (properties != null && !properties.isEmpty()) {
+                willDelay = (Integer) Optional.ofNullable(properties.get(MqttProperties.MqttPropertyType.WILL_DELAY_INTERVAL.value())).orElse(0);
+            }
+            if (session.isMqtt5() && willDelay > 0) {
+                TimerUtil.add(TimerType.WILL.name() + "_" + clientId, TimerType.WILL, willDelay, JSONUtil.toJsonStr(willMessage));
             } else {
                 messageDispatcher.accept(willMessage);
                 Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
@@ -90,7 +100,7 @@ public class DefaultChannelEventListener implements ChannelEventListener {
         if (clientSession.isCleanStart()) {
             sessionStore.clearSession(clientId, true);
         } else {
-            // TimerUtils.startSessionTimeout(clientId);
+            TimerUtil.add(TimerType.SESSION.name() + "_" + clientId, TimerType.SESSION, clientSession.timeoutSecond(), clientId);
         }
         // SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis(), clientSession.getVersion());
         // SessionState exist = BrokerContext.getSessionStore().getSession(clientId);
