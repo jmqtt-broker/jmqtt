@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
@@ -47,13 +46,13 @@ public class ClientSession {
     }
 
     public boolean normalDisconnection() {
-        return (boolean) Optional.ofNullable(ctx.channel().attr(
-                AttributeKey.valueOf("NORMAL_DISCONNECTION")).get()).orElse(false);
+        Boolean normalDisconnection = (Boolean) ctx.channel().attr(AttributeKey.valueOf("NORMAL_DISCONNECTION")).get();
+        return normalDisconnection != null && normalDisconnection;
     }
 
     public boolean publishWill() {
-        return (boolean) Optional.ofNullable(ctx.channel().attr(
-                AttributeKey.valueOf("PUBLISH_WILL")).get()).orElse(false);
+        Boolean publishWill = (Boolean) ctx.channel().attr(AttributeKey.valueOf("PUBLISH_WILL")).get();
+        return publishWill != null && publishWill;
     }
 
     /**
@@ -65,7 +64,7 @@ public class ClientSession {
         if (isMqtt5()) {
             Integer expire = (Integer) JmqttContext.getSessionStore()
                     .getClientProperty(clientId, MqttProperties.MqttPropertyType.SESSION_EXPIRY_INTERVAL.value());
-            return Optional.ofNullable(expire).orElse(JmqttContext.getJmqttConfig().getBroker().getDefaultSessionTimeout());
+            return expire != null ? expire : JmqttContext.getJmqttConfig().getBroker().getDefaultSessionTimeout();
         } else {
             // cleanStart=false时：
             // MQTT各版本规范中，没有对mqtt3、3.1.1的客户端明确要求过期时间，很多broker没有实现对这类客户端的处理，

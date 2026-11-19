@@ -8,7 +8,6 @@ import com.jmqtt.core.mqtt.helper.TopicAliasManager;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.MessageHeader;
 import com.jmqtt.core.mqtt.store.MessageStore;
-import com.jmqtt.core.mqtt.store.SessionState;
 import com.jmqtt.core.mqtt.store.SessionStore;
 import com.jmqtt.core.mqtt.timer.TimerType;
 import com.jmqtt.core.mqtt.timer.TimerUtil;
@@ -20,7 +19,6 @@ import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 public class DefaultChannelEventListener implements ChannelEventListener {
@@ -79,17 +77,17 @@ public class DefaultChannelEventListener implements ChannelEventListener {
             Map<Integer, Object> properties = willMessage.getProperties();
             int willDelay = 0;
             if (properties != null && !properties.isEmpty()) {
-                willDelay = (Integer) Optional.ofNullable(properties.get(MqttProperties.MqttPropertyType.WILL_DELAY_INTERVAL.value())).orElse(0);
+                Integer delay = (Integer) properties.get(MqttProperties.MqttPropertyType.WILL_DELAY_INTERVAL.value());
+                willDelay = delay != null ? delay : 0;
             }
             if (session.isMqtt5() && willDelay > 0) {
                 TimerUtil.add(TimerType.WILL.name() + "_" + clientId, TimerType.WILL, willDelay, JSONUtil.toJsonStr(willMessage));
             } else {
                 messageDispatcher.accept(willMessage);
-                Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
-                    if ((boolean) retain) {
-                        messageStore.retainHandle(willMessage);
-                    }
-                });
+                Boolean retain = (Boolean) willMessage.getHeader(MessageHeader.RETAIN);
+                if (retain != null && retain) {
+                    messageStore.retainHandle(willMessage);
+                }
                 messageStore.clearWillMessage(clientId);
             }
         }
@@ -105,14 +103,14 @@ public class DefaultChannelEventListener implements ChannelEventListener {
         // SessionState sessionState = new SessionState(SessionState.StateEnum.OFFLINE, System.currentTimeMillis(), clientSession.getVersion());
         // SessionState exist = BrokerContext.getSessionStore().getSession(clientId);
         // if (exist != null) {
-            // sessionState.setClientId(clientId);
-            // sessionState.setPropertyMap(exist.getPropertyMap());
-            // sessionState.setAddress(exist.getAddress());
-            // sessionState.setOnlineTime(exist.getOnlineTime());
-            // sessionState.setCleanStart(exist.getCleanStart());
-            // sessionState.setKeepalive(exist.getKeepalive());
-            // sessionStore.storeSession(sessionState);
-            // ClusterHelper.sendSessionToCluster(sessionState);
+        // sessionState.setClientId(clientId);
+        // sessionState.setPropertyMap(exist.getPropertyMap());
+        // sessionState.setAddress(exist.getAddress());
+        // sessionState.setOnlineTime(exist.getOnlineTime());
+        // sessionState.setCleanStart(exist.getCleanStart());
+        // sessionState.setKeepalive(exist.getKeepalive());
+        // sessionStore.storeSession(sessionState);
+        // ClusterHelper.sendSessionToCluster(sessionState);
         // }
     }
 

@@ -11,7 +11,10 @@ import com.jmqtt.core.mqtt.timer.TimerUtil;
 import com.jmqtt.core.netty.session.ClientManager;
 import io.netty.handler.codec.mqtt.MqttVersion;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface SessionStore {
 
@@ -23,17 +26,16 @@ public interface SessionStore {
 
     default void clearSession(String clientId, boolean cleanStart) {
         SessionState session = getSession(clientId);
-        long onlineTime = Optional.ofNullable(session.getOnlineTime()).orElse(0L);
+        long onlineTime = session.getOnlineTime() != null ? session.getOnlineTime() : 0L;
         long cur = System.currentTimeMillis();
         if (SessionState.StateEnum.ONLINE.equals(session.getState()) && (onlineTime > 0 && cur < onlineTime)) {
             return;
         }
-        Optional.ofNullable(session.getVersion()).ifPresent(v -> {
-            if (v == MqttVersion.MQTT_5.protocolLevel() && cleanStart) {
-                TimerUtil.cancel(TimerType.SESSION.name() + "_" + clientId);
-                TimerUtil.cancel(TimerType.WILL.name() + "_" + clientId);
-            }
-        });
+        Integer version = session.getVersion();
+        if (version != null && version == MqttVersion.MQTT_5.protocolLevel() && cleanStart) {
+            TimerUtil.cancel(TimerType.SESSION.name() + "_" + clientId);
+            TimerUtil.cancel(TimerType.WILL.name() + "_" + clientId);
+        }
         SessionState update = new SessionState(clientId, SessionState.StateEnum.NEVER_CONNECTED);
         BeanUtil.copyProperties(session, update);
         if (cleanStart) {

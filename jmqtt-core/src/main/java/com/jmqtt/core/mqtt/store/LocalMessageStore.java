@@ -12,7 +12,6 @@ import com.jmqtt.core.mqtt.store.persist.po.WillMessage;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -52,7 +51,7 @@ public class LocalMessageStore implements MessageStore {
         WillMessage msg = LocalDB.getInstance().operate(sqlSession ->
                 sqlSession.getMapper(WillMessageMapper.class).selectById(clientId)
         );
-        return Optional.ofNullable(msg).map(w -> JSONUtil.toBean(w.getContent(), Message.class)).orElse(null);
+        return msg != null ? JSONUtil.toBean(msg.getContent(), Message.class) : null;
     }
 
     @Override

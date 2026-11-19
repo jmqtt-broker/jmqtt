@@ -17,7 +17,6 @@ import io.netty.handler.codec.mqtt.MqttProperties;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 public class Mqtt_5_subscription extends Mqtt_3_4_subscription {
@@ -31,13 +30,13 @@ public class Mqtt_5_subscription extends Mqtt_3_4_subscription {
     public void handleSubscription(ClientSession clientSession, List<SubTopic> subTopics, MqttMessageIdAndPropertiesVariableHeader variableHeader) {
         String clientId = clientSession.getClientId();
         MqttProperties properties = variableHeader.properties();
-        Optional<MqttProperties.IntegerProperty> subscriptionIdentifier = Optional.ofNullable((MqttProperties.IntegerProperty) properties.getProperty(MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value()));
-        if (subscriptionIdentifier.isPresent()) {
+        MqttProperties.IntegerProperty subscriptionIdentifier = (MqttProperties.IntegerProperty) properties.getProperty(MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value());
+        if (subscriptionIdentifier != null) {
             if (!brokerConfig.getSubscriptionIdentifierAvailable()) {
                 log.warn("subscription Identifiers not supported,clientId:{}", clientId);
                 throw BrokerException.of(Reason.SUBSCRIPTION_IDENTIFIERS_NOT_SUPPORTED);
             }
-            subTopics.forEach(t -> t.getOption().setSubscriptionIdentifier(subscriptionIdentifier.get().value()));
+            subTopics.forEach(t -> t.getOption().setSubscriptionIdentifier(subscriptionIdentifier.value()));
         }
         for (SubTopic t : subTopics) {
             if (!brokerConfig.getSharedSubscriptionAvailable() && t.getTopicName().startsWith(JmqttConst.SHARE_IDENTIFIERS)) {

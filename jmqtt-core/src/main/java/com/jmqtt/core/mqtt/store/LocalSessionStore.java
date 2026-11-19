@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.mqtt.model.Message;
 import com.jmqtt.core.mqtt.model.Subscription;
+import com.jmqtt.core.mqtt.model.SubscriptionOption;
 import com.jmqtt.core.mqtt.store.persist.LocalDB;
 import com.jmqtt.core.mqtt.store.persist.mapper.OfflineMessageMapper;
 import com.jmqtt.core.mqtt.store.persist.mapper.SessionMapper;
@@ -20,7 +21,10 @@ import com.jmqtt.core.mqtt.subscribe.SubscriptionMatcher;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -85,7 +89,10 @@ public class LocalSessionStore implements SessionStore {
                     .cleanStart(sessionState.getCleanStart())
                     .keepalive(sessionState.getKeepalive())
                     .build();
-            Optional.ofNullable(sessionState.getPropertyMap()).ifPresent(p -> session.setProperty(JSONUtil.toJsonStr(p)));
+            Map<Integer, Object> propertyMap = sessionState.getPropertyMap();
+            if (propertyMap != null) {
+                session.setProperty(JSONUtil.toJsonStr(propertyMap));
+            }
             return sqlSession.getMapper(SessionMapper.class).insertOrUpdate(session);
         });
     }
@@ -101,9 +108,10 @@ public class LocalSessionStore implements SessionStore {
                     .qos(subscription.getQos())
                     .subRes(subscription.getSubRes())
                     .build();
-            Optional.ofNullable(subscription.getOption()).ifPresent(opt -> {
-                subscriptionDO.setOpt(JSONUtil.toJsonStr(opt));
-            });
+            SubscriptionOption option = subscription.getOption();
+            if (option != null) {
+                subscriptionDO.setOpt(JSONUtil.toJsonStr(option));
+            }
             return sqlSession.getMapper(SubscriptionMapper.class).upsert(subscriptionDO);
         });
     }
@@ -144,7 +152,7 @@ public class LocalSessionStore implements SessionStore {
                 sqlSession.getMapper(SubscriptionMapper.class).selectOne(Wrappers.lambdaQuery(SubscriptionDO.class)
                         .eq(SubscriptionDO::getClientId, clientId).eq(SubscriptionDO::getTopic, topic))
         );
-        return Optional.ofNullable(subscriptionDO).map(Subscription::of).orElse(null);
+        return subscriptionDO != null ? Subscription.of(subscriptionDO) : null;
     }
 
     @Override

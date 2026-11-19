@@ -9,7 +9,6 @@ import com.jmqtt.core.mqtt.model.MessageHeader;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Optional;
 
 /**
  * 设备消息处理：
@@ -43,11 +42,10 @@ public interface MessageStore {
         Message willMessage = getWillMessage(clientId);
         if (willMessage != null) {
             clearWillMessage(clientId);
-            Optional.ofNullable(willMessage.getHeader(MessageHeader.RETAIN)).ifPresent(retain -> {
-                if ((boolean) retain) {
-                    // ClusterHelper.clearRetainMessage((String) willMessage.getHeader(MessageHeader.TOPIC));
-                }
-            });
+            Boolean retain = (Boolean) willMessage.getHeader(MessageHeader.RETAIN);
+            if (retain != null && retain) {
+                // ClusterHelper.clearRetainMessage((String) willMessage.getHeader(MessageHeader.TOPIC));
+            }
         }
     }
 

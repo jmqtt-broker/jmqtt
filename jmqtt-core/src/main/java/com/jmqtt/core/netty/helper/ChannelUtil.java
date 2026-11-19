@@ -4,8 +4,6 @@ import io.netty.channel.Channel;
 import io.netty.handler.codec.mqtt.MqttVersion;
 import io.netty.util.AttributeKey;
 
-import java.util.Optional;
-
 public class ChannelUtil {
 
     private static final AttributeKey<String> clientIdAttr = AttributeKey.valueOf("clientId");
@@ -32,6 +30,7 @@ public class ChannelUtil {
     }
 
     public static boolean isMqtt5(Channel channel){
-        return Optional.ofNullable(channel.attr(mqtt5Attr).get()).orElse(false);
+        Boolean b = channel.attr(mqtt5Attr).get();
+        return b != null && b;
     }
 }

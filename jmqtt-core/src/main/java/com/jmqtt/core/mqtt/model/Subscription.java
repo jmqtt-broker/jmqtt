@@ -5,8 +5,6 @@ import cn.hutool.json.JSONUtil;
 import com.jmqtt.core.mqtt.store.persist.po.SubscriptionDO;
 import lombok.*;
 
-import java.util.Optional;
-
 /**
  * 订阅关系
  */
@@ -39,8 +37,10 @@ public class Subscription {
 
     public Subscription(SubscriptionDO subscriptionDO) {
         BeanUtil.copyProperties(subscriptionDO, this);
-        Optional.ofNullable(subscriptionDO.getOpt()).ifPresent(opt ->
-                this.option = JSONUtil.toBean(opt, SubscriptionOption.class));
+        String opt = subscriptionDO.getOpt();
+        if (opt != null) {
+            this.option = JSONUtil.toBean(opt, SubscriptionOption.class);
+        }
     }
 
     public static Subscription of(SubscriptionDO subscriptionDO) {

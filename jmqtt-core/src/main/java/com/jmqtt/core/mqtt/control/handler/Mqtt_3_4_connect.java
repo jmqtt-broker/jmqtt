@@ -27,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -135,10 +134,11 @@ public class Mqtt_3_4_connect implements ConnectHandler {
     protected boolean handlePreviousClient(ChannelHandlerContext ctx, String clientId, boolean cleanStart, int version) {
         boolean present;
         // 检查当前节点查询是否存在该clientId，存在则踢下线
-        Optional.ofNullable(ClientManager.getClient(clientId)).ifPresent(previous -> {
+        ClientSession previous = ClientManager.getClient(clientId);
+        if (previous != null) {
             MessageUtil.sendDisconnect(previous, Reason.SESSION_TAKEN_OVER);
             this.sessionStore.clearSession(clientId, true);
-        });
+        }
         // 检查集群中其他节点是否存在该clientId，存在则踢下线
         SessionState state = sessionStore.getSession(clientId);
         ClientSession clientSession;

@@ -50,21 +50,22 @@ public class MessageUtil {
     }
 
     public static MqttPublishMessage getPubMessage(Message message, boolean dup, SubscriptionOption option, String subClientId) {
-        boolean retain = (boolean) Optional.ofNullable(message.getHeader(MessageHeader.RETAIN)).orElse(false);
-        int remainingLength = (int) Optional.ofNullable(message.getHeader(MessageHeader.REMAINING_LENGTH)).orElse(0);
+        Boolean retain = (Boolean) message.getHeader(MessageHeader.RETAIN);
+        int remainingLength = (int) message.getHeader(MessageHeader.REMAINING_LENGTH);
         MqttFixedHeader fixedHeader = new MqttFixedHeader(
                 MqttMessageType.PUBLISH,
                 dup,
                 MqttQoS.valueOf((int) message.getHeader(MessageHeader.QOS)),
-                option != null && option.getRetainAsPublished() && retain,
+                option != null && option.getRetainAsPublished() && (retain != null && retain),
                 remainingLength);
         MqttProperties properties = getProperties(message.getProperties(), subClientId);
         if (properties != null && option != null) {
-            Optional.ofNullable(option.getSubscriptionIdentifier()).ifPresent(subscriptId -> {
+            Integer subscriptId = option.getSubscriptionIdentifier();
+            if (subscriptId != null) {
                 properties.add(new MqttProperties.IntegerProperty(
                         MqttProperties.MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value(),
                         subscriptId));
-            });
+            }
         }
         MqttPublishVariableHeader publishVariableHeader = new MqttPublishVariableHeader(
                 (String) message.getHeader(MessageHeader.TOPIC), message.getMsgId(), properties);
@@ -103,10 +104,10 @@ public class MessageUtil {
                     if (StrUtil.isNotBlank(subClientId) && k == MqttProperties.MqttPropertyType.TOPIC_ALIAS.value()) {
                         // 发布的消息带有主题别名，订阅方建立连接的时候如果没有设置别名最大值，
                         // 那么转发消息的时候需要将消息中的主题别名去掉
-                        Optional.ofNullable(JmqttContext.getSessionStore().getClientProperty(subClientId,
-                                MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value())).ifPresent(aliasMax -> {
+                        Integer aliasMax = (Integer) JmqttContext.getSessionStore().getClientProperty(subClientId, MqttProperties.MqttPropertyType.TOPIC_ALIAS_MAXIMUM.value());
+                        if (aliasMax != null) {
                             properties.add(new MqttProperties.IntegerProperty(k, (int) v));
-                        });
+                        }
                     } else {
                         properties.add(new MqttProperties.IntegerProperty(k, (int) v));
                     }
@@ -177,6 +178,7 @@ public class MessageUtil {
             ctx.close();
         }
     }
+
     public static Map<Integer, Object> propertyMap(MqttProperties properties) {
         if (properties == null || properties.isEmpty()) {
             return null;
