@@ -3,6 +3,7 @@ package com.jmqtt.core;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.setting.yaml.YamlUtil;
 import com.jmqtt.core.cluster.JmqttCluster;
+import com.jmqtt.core.common.Banner;
 import com.jmqtt.core.config.JmqttConfig;
 import com.jmqtt.core.mqtt.JmqttContext;
 import com.jmqtt.core.mqtt.auth.DefaultJmqttAuth;
@@ -98,12 +99,12 @@ public class JmqttBroker {
     }
 
     public static void start(String... args) throws Exception {
+        Banner.print(System.out);
         log.info("Jmqtt broker starting...");
         String configPath = Arrays.stream(args).filter(a -> a.startsWith("--config"))
                 .findAny().map(s -> s.replace("--config=", "").trim()).orElse(null);
         JmqttBroker broker = new JmqttBroker(configPath);
         broker.startJmqtt();
-
     }
 
     private void startJmqtt() throws Exception {
