@@ -123,6 +123,7 @@ public class JmqttBroker {
         this.messageDispatcher.stop();
         TimerUtil.stop();
         JmqttCluster.shutdown();
+        log.info("Jmqtt broker shutdown!");
     }
 
     public static void main(String[] args) {

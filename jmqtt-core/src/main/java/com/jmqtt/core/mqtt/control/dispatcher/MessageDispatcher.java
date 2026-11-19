@@ -65,7 +65,7 @@ public class MessageDispatcher {
                         this.messageExecutor.submit(new DispatcherTask(batch));
                     }
                 } catch (InterruptedException e) {
-                    log.warn("poll message thread error!");
+                    log.info("MessageDispatcher stoped.");
                 }
             }
         });

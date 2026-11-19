@@ -62,7 +62,6 @@ public class ScheduleTaskScheduler implements Control {
         if (!started.compareAndSet(true, false)) {
             return;
         }
-        log.info("ScheduleTaskScheduler stopping...");
         wheelTimer.stop();
         timeouts.clear();
         log.info("ScheduleTaskScheduler stopped.");
