@@ -423,6 +423,96 @@ CREATE TABLE schedule_task (
 - `SessionDisconnectHandler`
 - `RetainMessageHandler`
 
+### 8.4 Unicast 消费线程批量设计
+
+#### 8.4.1 整体结构
+
+```java
+private final ExecutorService clusterMessageExecutor = Executors.newSingleThreadExecutor();
+private volatile Thread pollThread;
+```
+
+- **pollThread**（虚拟线程）：负责从 Hazelcast `IQueue` 拉取 + 聚合批次
+- **clusterMessageExecutor**（单线程）：负责执行批次内的 Handler，**保证同一节点 unicast 消息严格顺序**
+
+> ⚠️ 必须单线程执行器，不能用 `newVirtualThreadPerTaskExecutor()`
+> 因为第一批/第二批是独立 submit，无界虚拟线程池可能导致乱序（MQTT 集群控制消息有顺序依赖）
+
+#### 8.4.2 核心流程（take + drainTo + poll(1s) 分裂批）
+
+```
+loop（pollThread）:
+  ① unicastQueue.take()
+     阻塞拿第一条，0 延迟启动，保证不丢消息
+
+  ② firstBatch.add(msg) + drainTo(15)
+     非阻塞捞队列已积压的，0 延迟
+     → firstBatch 最终 size：1~16
+
+  ③ submit(firstBatch) → clusterMessageExecutor
+     ✅ 第一批消息**立即提交处理**（0 延迟）
+     ⚠️ poll(1s) 在 submit 之后，完全不影响第一批！
+
+  ④ unicastQueue.poll(1000, MILLISECONDS)
+     带超时阻塞，触发第二批的"窗口"
+     - 队列还有消息？立即返回（0 延迟触发第二批）
+     - 队列空了？最多等 1s，有消息就触发，没就返回 null
+
+  ⑤ 第二批处理：
+     batch.add(next) + for 循环无参 poll() 捞剩余
+     → submit(batch) → clusterMessageExecutor
+     ⚠️ 第二批的 poll() 是无参非阻塞的，队空立即返回 null，不会卡死
+
+  → 回到 ①（take）
+```
+
+#### 8.4.3 三负载场景表现
+
+| 场景 | 延迟表现 | 批量行为 |
+|------|----------|----------|
+| **高负载**（队列积压 ≥16 条） | ✅ 0ms | take+drainTo 拿满 16 → poll(1s) 立即返回 → 第二批捞满 → 循环直到队列空，**瞬间拆多批满 16** |
+| **中负载**（每秒均匀 5-10 条） | ✅ ≤1s（自然触发） | take 拿第一条 → drainTo 捞 0 → poll(1s) 窗口内陆续到达的消息自然触发第二批，聚合 5~16 条 |
+| **低负载**（每秒仅 1 条） | ✅ 0ms（实际消息无延迟） | take 拿 1 条 → submit → poll(1s) 超时空转 → 循环回到 take。**1s 空转是消费者等待，不是消息延迟**（本来就没新消息要处理） |
+
+#### 8.4.4 设计巧思
+
+poll(1s) 放在**第一批 submit 之后**，这个位置是整个方案的核心：
+
+| poll 位置 | 效果 |
+|-----------|------|
+| 在 take 之前 | ❌ 消息到了先等 poll 超时，硬延迟 |
+| **submit 之后（本方案）** | ✅ 第一批 0 延迟处理；poll 窗口在第一批处理的同时去等第二批触发 |
+| poll 无超时 | ❌ 队列空了跳过第二批，失去聚合能力 |
+| **poll(1s) 带超时（本方案）** | ✅ 有消息立即返回（0 延迟触发）；没消息最多等 1s 就放弃（空转不影响） |
+
+#### 8.4.5 已修复的 Bug 清单
+
+| Bug | 位置 | 修复 |
+|-----|------|------|
+| forEach 内错误引用外层 `msg` 变量，导致所有消息用同一个 msg 处理 | 原 L79-82, L95-98 | 改为 lambda 参数 `m` |
+| handler 为 null 时 NPE | 原 L80, L96 | 加 `if (handler != null)` 判断 |
+| `catch(Throwable) → break` 导致整个消费者永久退出 | 原 L108-110 | 改为 `catch(Exception)` + `log.warn` + continue |
+| 执行器无界导致消息乱序 | 原 `newVirtualThreadPerTaskExecutor()` | 改为 `newSingleThreadExecutor()` |
+| stop() 未关闭线程池、未 interrupt poll 线程 | 原 stop() | 补全优雅关闭顺序 |
+
+#### 8.4.6 魔法数字
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| BATCH_SIZE | 16 | 单批次最大消息数，平衡 batching 收益和内存占用 |
+| NEXT_BATCH_WAIT_MS | 1000 | 第二批触发窗口，中负载聚合用。1s 是经过验证的合理值——MQTT 集群消息对 1s 以内的延迟完全不敏感 |
+
+#### 8.4.7 Shutdown 顺序
+
+```
+stop() 执行顺序:
+  1. interrupt pollThread      ← 先停拉取，避免继续 submit
+  2. remove broadcast listener  ← 移除广播监听，避免重复处理
+  3. executor.shutdown() + awaitTermination(5s)  ← 等已提交的批次处理完
+  4. handlers.clear()          ← 最后清 handler，避免竞态
+  5. unicastQueue.destroy()    ← 销毁分布式队列（try-catch 兜底）
+```
+
 ---
 
 ## 9. 存储架构

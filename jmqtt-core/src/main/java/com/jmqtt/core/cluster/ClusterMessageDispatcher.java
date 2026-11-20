@@ -7,10 +7,13 @@ import com.jmqtt.core.cluster.handler.*;
 import com.jmqtt.core.common.Control;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class ClusterMessageDispatcher implements Control {
@@ -68,17 +71,39 @@ public class ClusterMessageDispatcher implements Control {
         Thread.startVirtualThread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
+                    List<ClusterMessage<?>> firstBatch = new ArrayList<>(16);
                     ClusterMessage<?> msg = unicastQueue.take();
-                    ClusterMessageHandler<?> handler = handlers.get(msg.getEventType());
-                    if (handler != null) {
-                        clusterMessageExecutor.submit(() -> handler.handle((ClusterMessage) msg));
+                    firstBatch.add(msg);
+                    unicastQueue.drainTo(firstBatch, 15);
+                    clusterMessageExecutor.submit(() -> {
+                        firstBatch.forEach(m -> {
+                            ClusterMessageHandler<?> handler = handlers.get(msg.getEventType());
+                            handler.handle((ClusterMessage) msg);
+                        });
+                    });
+                    ClusterMessage<?> next = unicastQueue.poll(1000, TimeUnit.MILLISECONDS);
+                    if (next != null) {
+                        List<ClusterMessage<?>> batch = new ArrayList<>(16);
+                        batch.add(next);
+                        for (int i = 0; i < 15; i++) {
+                            next = unicastQueue.poll();
+                            if (next != null) {
+                                batch.add(next);
+                            }
+                        }
+                        clusterMessageExecutor.submit(() -> {
+                            batch.forEach(m -> {
+                                ClusterMessageHandler<?> handler = handlers.get(msg.getEventType());
+                                handler.handle((ClusterMessage) msg);
+                            });
+                        });
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    log.debug("Unicast queue consumer exited.");
                     break;
-                } catch (Throwable t) {
-                    log.debug("Unicast queue consumer exited: {}", t.getMessage());
-                    break;
+                } catch (Exception e) {
+                    log.error("Unicast queue consumer error: ", e);
                 }
             }
         });

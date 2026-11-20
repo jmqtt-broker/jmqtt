@@ -48,8 +48,7 @@ public class MessageDispatcher {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     List<Message> firstBatch = new ArrayList<>(16);
-                    Message message = messageQueue.take();
-                    firstBatch.add(message);
+                    firstBatch.add(messageQueue.take());
                     messageQueue.drainTo(firstBatch, 15);
                     this.messageExecutor.submit(new DispatcherTask(firstBatch));
                     Message next = messageQueue.poll(1000, TimeUnit.MILLISECONDS);
@@ -66,6 +65,9 @@ public class MessageDispatcher {
                     }
                 } catch (InterruptedException e) {
                     log.info("MessageDispatcher stoped.");
+                    break;
+                } catch (Exception e) {
+                    log.error("MessageDispatcher error: ", e);
                 }
             }
         });

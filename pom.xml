@@ -10,6 +10,7 @@
 
     <modules>
         <module>jmqtt-core</module>
+        <module>jmqtt-springboot-starter</module>
     </modules>
 
     <version>1.0.0</version>
@@ -123,6 +124,15 @@
             <artifactId>lombok</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
     <distributionManagement>
         <snapshotRepository>

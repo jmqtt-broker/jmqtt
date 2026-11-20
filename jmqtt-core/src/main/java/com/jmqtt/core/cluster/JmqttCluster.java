@@ -100,7 +100,7 @@ public class JmqttCluster {
             hazelcastConfig.setProperty("hazelcast.shutdownhook.enabled", "false");
 
             CLUSTER = Hazelcast.newHazelcastInstance(hazelcastConfig);
-            log.info("jmqtt cluster started, nodeName = {}, members = {}",
+            log.info("jmqtt cluster started, currentNodeName = {}, members = {}",
                     config.getCurrentNodeName(), CLUSTER.getCluster().getMembers());
         }
         return CLUSTER;
