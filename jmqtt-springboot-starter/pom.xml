@@ -24,6 +24,11 @@
             <artifactId>spring-boot-starter-webmvc</artifactId>
             <version>${spring-boot.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.jmqtt-broker</groupId>
+            <artifactId>jmqtt-core</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
 </project>

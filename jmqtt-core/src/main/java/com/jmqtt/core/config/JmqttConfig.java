@@ -15,11 +15,11 @@ import lombok.Setter;
 @NoArgsConstructor
 public class JmqttConfig {
 
-    private BrokerConfig broker;
+    private BrokerConfig broker = new BrokerConfig();
 
-    private NettyConfig netty;
+    private NettyConfig netty = new NettyConfig();
 
-    private ClusterConfig cluster;
+    private ClusterConfig cluster = new ClusterConfig();
 
     public static void main(String[] args) {
         JmqttConfig config = YamlUtil.load(JmqttConfig.class.getClassLoader().getResourceAsStream("jmqtt.yml"), JmqttConfig.class);

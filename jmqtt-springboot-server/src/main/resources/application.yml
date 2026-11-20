@@ -1,0 +1,83 @@
+server:
+  port: 8080
+  tomcat:
+    accept-count: 200             # 等待队列大小
+    max-connections: 10000        # 最大连接数
+    connection-timeout: 30s       # 连接超时
+    threads:
+      min-spare: 50
+      max: 200
+    keep-alive-timeout: 600000
+    max-keep-alive-requests: 1000
+  servlet:
+    context-path: /jmqtt
+
+spring:
+#  profiles:
+#    active: @profileActive@
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://192.168.100.26:5432/zb_sso}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:zhibo2022}
+    driver-class-name: org.postgresql.Driver
+
+mybatis-plus:
+  configuration:
+    # 驼峰命名转换
+    map-underscore-to-camel-case: true
+    # 开启 SQL 日志（开发阶段方便调试）
+  #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: assign_id
+  mapper-locations: classpath*:mapper/*.xml
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    # 标签（Controller分组）排序方式：alpha（按字母顺序）
+    operations-sorter: alpha
+    tags-sorter: alpha
+    # 列表不展开
+    docExpansion: none
+
+logging:
+  config: classpath:logback-boot.xml
+  level:
+    root: info
+
+sa-token:
+  is-concurrent: true
+  is-share: false
+  token-style: random-32
+  is-log: true
+  # cookie
+  cookie:
+    path: /
+    http-only: true
+    sameSite: Lax
+
+jmqtt:
+  config:
+    broker:
+      anonymous: true
+    netty:
+      tcp-port: 1883
+      websocket-port: 1884
+#      sslTcpPort: 8883
+#      sslWebsocketPort: 8884
+    cluster:
+      enable: true
+      cluster-name: "JMQTT-CLUSTER"
+      port: 5701
+      seed-nodes: [ "127.0.0.1:5701" ]

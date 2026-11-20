@@ -11,6 +11,7 @@
     <modules>
         <module>jmqtt-core</module>
         <module>jmqtt-springboot-starter</module>
+        <module>jmqtt-springboot-server</module>
     </modules>
 
     <version>1.0.0</version>
@@ -46,7 +47,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netty.version>4.1.54.Final</netty.version>
         <hutool.version>5.8.46</hutool.version>
-        <slf4j.version>1.7.30</slf4j.version>
+        <slf4j.version>2.0.18</slf4j.version>
         <lombok.version>1.18.40</lombok.version>
         <hazelcast.version>5.7.0</hazelcast.version>
         <snakeyaml.version>2.7</snakeyaml.version>
@@ -117,7 +118,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.13</version>
+            <version>1.5.34</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

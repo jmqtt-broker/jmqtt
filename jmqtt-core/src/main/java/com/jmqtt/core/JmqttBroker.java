@@ -47,13 +47,9 @@ public class JmqttBroker {
 
     private final MessageStore messageStore;
 
-    public JmqttBroker(String configPath) throws Exception {
-        JmqttConfig config = null;
-        if (StrUtil.isNotBlank(configPath)) {
-            config = YamlUtil.load(new FileReader(configPath), JmqttConfig.class);
-        }
+    public JmqttBroker(JmqttConfig config) throws Exception {
         if (config == null) {
-            config = YamlUtil.load(JmqttConfig.class.getClassLoader().getResourceAsStream("jmqtt.yml"), JmqttConfig.class);
+            config = loadConfig(null);
         }
         this.jmqttConfig = config;
         // 初始化订阅匹配器
@@ -72,6 +68,17 @@ public class JmqttBroker {
         initCtrl();
         // 上下文工具
         JmqttContext.setBroker(this);
+    }
+
+    public static JmqttConfig loadConfig(String configPath) throws Exception {
+        JmqttConfig config = null;
+        if (StrUtil.isNotBlank(configPath)) {
+            config = YamlUtil.load(new FileReader(configPath), JmqttConfig.class);
+        }
+        if (config == null) {
+            config = YamlUtil.load(JmqttConfig.class.getClassLoader().getResourceAsStream("jmqtt.yml"), JmqttConfig.class);
+        }
+        return config;
     }
 
     private void initCtrl() {
@@ -103,11 +110,11 @@ public class JmqttBroker {
         log.info("Jmqtt broker starting...");
         String configPath = Arrays.stream(args).filter(a -> a.startsWith("--config"))
                 .findAny().map(s -> s.replace("--config=", "").trim()).orElse(null);
-        JmqttBroker broker = new JmqttBroker(configPath);
+        JmqttBroker broker = new JmqttBroker(loadConfig(configPath));
         broker.startJmqtt();
     }
 
-    private void startJmqtt() throws Exception {
+    public void startJmqtt() throws Exception {
         // 启动存储
         LocalDB.startDB();
         // 启动集群，若配置未开启，则不启动
