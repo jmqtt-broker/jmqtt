@@ -2,5 +2,6 @@
 <project version="4">
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/jmqtt-core/src/main/resources/sql/jmqtt_local.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/jmqtt-core/src/main/resources/sql/jmqtt_pgsql.sql" dialect="MySQL" />
   </component>
 </project>

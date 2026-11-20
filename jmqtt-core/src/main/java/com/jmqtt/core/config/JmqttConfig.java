@@ -1,10 +1,10 @@
 package com.jmqtt.core.config;
 
-import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import cn.hutool.setting.yaml.YamlUtil;
 import com.jmqtt.core.cluster.ClusterConfig;
 import com.jmqtt.core.mqtt.config.BrokerConfig;
+import com.jmqtt.core.mqtt.config.DBConfig;
 import com.jmqtt.core.netty.config.NettyConfig;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,6 +20,8 @@ public class JmqttConfig {
     private NettyConfig netty = new NettyConfig();
 
     private ClusterConfig cluster = new ClusterConfig();
+
+    private DBConfig dataSource = new DBConfig();
 
     public static void main(String[] args) {
         JmqttConfig config = YamlUtil.load(JmqttConfig.class.getClassLoader().getResourceAsStream("jmqtt.yml"), JmqttConfig.class);

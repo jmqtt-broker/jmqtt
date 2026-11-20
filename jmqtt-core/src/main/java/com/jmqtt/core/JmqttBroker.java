@@ -24,6 +24,7 @@ import io.netty.handler.codec.mqtt.MqttMessageType;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.sql.DataSource;
 import java.io.FileReader;
 import java.util.Arrays;
 
@@ -46,6 +47,15 @@ public class JmqttBroker {
     private final SessionStore sessionStore;
 
     private final MessageStore messageStore;
+
+    private DataSource dataSource;
+
+    public JmqttBroker(JmqttConfig config, DataSource dataSource) throws Exception {
+        this(config);
+        if (!config.getDataSource().getUseLocal() && dataSource != null) {
+            this.dataSource = dataSource;
+        }
+    }
 
     public JmqttBroker(JmqttConfig config) throws Exception {
         if (config == null) {
@@ -116,7 +126,7 @@ public class JmqttBroker {
 
     public void startJmqtt() throws Exception {
         // 启动存储
-        LocalDB.startDB();
+        LocalDB.startDB(dataSource);
         // 启动集群，若配置未开启，则不启动
         JmqttCluster.start(this.jmqttConfig.getCluster());
         // 调度任务管理

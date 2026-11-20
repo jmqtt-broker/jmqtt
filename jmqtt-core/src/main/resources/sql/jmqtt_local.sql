@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `jmqtt_offline_message`
 -- DROP TABLE `jmqtt_retain_message`;
 CREATE TABLE IF NOT EXISTS `jmqtt_retain_message`
 (
-    `topic`   varchar(128) NOT NULL COMMENT '所属topic，主键',
+    `topic`   varchar(200) NOT NULL COMMENT '所属topic，主键',
     `content` text         NOT NULL COMMENT '消息体',
     PRIMARY KEY (`topic`)
 ) ENGINE = InnoDB

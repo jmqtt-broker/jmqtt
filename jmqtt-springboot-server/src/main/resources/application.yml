@@ -81,3 +81,6 @@ jmqtt:
       cluster-name: "JMQTT-CLUSTER"
       port: 5701
       seed-nodes: [ "127.0.0.1:5701" ]
+    dataSource:
+      # 禁用本地数据库，如果用户配置了数据源
+      useLocal: false

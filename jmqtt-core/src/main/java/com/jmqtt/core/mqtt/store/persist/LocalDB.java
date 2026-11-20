@@ -7,13 +7,13 @@ import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.jmqtt.core.mqtt.store.persist.mapper.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
+import org.h2.jdbcx.JdbcConnectionPool;
 
 import javax.sql.DataSource;
 import java.io.InputStream;
@@ -25,7 +25,6 @@ import java.util.function.Function;
 @Slf4j
 public class LocalDB {
 
-    private final String localStoreDriver = "org.h2.Driver";
     private final String localStoreUrl = "jdbc:h2:file:/opt/jmqtt/jmqtt;AUTO_SERVER=true;MODE=MYSQL;DATABASE_TO_LOWER=TRUE;WRITE_DELAY=1000";
     private final String localStoreUsername = "root";
     private final String localStorePassword = "123456";
@@ -49,21 +48,22 @@ public class LocalDB {
         return localStore;
     }
 
-    public static void startDB() {
-        localStore.start();
+    public static void startDB(DataSource dataSource) {
+        localStore.start(dataSource);
     }
 
-    public static void main(String[] args) {
-        getInstance();
-    }
-
-    public void start() {
+    private void start(DataSource dataSource) {
         if (this.start.compareAndSet(false, true)) {
-            log.info("local store starting...");
-            this.dataSource = buildDataSource();
+            if (dataSource != null) {
+                this.dataSource = dataSource;
+                log.info("user dataSource starting...");
+            } else {
+                this.dataSource = JdbcConnectionPool.create(localStoreUrl, localStoreUsername, localStorePassword);
+                log.info("local dataSource starting...");
+            }
 
             TransactionFactory transactionFactory = new JdbcTransactionFactory();
-            Environment environment = new Environment("development", transactionFactory, dataSource);
+            Environment environment = new Environment("development", transactionFactory, this.dataSource);
 
             MybatisConfiguration configuration = new MybatisConfiguration(environment);
             configuration.setMapUnderscoreToCamelCase(true);
@@ -77,22 +77,13 @@ public class LocalDB {
             this.sqlSessionFactory = new MybatisSqlSessionFactoryBuilder().build(configuration);
 
             try {
-                initSqlScript(dataSource);
+                initSqlScript(this.dataSource);
             } catch (Exception e) {
                 log.error("init sql error.", e);
                 throw new RuntimeException("init sql error.");
             }
-            log.info("local store started.");
+            log.info("dataSource started.");
         }
-    }
-
-    private DataSource buildDataSource() {
-        PooledDataSource dds = new PooledDataSource();
-        dds.setDriver(localStoreDriver);
-        dds.setUrl(localStoreUrl);
-        dds.setUsername(localStoreUsername);
-        dds.setPassword(localStorePassword);
-        return dds;
     }
 
     private void registerMappers(MybatisConfiguration configuration) {
@@ -108,7 +99,16 @@ public class LocalDB {
 
     private void initSqlScript(DataSource dataSource) throws Exception {
         try (Connection conn = dataSource.getConnection()) {
-            String initSql = "sql/jmqtt_local.sql";
+            String dbName = conn.getMetaData().getDatabaseProductName();
+            String initSql;
+            if ("H2".equalsIgnoreCase(dbName) || "MySQL".equalsIgnoreCase(dbName)) {
+                initSql = "sql/jmqtt_local.sql";
+            } else if ("PostgreSQL".equalsIgnoreCase(dbName)) {
+                initSql = "sql/jmqtt_pgsql.sql";
+            } else {
+                log.warn("unSupport db type: {}", dbName);
+                throw new RuntimeException("unSupport db type: " + dbName);
+            }
             InputStream is = this.getClass().getClassLoader().getResourceAsStream(initSql);
             if (is == null) {
                 throw new RuntimeException("sql script not found!");
